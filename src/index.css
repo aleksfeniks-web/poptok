@@ -566,135 +566,227 @@ video {
   vertical-align: middle; /* Para que se alinee con el texto */
   margin-right: 0.2em;    /* Espacio entre la imagen y el número */
 }
-/*Autenticacion*/
-/* Estilos para la pantalla de autenticación (AuthSelection) */
-.auth-selection {
+
+/* ============================================
+   PREMIUM AUTH MODAL (Google + Apple + Email)
+   ============================================ */
+
+.auth-modal-overlay {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: rgba(0, 0, 0, 0.9); /* Fondo oscuro con transparencia */
-  padding: 20px;
-  border-radius: 10px;
-  width: 300px;
-  text-align: center;
-  z-index: 1000;
-  color: #fff;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Sombra para dar profundidad */
-}
-
-.auth-selection h2 {
-  font-size: 20px;
-  font-weight: bold;
-  margin-bottom: 10px;
-  color: #ff0050; /* Color rosa mexicano para el título */
-}
-
-.auth-selection p {
-  font-size: 14px;
-  margin-bottom: 15px;
-  color: #ccc; /* Color gris claro para el texto */
-}
-
-/* Contenedor para los botones */
-.auth-buttons {
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
-  gap: 1rem;
-  margin-top: 10px;
+  align-items: center;
+  z-index: 4000;
+  animation: fadeInOverlay 0.25s ease;
 }
 
-/* Botones con estilo similar a upload-section */
-.auth-buttons button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  background-color: #ff0050; /* Color rosa mexicano */
-  color: #fff;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Sombra para los botones */
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-.auth-buttons button:hover {
-  background-color: #ff1a6b; /* Color más claro al hacer hover */
-  transform: translateY(-2px); /* Efecto de levantar el botón */
+.auth-modal {
+  width: 90%;
+  max-width: 380px;
+  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 32px 28px 28px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 0, 80, 0.15), inset 0 1px 0 rgba(255,255,255,0.08);
+  animation: slideUpModal 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-.auth-buttons button:active {
-  transform: translateY(0); /* Efecto de presionar el botón */
-}
-
-/* Estilos adicionales para hacer la ventana más moderna */
-.auth-selection::before {
+.auth-modal::before {
   content: '';
   position: absolute;
-  top: -10px;
-  left: -10px;
-  right: -10px;
-  bottom: -10px;
-  background: rgba(255, 0, 80, 0.1); /* Borde luminoso */
-  border-radius: 15px;
-  z-index: -1;
-  animation: border-glow 2s infinite alternate;
+  top: -80px;
+  right: -80px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255, 0, 80, 0.2) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-@keyframes border-glow {
-  0% {
-    box-shadow: 0 0 10px rgba(255, 0, 80, 0.3);
-  }
-  100% {
-    box-shadow: 0 0 20px rgba(255, 0, 80, 0.6);
-  }
+@keyframes slideUpModal {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Estilos para el contenedor de autenticación */
-.auth-container {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+/* Brand */
+.auth-modal-brand {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.auth-modal-logo {
+  font-size: 32px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ff0050, #ff6b35);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -1px;
+}
+
+.auth-modal-tagline {
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+/* Social Buttons */
+.auth-social-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.auth-social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
-  max-width: 400px; /* Ancho máximo para la ventana de autenticación */
-  z-index: 1000; /* Asegura que esté por encima de otros elementos */
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
 }
-/* Estilos para el formulario de registro/inicio de sesión */
-.auth-form {
+
+.auth-social-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.auth-social-btn:active {
+  transform: translateY(0);
+}
+
+/* Google button - white */
+.auth-google-btn {
+  background: #ffffff;
+  color: #1f1f1f;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+/* Apple button - black */
+.auth-apple-btn {
+  background: #050505;
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+
+/* Divider */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: rgba(255,255,255,0.3);
+  font-size: 12px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.12);
+}
+
+/* Email Form */
+.auth-email-form {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.auth-form input {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 16px;
-}
-
-.auth-form button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  background-color: #84d441; /* Color verde */
-  color: white;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.auth-form button:hover {
-  background-color: #218838; /* Color verde más oscuro al pasar el mouse */
-}
-
-.auth-form .toggle-button {
-  background-color: transparent;
-  color: #f6f6f9;
-  text-decoration: underline;
+.auth-input {
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.07);
+  color: #fff;
   font-size: 14px;
-  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
+
+.auth-input::placeholder {
+  color: rgba(255,255,255,0.35);
+}
+
+.auth-input:focus {
+  border-color: rgba(255, 0, 80, 0.6);
+  box-shadow: 0 0 0 3px rgba(255, 0, 80, 0.15);
+}
+
+.auth-email-btn {
+  padding: 13px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #FF0050, #ff6b35);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  margin-top: 4px;
+  box-shadow: 0 4px 15px rgba(255, 0, 80, 0.4);
+}
+
+.auth-email-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Switch link */
+.auth-switch-link {
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+  margin: 12px 0 0;
+}
+
+.auth-switch-link span {
+  color: #FF0050;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.auth-switch-link span:hover {
+  text-decoration: underline;
+}
+
+/* Guest button */
+.auth-guest-btn {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255,255,255,0.45);
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 14px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.auth-guest-btn:hover {
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.7);
+}
+
 .custom-file-upload {
     display: inline-block;
     background-color: #e6007e; /* Rosa mexicano */
