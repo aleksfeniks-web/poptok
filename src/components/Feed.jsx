@@ -7,14 +7,14 @@ import { collection, doc, updateDoc, getDoc, getDocs, query, orderBy, limit, inc
 import { AiFillHeart } from "react-icons/ai";
 import { FiSearch, FiVideo } from "react-icons/fi";
 
-// ─── Videos de demostración (Pexels CDN — sin API key) ───────────────────────
-// Pexels permite enlazar directamente sus videos bajo Creative Commons.
-// Atribución: Videos provided by Pexels (https://www.pexels.com)
+// ─── Videos de demostración (Mixkit CDN — sin API key, hotlinking permitido) ──
+// Mixkit by Envato — free to use, direct embedding allowed.
+// https://mixkit.co/license/
 const PEXELS_DEMO_VIDEOS = [
   {
-    riuzaki1234: "pexels-1",
-    fileUrl: "https://videos.pexels.com/video-files/3571264/3571264-uhd_2560_1440_30fps.mp4",
-    username: "Pexels",
+    riuzaki1234: "demo-1",
+    fileUrl: "https://assets.mixkit.co/videos/preview/mixkit-waves-in-the-water-1164-large.mp4",
+    username: "Mixkit",
     description: "🌊 Olas del océano al atardecer",
     interest: "Lifestyle",
     likes: 142,
@@ -24,10 +24,10 @@ const PEXELS_DEMO_VIDEOS = [
     isPexels: true,
   },
   {
-    riuzaki1234: "pexels-2",
-    fileUrl: "https://videos.pexels.com/video-files/856263/856263-hd_1920_1080_25fps.mp4",
-    username: "Pexels",
-    description: "🌆 Ciudad de noche con luces neón",
+    riuzaki1234: "demo-2",
+    fileUrl: "https://assets.mixkit.co/videos/preview/mixkit-aerial-view-of-city-traffic-at-night-11-large.mp4",
+    username: "Mixkit",
+    description: "🌆 Ciudad de noche vista desde el aire",
     interest: "Lifestyle",
     likes: 209,
     favorites: 61,
@@ -36,9 +36,9 @@ const PEXELS_DEMO_VIDEOS = [
     isPexels: true,
   },
   {
-    riuzaki1234: "pexels-3",
-    fileUrl: "https://videos.pexels.com/video-files/2169880/2169880-uhd_2560_1440_30fps.mp4",
-    username: "Pexels",
+    riuzaki1234: "demo-3",
+    fileUrl: "https://assets.mixkit.co/videos/preview/mixkit-stars-in-space-1610-large.mp4",
+    username: "Mixkit",
     description: "🌌 Galaxia y estrellas en movimiento",
     interest: "Science & Tech",
     likes: 318,
@@ -48,10 +48,10 @@ const PEXELS_DEMO_VIDEOS = [
     isPexels: true,
   },
   {
-    riuzaki1234: "pexels-4",
-    fileUrl: "https://videos.pexels.com/video-files/4763824/4763824-hd_1920_1080_30fps.mp4",
-    username: "Pexels",
-    description: "🌿 Naturaleza y bosque tranquilo",
+    riuzaki1234: "demo-4",
+    fileUrl: "https://assets.mixkit.co/videos/preview/mixkit-forest-stream-in-the-sunlight-529-large.mp4",
+    username: "Mixkit",
+    description: "🌿 Arroyo en el bosque con luz solar",
     interest: "Lifestyle",
     likes: 87,
     favorites: 24,
@@ -60,10 +60,10 @@ const PEXELS_DEMO_VIDEOS = [
     isPexels: true,
   },
   {
-    riuzaki1234: "pexels-5",
-    fileUrl: "https://videos.pexels.com/video-files/7364752/7364752-hd_1920_1080_30fps.mp4",
-    username: "Pexels",
-    description: "🏙️ Timelapse de una gran ciudad",
+    riuzaki1234: "demo-5",
+    fileUrl: "https://assets.mixkit.co/videos/preview/mixkit-sea-waves-on-the-beach-1181-large.mp4",
+    username: "Mixkit",
+    description: "🏖️ Olas suaves en la playa",
     interest: "Lifestyle",
     likes: 453,
     favorites: 121,
@@ -72,11 +72,11 @@ const PEXELS_DEMO_VIDEOS = [
     isPexels: true,
   },
   {
-    riuzaki1234: "pexels-6",
-    fileUrl: "https://videos.pexels.com/video-files/3015538/3015538-hd_1920_1080_30fps.mp4",
-    username: "Pexels",
-    description: "🐠 Vida submarina colorida",
-    interest: "Animals & Pets",
+    riuzaki1234: "demo-6",
+    fileUrl: "https://assets.mixkit.co/videos/preview/mixkit-spinning-around-the-earth-29351-large.mp4",
+    username: "Mixkit",
+    description: "🌍 La Tierra vista desde el espacio",
+    interest: "Science & Tech",
     likes: 274,
     favorites: 73,
     coins: 9,
@@ -84,6 +84,7 @@ const PEXELS_DEMO_VIDEOS = [
     isPexels: true,
   },
 ];
+
 
 const Feed = ({
   user,
