@@ -4,7 +4,7 @@ services:
     name: poptok-app
     runtime: static
     buildCommand: npm run build
-    publishDir: dist
+    staticPublishPath: dist
     envVars:
       - key: VITE_FIREBASE_API_KEY
         value: "AIzaSyBuGUsI9YoeIpvpfiNl9xbdkwyGSE1i4Yk"
