@@ -59,31 +59,92 @@ body {
 }
 
 /* Botones en la parte superior */
+/* ── Top Header ─────────────────────────────────── */
 .top-buttons {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  padding: 1rem;
+  height: 56px;
+  padding: 0 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  z-index: 11;
+  z-index: 100;
+  background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%);
+  backdrop-filter: blur(4px);
 }
 
-.top-buttons h1 {
-  font-size: 24px;
-  font-weight: bold;
-  color: #ff4757; /* Color llamativo para el logo */
+.app-logo {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #ff0050, #ff6b35);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-signin-btn {
+  background: linear-gradient(135deg, #ff0050, #ff6b35);
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  box-shadow: 0 2px 10px rgba(255, 0, 80, 0.4);
+}
+
+.header-signin-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.header-account-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  overflow: hidden;
+  padding: 0;
+}
+
+.header-account-btn:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.header-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Legacy fallback — no longer used for header buttons but kept for safety */
 .top-buttons .buttons {
   display: flex;
   gap: 1rem;
 }
 
 .top-buttons button {
-  background-color: #ff0050; /* Color de fondo similar al de TikTok */
+  background-color: #ff0050;
   border: none;
   border-radius: 8px;
   padding: 10px 20px;
@@ -94,7 +155,7 @@ body {
 }
 
 .top-buttons button:hover {
-  background-color: #ff1a6b; /* Color más claro al hacer hover */
+  background-color: #ff1a6b;
 }
 
 /* Sección de subir video */
@@ -1926,20 +1987,21 @@ canvas {
 
 /* Layout Toggle Bar - Selector de Modo */
 .layout-toggle-bar {
+  position: fixed;
+  top: 56px; /* sits right below the header */
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   justify-content: center;
-  gap: 15px;
-  margin: 15px 0;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
-  z-index: 10;
-  position: relative;
+  gap: 6px;
+  padding: 5px 6px;
+  background: rgba(15, 15, 15, 0.82);
+  backdrop-filter: blur(14px);
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 90;
+  width: auto;
+  min-width: 200px;
 }
 
 .toggle-button {
@@ -1966,7 +2028,7 @@ canvas {
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* --- TIKTOK SNAP-SCROLL FEED --- */
+/* --- SNAP-SCROLL FEED (Para Ti) --- */
 .feed-container.snap-mode {
   height: 100vh;
   overflow-y: scroll;
@@ -1998,11 +2060,11 @@ canvas {
   object-fit: cover !important;
 }
 
-/* --- EXPLORAR MODE (REDNOTE GRID) --- */
+/* --- EXPLORAR MODE (Grid) --- */
 .explore-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 70px 15px 80px 15px; /* adjust for top and bottom bar space */
+  padding: 110px 15px 90px 15px; /* 56px header + ~44px toggle + breathing room */
   min-height: 100vh;
 }
 

@@ -245,11 +245,26 @@ function App() {
 
         {/* Top Header */}
         <div className="top-buttons">
-          <h1>Poptok</h1>
-          <div className="buttons">
-            <button className="add-button" onClick={startLiveStream} style={{ background: "#FF0050", border: "none", color: "white", borderRadius: "15px", padding: "6px 12px", cursor: "pointer", fontWeight: "bold" }}>
-              🔴 Live
-            </button>
+          <h1 className="app-logo">Poptok</h1>
+          <div className="header-actions">
+            {user ? (
+              <button
+                className="header-account-btn"
+                onClick={handleGoToProfile}
+                title={user.displayName || user.email}
+              >
+                {user.photoURL
+                  ? <img src={user.photoURL} alt="avatar" className="header-avatar" />
+                  : <BsFillPersonFill size={20} />}
+              </button>
+            ) : (
+              <button
+                className="header-signin-btn"
+                onClick={() => setShowAuthSelection(true)}
+              >
+                Iniciar sesión
+              </button>
+            )}
           </div>
         </div>
 
@@ -263,13 +278,13 @@ function App() {
                 setActiveExploreVideoId(null);
               }}
             >
-              Explorar (Rednote)
+              Explorar
             </button>
             <button 
               className={`toggle-button ${activeView === "feed" ? "active" : ""}`}
               onClick={() => setActiveView("feed")}
             >
-              Para Ti (TikTok)
+              Para Ti
             </button>
           </div>
         )}
