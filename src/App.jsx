@@ -321,15 +321,12 @@ function App() {
           <Route path="/live/:roomId" element={<LiveStream />} />
         </Routes>
 
-        {/* Upload Overlay */}
+
+        {/* Upload Modal — the component renders its own overlay */}
         {showUploadSection && (
-          <>
-            <button className="close-button" onClick={() => setShowUploadSection(false)}>✖</button>
-            <div className="upload-section">
-              <UploadVideo onUploadSuccess={handleUploadSuccess} setPage={setPage} />
-            </div>
-          </>
+          <UploadVideo onUploadSuccess={handleUploadSuccess} setPage={setPage} />
         )}
+
 
         {/* Chat Overlay */}
         {showChat && (

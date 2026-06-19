@@ -1,240 +1,416 @@
-import React, { useState, useEffect } from "react";
-import { auth, db, storage } from "../firebase.js"; 
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import React, { useState, useRef, useEffect } from "react";
+import { auth, db, storage } from "../firebase.js";
+import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { collection, addDoc } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
-import { FaArrowUp, FaCheck, FaTimes } from "react-icons/fa";
+import { FiVideo, FiImage, FiType, FiUploadCloud, FiX, FiZap, FiCheck } from "react-icons/fi";
 
-const UploadVideo = ({ onUploadSuccess, setPage }) => {
-    const [videoFile, setVideoFile] = useState(null);
-    const [imageFiles, setImageFiles] = useState([]); // ✅ Estado para imágenes
-    const [loading, setLoading] = useState(false);
-    const [user, setUser] = useState(null);
-    
-    const interestOptions = [
-        "Random", "Anime & Manga", "Latest News", "Humor", "Memes", "Gaming",
-        "WTF", "Relationship & Dating", "Motor Vehicles", "Animals & Pets",
-        "Science & Tech", "ASMR", "Sports", "Movies & TV", "Food & Drinks", 
-        "Lifestyle", "Superhero", "Crypto", "IA", "WoW"
-    ];
+const interestOptions = [
+  "Random", "Anime & Manga", "Latest News", "Humor", "Memes", "Gaming",
+  "WTF", "Relationship & Dating", "Motor Vehicles", "Animals & Pets",
+  "Science & Tech", "ASMR", "Sports", "Movies & TV", "Food & Drinks",
+  "Lifestyle", "Superhero", "Crypto", "IA", "WoW"
+];
 
-    const [selectedInterest, setSelectedInterest] = useState("");
-    const [description, setDescription] = useState(""); // ✅ Estado para descripción
-    
-    // ✅ Obtener usuario logueado de Firebase
-    useEffect(() => {
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            setUser(user);
-        });
-        return () => unsubscribe();
-    }, []);
+// AI text-to-image style presets
+const AI_STYLES = [
+  { id: "gradient", label: "🎨 Gradiente", bg: "linear-gradient(135deg,#667eea,#764ba2)", color: "#fff" },
+  { id: "dark",     label: "🌑 Oscuro",    bg: "linear-gradient(135deg,#0f0c29,#302b63,#24243e)", color: "#fff" },
+  { id: "sunset",   label: "🌅 Atardecer", bg: "linear-gradient(135deg,#f093fb,#f5576c)", color: "#fff" },
+  { id: "ocean",    label: "🌊 Océano",    bg: "linear-gradient(135deg,#4facfe,#00f2fe)", color: "#fff" },
+  { id: "forest",   label: "🌿 Bosque",    bg: "linear-gradient(135deg,#43e97b,#38f9d7)", color: "#000" },
+  { id: "fire",     label: "🔥 Fuego",     bg: "linear-gradient(135deg,#f7971e,#ffd200)", color: "#000" },
+];
 
-    // ✅ Selector de archivos
-    const handleFileSelection = (type) => {
-        const fileInput = document.createElement("input");
-        fileInput.type = "file";
-        fileInput.multiple = type === 'images';
-        fileInput.accept = type === 'video' ? "video/*" : "image/*";
+// AI video filters
+const AI_FILTERS = [
+  { id: "none",       label: "Original",   filter: "" },
+  { id: "vivid",      label: "✨ Vívido",   filter: "saturate(1.8) contrast(1.1)" },
+  { id: "cinematic",  label: "🎬 Cine",     filter: "contrast(1.2) sepia(0.3)" },
+  { id: "noir",       label: "⚫ Noir",     filter: "grayscale(1) contrast(1.3)" },
+  { id: "warm",       label: "🌤 Cálido",   filter: "sepia(0.5) saturate(1.4)" },
+  { id: "cool",       label: "❄️ Frío",     filter: "hue-rotate(30deg) saturate(1.2)" },
+];
 
-        fileInput.onchange = (e) => {
-            const files = Array.from(e.target.files);
-            if (type === 'video') {
-                const file = files[0];
-                if (file && file.type.startsWith("video/")) {
-                    setVideoFile(file);
-                    setImageFiles([]); // Reset images
-                } else {
-                    alert("Por favor, selecciona un archivo de video válido.");
-                }
-            } else if (type === 'images') {
-                const validImages = files.filter(file => file.type.startsWith("image/"));
-                if (validImages.length > 0) {
-                    setImageFiles(validImages);
-                    setVideoFile(null); // Reset video
-                } else {
-                    alert("Por favor, selecciona archivos de imagen válidos.");
-                }
-            }
-        };
+const UploadVideo = ({ onUploadSuccess }) => {
+  const [tab, setTab] = useState("video"); // "video" | "photo" | "text"
+  const [videoFile, setVideoFile] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
+  const [description, setDescription] = useState("");
+  const [selectedInterest, setSelectedInterest] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [user, setUser] = useState(null);
+  const [dragOver, setDragOver] = useState(false);
 
-        fileInput.click();
+  // AI state
+  const [showAI, setShowAI] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState("none");
+  const [selectedStyle, setSelectedStyle] = useState("gradient");
+  const [textContent, setTextContent] = useState("");
+
+  const fileInputRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged(setUser);
+    return () => unsub();
+  }, []);
+
+  // ─── File selection ────────────────────────────────────────────────────────
+  const handleFileDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (tab === "video" && file.type.startsWith("video/")) selectVideo(file);
+    if (tab === "photo" && file.type.startsWith("image/")) selectImage(file);
+  };
+
+  const selectVideo = (file) => {
+    setVideoFile(file);
+    setVideoPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const selectImage = (file) => {
+    setImageFile(file);
+    setImagePreviewUrl(URL.createObjectURL(file));
+  };
+
+  const openFilePicker = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = tab === "video" ? "video/*" : "image/*";
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (tab === "video") selectVideo(file);
+      else selectImage(file);
     };
+    input.click();
+  };
 
-    // ✅ Subir archivo a Firebase Storage
-    const uploadFileToStorage = async (file, type) => {
-        try {
-            const fileId = uuidv4();
-            const fileExtension = file.name.split('.').pop();
-            const folder = type === 'video' ? 'videos' : 'images';
-            const filePath = `${folder}/${fileId}.${fileExtension}`;
-            const fileRef = storageRef(storage, filePath);
+  const clearSelection = () => {
+    setVideoFile(null);
+    setImageFile(null);
+    setVideoPreviewUrl(null);
+    setImagePreviewUrl(null);
+  };
 
-            await uploadBytes(fileRef, file);
-            const downloadUrl = await getDownloadURL(fileRef);
-            console.log(`✅ Archivo subido a Firebase Storage! URL: ${downloadUrl}`);
-            return downloadUrl;
-        } catch (error) {
-            console.error("❌ Error al subir el archivo a Firebase Storage:", error);
-            alert("Error al subir el archivo a Firebase Storage.");
-            throw error;
+  // ─── Generate text-as-image from canvas ───────────────────────────────────
+  const generateTextImage = () =>
+    new Promise((resolve) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return resolve(null);
+      const ctx = canvas.getContext("2d");
+      const style = AI_STYLES.find(s => s.id === selectedStyle);
+
+      canvas.width = 1080;
+      canvas.height = 1920;
+
+      // Background gradient
+      const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      const stops = style.bg.match(/#[a-fA-F0-9]{3,8}/g) || ["#667eea", "#764ba2"];
+      stops.forEach((color, i) => grad.addColorStop(i / (stops.length - 1), color));
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Watermark logo
+      ctx.font = "bold 52px -apple-system, sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.25)";
+      ctx.textAlign = "center";
+      ctx.fillText("Poptok", canvas.width / 2, 120);
+
+      // Main text — word wrap
+      ctx.fillStyle = style.color;
+      ctx.font = "bold 72px -apple-system, sans-serif";
+      ctx.textAlign = "center";
+      const words = textContent.split(" ");
+      const lineH = 90;
+      let line = "";
+      let y = canvas.height / 2 - (Math.ceil(textContent.length / 20) * lineH) / 2;
+      for (const word of words) {
+        const test = line + word + " ";
+        if (ctx.measureText(test).width > canvas.width - 120 && line) {
+          ctx.fillText(line.trim(), canvas.width / 2, y);
+          line = word + " ";
+          y += lineH;
+        } else {
+          line = test;
         }
-    };
+      }
+      ctx.fillText(line.trim(), canvas.width / 2, y);
 
-    // ✅ Manejo de la subida
-    const handleUpload = async () => {
-        if ((!videoFile && imageFiles.length === 0) || !user) {
-            alert("Selecciona un video o imágenes y asegúrate de estar autenticado.");
-            return;
-        }
+      canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.92);
+    });
 
-        setLoading(true);
-        try {
-            if (videoFile) {
-                console.log("🔄 Subiendo video a Firebase Storage...");
-                const downloadUrl = await uploadFileToStorage(videoFile, 'video');
-                console.log("✅ Video subido. URL:", downloadUrl);
+  // ─── Upload ────────────────────────────────────────────────────────────────
+  const handleUpload = async () => {
+    if (!user) { alert("Debes iniciar sesión para publicar."); return; }
 
-                // Guardar metadatos en Firestore
-                await addDoc(collection(db, "videos"), {
-                    userId: user.uid,
-                    username: user.displayName || "Anónimo",
-                    fileUrl: downloadUrl,
-                    createdAt: new Date().toISOString(),
-                    description: description.trim(),
-                    interest: selectedInterest || "Random",
-                    likes: 0,
-                    favorites: 0,
-                    comments: []
-                });
+    let fileBlob = null;
+    let fileType = "";
 
-                alert("✅ Video subido con éxito!");
-            } else if (imageFiles.length > 0) {
-                console.log("🔄 Subiendo imágenes a Firebase Storage...");
-                for (const imageFile of imageFiles) {
-                    const downloadUrl = await uploadFileToStorage(imageFile, 'image');
-                    console.log("✅ Imagen subida. URL:", downloadUrl);
+    if (tab === "video" && videoFile) { fileBlob = videoFile; fileType = "video"; }
+    else if (tab === "photo" && imageFile) { fileBlob = imageFile; fileType = "image"; }
+    else if (tab === "text") {
+      if (!textContent.trim()) { alert("Escribe algo antes de publicar."); return; }
+      fileBlob = await generateTextImage();
+      fileType = "image";
+    } else {
+      alert("Selecciona un archivo antes de publicar.");
+      return;
+    }
 
-                    // Guardar metadatos en Firestore
-                    await addDoc(collection(db, "videos"), {
-                        userId: user.uid,
-                        username: user.displayName || "Anónimo",
-                        fileUrl: downloadUrl,
-                        createdAt: new Date().toISOString(),
-                        description: description.trim(),
-                        interest: selectedInterest || "Random",
-                        likes: 0,
-                        favorites: 0,
-                        comments: []
-                    });
-                }
+    setLoading(true);
+    setProgress(0);
+    try {
+      const ext = fileType === "video" ? videoFile?.name.split(".").pop() || "mp4" : "jpg";
+      const path = `${fileType}s/${uuidv4()}.${ext}`;
+      const ref = storageRef(storage, path);
 
-                alert("✅ Imágenes subidas con éxito!");
-            }
+      await new Promise((resolve, reject) => {
+        const task = uploadBytesResumable(ref, fileBlob);
+        task.on("state_changed",
+          (snap) => setProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 100)),
+          reject,
+          resolve
+        );
+      });
 
-            // Limpiar estados
-            setVideoFile(null);
-            setImageFiles([]);
-            setDescription("");
-            setSelectedInterest("");
+      const url = await getDownloadURL(ref);
+      await addDoc(collection(db, "videos"), {
+        userId: user.uid,
+        username: user.displayName || "Anónimo",
+        fileUrl: url,
+        fileType,
+        aiFilter: selectedFilter !== "none" ? selectedFilter : null,
+        createdAt: new Date().toISOString(),
+        description: (description || textContent).trim(),
+        interest: selectedInterest || "Random",
+        likes: 0,
+        favorites: 0,
+        comments: [],
+      });
 
-            if (onUploadSuccess) onUploadSuccess();
-            if (setPage) setPage(1);
-        } catch (error) {
-            console.error("❌ Error en la subida del archivo:", error);
-            alert(`Error al subir el archivo: ${error.message}`);
-        } finally {
-            setLoading(false);
-        }
-    };
+      if (onUploadSuccess) onUploadSuccess();
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Error al publicar: " + err.message);
+    } finally {
+      setLoading(false);
+      setProgress(0);
+    }
+  };
 
-    return (
-        <div className="upload-section">
-            <h2>Subir Video o Imágenes</h2>
+  const hasContent = (tab === "video" && videoFile) ||
+                     (tab === "photo" && imageFile) ||
+                     (tab === "text" && textContent.trim().length > 0);
 
-            <label htmlFor="description">Descripción:</label>
-            <textarea
-                id="description"
-                placeholder="Describe tu video o imagen..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows="3"
-                className="description-input"
-                style={{ width: "100%", background: "#222", color: "#fff", border: "1px solid #444", borderRadius: "5px", padding: "8px", boxSizing: "border-box" }}
-            />
-                
-            <label htmlFor="interest" style={{ marginTop: "10px", display: "block" }}>Categoría:</label>
-            <select 
-                id="interest" 
-                value={selectedInterest} 
-                onChange={(e) => setSelectedInterest(e.target.value)}
-                style={{ width: "100%", background: "#222", color: "#fff", border: "1px solid #444", borderRadius: "5px", padding: "8px" }}
-            >
-                <option value="">-- Selecciona --</option>
-                {interestOptions.map((interest, index) => (
-                    <option key={index} value={interest}>{interest}</option>
-                ))}
-            </select>
+  const activeFilter = AI_FILTERS.find(f => f.id === selectedFilter);
 
-            {/* Vista previa */}
-            {videoFile && (
-                <div className="video-preview" style={{ marginTop: "15px" }}>
-                    <video width="100%" height="auto" controls style={{ borderRadius: "5px", background: "#000" }}>
-                        <source src={URL.createObjectURL(videoFile)} type="video/mp4" />
-                    </video>
-                </div>
-            )}
-
-            {imageFiles.length > 0 && (
-                <div className="image-preview" style={{ marginTop: "15px", display: "flex", gap: "5px", flexWrap: "wrap" }}>
-                    {imageFiles.map((imageFile, index) => (
-                        <img key={index} src={URL.createObjectURL(imageFile)} alt={`Preview ${index}`} style={{ width: "70px", height: "70px", objectFit: "cover", borderRadius: "5px" }} />
-                    ))}
-                </div>
-            )}
-
-            {/* Botones de selección */}
-            <div className="upload-controls" style={{ display: "flex", gap: "10px", marginTop: "15px", justifyContent: "center" }}>
-                <button 
-                    onClick={() => handleFileSelection('video')} 
-                    className="upload-button"
-                    disabled={loading || !user}
-                    style={{ fontSize: "14px" }}
-                >
-                   🎥 Video
-                </button>
-
-                <button 
-                    onClick={() => handleFileSelection('images')} 
-                    className="upload-button"
-                    disabled={loading || !user}
-                    style={{ fontSize: "14px" }}
-                >
-                   📸 Fotos
-                </button>
-            </div>
-
-            {/* Botón de publicar */}
-            {(videoFile || imageFiles.length > 0) && (
-                <button 
-                    onClick={handleUpload} 
-                    className="upload-button"
-                    disabled={loading || !user}
-                    style={{ width: "100%", borderRadius: "20px", marginTop: "15px", background: "#FF0050", color: "#fff", fontWeight: "bold" }}
-                >
-                    {loading ? "Publicando..." : "Publicar"}
-                </button>
-            )}
-
-            {/* Cancelar */}
-            <button 
-                onClick={onUploadSuccess}
-                className="cancel-button"
-                style={{ width: "100%", borderRadius: "20px", marginTop: "10px" }}
-            >
-                Cancelar
-            </button>
+  return (
+    <div className="upload-modal-overlay" onClick={(e) => { if (e.target.classList.contains("upload-modal-overlay")) onUploadSuccess?.(); }}>
+      <div className="upload-modal">
+        {/* Header */}
+        <div className="upload-modal-header">
+          <h2 className="upload-modal-title">Nuevo post</h2>
+          <button className="upload-modal-close" onClick={onUploadSuccess}><FiX size={20} /></button>
         </div>
-    );
+
+        {/* Tab selector */}
+        <div className="upload-tabs">
+          {[
+            { id: "video", label: "Video", icon: <FiVideo size={16} /> },
+            { id: "photo", label: "Foto",  icon: <FiImage size={16} /> },
+            { id: "text",  label: "Texto", icon: <FiType size={16} /> },
+          ].map(t => (
+            <button
+              key={t.id}
+              className={`upload-tab ${tab === t.id ? "active" : ""}`}
+              onClick={() => { setTab(t.id); clearSelection(); }}
+            >
+              {t.icon} {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="upload-modal-body">
+          {/* ── Drop zone (video / photo tabs) ────────────── */}
+          {tab !== "text" && (
+            <>
+              {!videoPreviewUrl && !imagePreviewUrl ? (
+                <div
+                  className={`upload-dropzone ${dragOver ? "drag-over" : ""}`}
+                  onClick={openFilePicker}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleFileDrop}
+                >
+                  <FiUploadCloud size={40} className="upload-dropzone-icon" />
+                  <p className="upload-dropzone-text">
+                    {tab === "video" ? "Arrastra tu video aquí" : "Arrastra tu foto aquí"}
+                  </p>
+                  <p className="upload-dropzone-sub">o haz clic para seleccionar</p>
+                  <p className="upload-dropzone-hint">
+                    {tab === "video" ? "MP4, MOV, AVI — máx. 100MB" : "JPG, PNG, WEBP — máx. 20MB"}
+                  </p>
+                </div>
+              ) : (
+                <div className="upload-preview-wrapper">
+                  {tab === "video" && videoPreviewUrl && (
+                    <video
+                      src={videoPreviewUrl}
+                      className="upload-preview-video"
+                      style={{ filter: activeFilter?.filter || "" }}
+                      controls
+                      muted
+                    />
+                  )}
+                  {tab === "photo" && imagePreviewUrl && (
+                    <img
+                      src={imagePreviewUrl}
+                      className="upload-preview-img"
+                      style={{ filter: activeFilter?.filter || "" }}
+                      alt="preview"
+                    />
+                  )}
+                  <button className="upload-preview-clear" onClick={clearSelection}><FiX /></button>
+                </div>
+              )}
+
+              {/* AI Filter toggle (only when file selected) */}
+              {(videoPreviewUrl || imagePreviewUrl) && (
+                <div className="upload-ai-section">
+                  <button className="upload-ai-toggle" onClick={() => setShowAI(!showAI)}>
+                    <FiZap size={14} /> IA · Filtros
+                    <span className="upload-ai-badge">Beta</span>
+                  </button>
+                  {showAI && (
+                    <div className="upload-ai-filters">
+                      {AI_FILTERS.map(f => (
+                        <button
+                          key={f.id}
+                          className={`upload-ai-chip ${selectedFilter === f.id ? "selected" : ""}`}
+                          onClick={() => setSelectedFilter(f.id)}
+                        >
+                          {selectedFilter === f.id && <FiCheck size={11} />} {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── Text-as-image tab ─────────────────────────── */}
+          {tab === "text" && (
+            <div className="upload-text-section">
+              {/* Preview canvas (hidden, used to generate image) */}
+              <canvas ref={canvasRef} style={{ display: "none" }} />
+
+              {/* Live preview */}
+              <div
+                className="upload-text-preview"
+                style={{ background: AI_STYLES.find(s => s.id === selectedStyle)?.bg }}
+              >
+                <span
+                  className="upload-text-preview-logo"
+                  style={{ color: AI_STYLES.find(s => s.id === selectedStyle)?.color === "#000" ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.3)" }}
+                >
+                  Poptok
+                </span>
+                <p
+                  className="upload-text-preview-content"
+                  style={{ color: AI_STYLES.find(s => s.id === selectedStyle)?.color }}
+                >
+                  {textContent || "Tu texto aparecerá aquí..."}
+                </p>
+              </div>
+
+              <textarea
+                className="upload-text-input"
+                placeholder="Escribe tu mensaje, pensamiento, cita..."
+                value={textContent}
+                onChange={e => setTextContent(e.target.value)}
+                maxLength={280}
+                rows={3}
+              />
+              <p className="upload-text-counter">{textContent.length}/280</p>
+
+              {/* Style selector */}
+              <div className="upload-ai-section" style={{ marginTop: "8px" }}>
+                <p className="upload-ai-label"><FiZap size={13} /> Estilo del fondo</p>
+                <div className="upload-ai-filters">
+                  {AI_STYLES.map(s => (
+                    <button
+                      key={s.id}
+                      className={`upload-ai-chip ${selectedStyle === s.id ? "selected" : ""}`}
+                      style={selectedStyle === s.id ? { background: s.bg, color: s.color, border: "none" } : {}}
+                      onClick={() => setSelectedStyle(s.id)}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Common fields ──────────────────────────────── */}
+          <div className="upload-fields">
+            {tab !== "text" && (
+              <textarea
+                className="upload-description"
+                placeholder="Describe tu contenido, agrega hashtags... #trending"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                maxLength={300}
+                rows={2}
+              />
+            )}
+
+            {/* Category */}
+            <div className="upload-category-wrapper">
+              <label className="upload-field-label">Categoría</label>
+              <select
+                className="upload-category-select"
+                value={selectedInterest}
+                onChange={e => setSelectedInterest(e.target.value)}
+              >
+                <option value="">— Selecciona una categoría —</option>
+                {interestOptions.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* ── Upload progress ────────────────────────────── */}
+          {loading && (
+            <div className="upload-progress-bar-wrapper">
+              <div className="upload-progress-bar" style={{ width: `${progress}%` }} />
+              <span className="upload-progress-label">{progress}%</span>
+            </div>
+          )}
+
+          {/* ── Action buttons ─────────────────────────────── */}
+          <div className="upload-actions">
+            <button
+              className="upload-publish-btn"
+              onClick={handleUpload}
+              disabled={loading || !hasContent}
+            >
+              {loading ? `Subiendo ${progress}%...` : "Publicar"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default UploadVideo;

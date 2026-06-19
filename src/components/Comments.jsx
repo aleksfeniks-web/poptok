@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { auth, db } from "../firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { FiX, FiSend } from "react-icons/fi";
 import "../index.css";
 
 const Comments = ({ riuzaki1234, onClose, onCommentSubmit }) => {
@@ -9,213 +10,224 @@ const Comments = ({ riuzaki1234, onClose, onCommentSubmit }) => {
   const [commentsList, setCommentsList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isOpen, setIsOpen] = useState(false);
+  const [visible, setVisible] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
-  const commentsRef = useRef(null);
 
-  // ✅ Obtener usuario autenticado
+  const listEndRef = useRef(null);
+  const inputRef = useRef(null);
+  const sheetRef = useRef(null);
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        console.log("✅ Usuario autenticado en comentarios:", user);
-        try { 
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          const userData = userDoc.exists() ? userDoc.data() : {};
-
-          setCurrentUser({
-            uid: user.uid,
-            displayName: userData.name || user.displayName || "Anónimo",
-            profilePic: userData.profilePic || user.photoURL || "/default-user.png",
-          });
-        } catch (err) {
-          console.error("❌ Error al obtener datos del usuario en comentarios:", err);
-          setCurrentUser({
-            uid: user.uid,
-            displayName: user.displayName || "Anónimo",
-            profilePic: user.photoURL || "/default-user.png", 
-          }); 
-        }
-      } else {
-        console.log("⚠️ No hay usuario autenticado en comentarios.");
-        setCurrentUser(null);
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) { setCurrentUser(null); return; }
+      try {
+        const snap = await getDoc(doc(db, "users", u.uid));
+        const data = snap.exists() ? snap.data() : {};
+        setCurrentUser({
+          uid: u.uid,
+          displayName: data.name || u.displayName || "Anónimo",
+          profilePic: data.profilePic || u.photoURL || null,
+        });
+      } catch {
+        setCurrentUser({ uid: u.uid, displayName: u.displayName || "Anónimo", profilePic: u.photoURL || null });
       }
     });
-
-    return () => unsubscribe();
+    return () => unsub();
   }, []);
 
-  // ✅ Cargar comentarios cuando el componente se monta o cambia el ID del video
-  useEffect(() => {
-    if (riuzaki1234) {
-      setTimeout(() => setIsOpen(true), 50);
-      fetchComments();
-    }
-  }, [riuzaki1234]);
-
-  // 📌 Obtener comentarios desde Firestore
+  // ── Fetch comments ────────────────────────────────────────────────────────
   const fetchComments = useCallback(async () => {
-    if (!riuzaki1234) {
-      setError("Error: No se encontró el ID del video.");
+    if (!riuzaki1234) return;
+    // Demo Pexels/Mixkit videos don't have Firestore docs
+    if (riuzaki1234.startsWith("demo-") || riuzaki1234.startsWith("pexels-")) {
+      setCommentsList([]);
       return;
     }
-
     setLoading(true);
     setError(null);
-
     try {
-      const videoDoc = await getDoc(doc(db, "videos", riuzaki1234));
-      if (!videoDoc.exists()) {
-        console.warn("⚠️ No se encontró el video en Firestore.");
-        setCommentsList([]);
-        return;
-      }
+      const snap = await getDoc(doc(db, "videos", riuzaki1234));
+      if (!snap.exists()) { setCommentsList([]); return; }
+      const raw = Array.isArray(snap.data().comments) ? snap.data().comments : [];
 
-      const videoData = videoDoc.data();
-      const comments = Array.isArray(videoData.comments) ? videoData.comments : [];
-
-      // 🔹 Enriquecer comentarios con imágenes de perfil desde Firestore
-      const profileCache = new Map();
-      const enrichedComments = await Promise.all(
-        comments.map(async (c) => {
-          if (!profileCache.has(c.userId)) {
+      // Enrich with profile pics (cache by userId)
+      const cache = {};
+      const enriched = await Promise.all(
+        raw.map(async (c) => {
+          if (!cache[c.userId]) {
             try {
-              const userDoc = await getDoc(doc(db, "users", c.userId));
-              profileCache.set(
-                c.userId,
-                userDoc.exists() ? userDoc.data().profilePic || "/default-user.png" : "/default-user.png"
-              );
-            } catch (err) {
-              profileCache.set(c.userId, "/default-user.png");
-            }
+              const u = await getDoc(doc(db, "users", c.userId));
+              cache[c.userId] = u.exists() ? (u.data().profilePic || null) : null;
+            } catch { cache[c.userId] = null; }
           }
-
           return {
-            id: c.commentId || c.id,
+            id: c.commentId || c.id || Math.random().toString(),
             text: c.text,
-            timestamp: new Date(c.timestamp).toLocaleString(),
+            timestamp: c.timestamp ? new Date(c.timestamp).toLocaleString("es", { dateStyle: "short", timeStyle: "short" }) : "",
             username: c.username || "Anónimo",
-            profilePic: profileCache.get(c.userId),
+            profilePic: cache[c.userId],
           };
         })
       );
-
-      setCommentsList(enrichedComments);
-    } catch (err) {
-      console.error("❌ Error al obtener los comentarios:", err);
-      setError("Error al cargar los comentarios.");
+      setCommentsList(enriched);
+    } catch (e) {
+      setError("No se pudieron cargar los comentarios.");
     } finally {
       setLoading(false);
     }
   }, [riuzaki1234]);
 
-  // 📌 Manejar envío de un nuevo comentario
+  useEffect(() => {
+    fetchComments();
+    setTimeout(() => setVisible(true), 30);
+  }, [fetchComments]);
+
+  // Auto-scroll to bottom when new comments arrive
+  useEffect(() => {
+    listEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [commentsList]);
+
+  // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = useCallback(async (e) => {
-    e.preventDefault();
-
+    e?.preventDefault();
     if (!comment.trim()) return;
-    if (!currentUser) {
-      alert("⚠️ Debes iniciar sesión para comentar.");
-      return;
-    }
+    if (!currentUser) { alert("Inicia sesión para comentar."); return; }
 
-    console.log("📩 Intentando enviar comentario:", comment);
+    const newComment = {
+      id: Date.now().toString(),
+      text: comment.trim(),
+      timestamp: new Date().toLocaleString("es", { dateStyle: "short", timeStyle: "short" }),
+      username: currentUser.displayName,
+      profilePic: currentUser.profilePic,
+    };
 
     try {
-      const newComment = {
-        commentId: Date.now().toString(),
-        text: comment.trim(),
-        timestamp: new Date().toISOString(),
-        userId: currentUser.uid,
-        username: currentUser.displayName || "Anónimo",
-        profilePic: currentUser.profilePic || "/default-user.png",
-      };
-
-      console.log("📩 Comentario que se enviará a la API:", newComment);
-      await onCommentSubmit(newComment.text);
-      console.log("✅ Comentario guardado en API");
-
-      // 🔹 Actualizar el estado local con el nuevo comentario
-      setCommentsList((prevComments) => [...prevComments, newComment]);
-      setComment(""); // Limpiar el input después de enviar
-    } catch (err) {
-      console.error("❌ Error al enviar el comentario:", err);
-      alert("Error al enviar el comentario. Inténtalo de nuevo.");
+      await onCommentSubmit(comment.trim());
+      setCommentsList(prev => [...prev, newComment]);
+      setComment("");
+      inputRef.current?.focus();
+    } catch (e) {
+      console.error("Error al enviar comentario:", e);
     }
-  }, [comment, currentUser, onCommentSubmit, riuzaki1234]);
+  }, [comment, currentUser, onCommentSubmit]);
 
-  // 📌 Manejo de cierre de la sección con `touchmove`
+  // ── Swipe to close ────────────────────────────────────────────────────────
   useEffect(() => {
-    const element = commentsRef.current;
+    const el = sheetRef.current;
     let startY = 0;
-
-    const handleTouchStart = (e) => {
-      startY = e.touches[0].clientY;
-    };
-
-    const handleTouchMove = (e) => {
+    const onStart = (e) => { startY = (e.touches?.[0] || e).clientY; };
+    const onMove = (e) => {
       if (["input", "textarea"].includes(e.target.tagName.toLowerCase())) return;
-
-      const deltaY = e.touches[0].clientY - startY;
-      if (deltaY > 50) {
-        setIsOpen(false);
-        setTimeout(onClose, 300);
-      }
+      const dy = (e.touches?.[0] || e).clientY - startY;
+      if (dy > 60) close();
     };
+    el?.addEventListener("touchstart", onStart);
+    el?.addEventListener("touchmove", onMove);
+    return () => { el?.removeEventListener("touchstart", onStart); el?.removeEventListener("touchmove", onMove); };
+  }, []);
 
-    element?.addEventListener("touchstart", handleTouchStart);
-    element?.addEventListener("touchmove", handleTouchMove);
+  const close = () => {
+    setVisible(false);
+    setTimeout(onClose, 280);
+  };
 
-    return () => {
-      element?.removeEventListener("touchstart", handleTouchStart);
-      element?.removeEventListener("touchmove", handleTouchMove);
-    };
-  }, [onClose]);
+  // ── Avatar helper ─────────────────────────────────────────────────────────
+  const Avatar = ({ src, name, size = 36 }) => {
+    const initials = (name || "?")[0].toUpperCase();
+    if (src) return <img src={src} alt={name} className="comment-avatar" style={{ width: size, height: size }} />;
+    return (
+      <div className="comment-avatar-fallback" style={{ width: size, height: size, fontSize: size * 0.42 }}>
+        {initials}
+      </div>
+    );
+  };
 
   return (
-    <div className={`comments-overlay ${isOpen ? "open" : ""}`} ref={commentsRef}>
-      <div className="comments-container">
-        <button className="close-button" onClick={() => { setIsOpen(false); setTimeout(onClose, 300); }}>
-          ×
-        </button>
+    <>
+      {/* Backdrop */}
+      <div
+        className={`comments-backdrop ${visible ? "visible" : ""}`}
+        onClick={close}
+      />
 
-        {loading && <p>Cargando comentarios...</p>}
-        {error && <p className="error-message">{error}</p>}
+      {/* Bottom sheet */}
+      <div
+        ref={sheetRef}
+        className={`comments-sheet ${visible ? "open" : ""}`}
+      >
+        {/* Drag handle */}
+        <div className="comments-handle" onClick={close} />
 
-        <div className="comments-list">
-          {commentsList.length > 0 ? (
-            commentsList.map((c) => (
-              <div key={c.id} className="comment">
-                <div className="comment-profile">
-                  <img src={c.profilePic} alt="Usuario" className="comment-profile-pic" />
-                </div>
-                <div className="comment-content">
-                  <span className="comment-username">{c.username}</span>
-                  <span className="comment-text">{c.text}</span>
-                  <span className="comment-time">{c.timestamp}</span>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="no-comments">No hay comentarios aún.</p>
-          )}
+        {/* Header */}
+        <div className="comments-header">
+          <span className="comments-header-title">
+            Comentarios{commentsList.length > 0 ? ` (${commentsList.length})` : ""}
+          </span>
+          <button className="comments-close-btn" onClick={close}><FiX size={18} /></button>
         </div>
 
-        {currentUser ? (
-          <form onSubmit={handleSubmit} className="comment-form">
-            <input
-              type="text"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Escribe un comentario (máx. 100 caracteres)"
-              maxLength={100}
-            />
-            <button type="submit">Enviar</button>
-          </form>
-        ) : (
-          <p className="login-message">⚠️ Inicia sesión para comentar.</p>
-        )}
+        {/* List */}
+        <div className="comments-scroll-area">
+          {loading && (
+            <div className="comments-loading">
+              <div className="comments-spinner" />
+              <p>Cargando comentarios...</p>
+            </div>
+          )}
+          {error && <p className="comments-error">{error}</p>}
+
+          {!loading && commentsList.length === 0 && !error && (
+            <div className="comments-empty">
+              <p>🗨️ Sé el primero en comentar</p>
+            </div>
+          )}
+
+          {commentsList.map((c) => (
+            <div key={c.id} className="comment-item">
+              <Avatar src={c.profilePic} name={c.username} />
+              <div className="comment-body">
+                <div className="comment-meta">
+                  <span className="comment-name">{c.username}</span>
+                  <span className="comment-ts">{c.timestamp}</span>
+                </div>
+                <p className="comment-text">{c.text}</p>
+              </div>
+            </div>
+          ))}
+          <div ref={listEndRef} />
+        </div>
+
+        {/* Input */}
+        <div className="comments-input-bar">
+          {currentUser ? (
+            <>
+              <Avatar src={currentUser.profilePic} name={currentUser.displayName} size={32} />
+              <form className="comments-form" onSubmit={handleSubmit}>
+                <input
+                  ref={inputRef}
+                  className="comments-input"
+                  type="text"
+                  placeholder="Añade un comentario..."
+                  value={comment}
+                  onChange={e => setComment(e.target.value)}
+                  maxLength={200}
+                />
+                <button
+                  type="submit"
+                  className={`comments-send-btn ${comment.trim() ? "active" : ""}`}
+                  disabled={!comment.trim()}
+                >
+                  <FiSend size={16} />
+                </button>
+              </form>
+            </>
+          ) : (
+            <p className="comments-login-prompt">Inicia sesión para comentar</p>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
