@@ -10,6 +10,7 @@ import Feed from "./components/Feed.jsx";
 import UploadVideo from "./components/UploadVideo.jsx";
 import LiveCountdown from "./components/LiveCountdown.jsx";
 import LiveStream from "./components/LiveStream.jsx";
+import Profile from "./components/Profile.jsx";
 
 import { FiCoffee, FiHome, FiShoppingCart } from "react-icons/fi";
 import { BsFillPersonFill } from "react-icons/bs";
@@ -32,6 +33,8 @@ function App() {
   const [showChat, setShowChat] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(false); 
   const [roomId, setRoomId] = useState(null);
+  const [activeView, setActiveView] = useState("explore"); // "explore", "feed", "profile"
+  const [activeExploreVideoId, setActiveExploreVideoId] = useState(null);
 
   // ✅ 1. Escuchar monedas del usuario en tiempo real desde Firestore
   useEffect(() => {
@@ -138,6 +141,19 @@ function App() {
     setPage(1); 
     setShowUploadSection(false); 
     setShowChat(false); 
+    setActiveView("explore");
+    setActiveExploreVideoId(null);
+  };
+
+  const handleGoToProfile = () => {
+    if (!user) {
+      alert("⚠ Debes iniciar sesión para ver tu perfil.");
+      setShowAuthSelection(true);
+      return;
+    }
+    setActiveView("profile");
+    setShowUploadSection(false);
+    setShowChat(false);
   };
 
   // ✅ Manejar inicio de sesión con correo/contraseña
@@ -211,22 +227,54 @@ function App() {
           </div>
         </div>
 
+        {/* Toggle layout bar: only when in home/feed/explore views */}
+        {(activeView === "feed" || activeView === "explore") && (
+          <div className="layout-toggle-bar">
+            <button 
+              className={`toggle-button ${activeView === "explore" ? "active" : ""}`}
+              onClick={() => {
+                setActiveView("explore");
+                setActiveExploreVideoId(null);
+              }}
+            >
+              Explorar (Rednote)
+            </button>
+            <button 
+              className={`toggle-button ${activeView === "feed" ? "active" : ""}`}
+              onClick={() => setActiveView("feed")}
+            >
+              Para Ti (TikTok)
+            </button>
+          </div>
+        )}
+
         {/* Main Routes */}
         <Routes>
           <Route path="/" element={
-            <div className="feed-container">
-              <Feed
-                user={user}
-                coins={coins}
-                setCoins={setCoins}
-                showUploadSection={showUploadSection}
-                setShowUploadSection={setShowUploadSection}
-                refreshTrigger={refreshTrigger} 
-                setPage={setPage}
-                page={page}
-                isOpen={isSidebarOpen || showChat || showUploadSection}
-              />
-            </div>
+            <>
+              {activeView === "profile" ? (
+                <Profile />
+              ) : (
+                <Feed
+                  user={user}
+                  coins={coins}
+                  setCoins={setCoins}
+                  showUploadSection={showUploadSection}
+                  setShowUploadSection={setShowUploadSection}
+                  refreshTrigger={refreshTrigger} 
+                  setPage={setPage}
+                  page={page}
+                  isOpen={isSidebarOpen || showChat || showUploadSection}
+                  layout={activeView}
+                  onSelectExploreVideo={(videoId) => {
+                    setActiveExploreVideoId(videoId);
+                    setActiveView("feed");
+                  }}
+                  activeExploreVideoId={activeExploreVideoId}
+                  setActiveExploreVideoId={setActiveExploreVideoId}
+                />
+              )}
+            </>
           } />
           <Route path="/countdown/:roomId" element={<LiveCountdown />} />
           <Route path="/live/:roomId" element={<LiveStream />} />
@@ -255,7 +303,11 @@ function App() {
 
         {/* Bottom Bar Navigation */}
         <div className="bottom-bar">
-          <button className="home-button" onClick={handleGoToFeed} style={{ background: "none", border: "none", color: "white", cursor: "pointer" }}>  
+          <button 
+            className="home-button" 
+            onClick={handleGoToFeed} 
+            style={{ background: "none", border: "none", color: (activeView === "explore" || activeView === "feed") ? "#FF0050" : "white", cursor: "pointer" }}
+          >  
             <FiHome size={24} />
           </button>
           
@@ -270,7 +322,11 @@ function App() {
             {unreadMessages && <span className="notification-bubble" style={{ position: "absolute", top: "-5px", right: "-5px", background: "#FF0050", borderRadius: "50%", width: "8px", height: "8px" }} />}
           </button>
 
-          <button className="profile-button" onClick={() => setIsSidebarOpen(true)} style={{ background: "none", border: "none", color: "white", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <button 
+            className="profile-button" 
+            onClick={handleGoToProfile} 
+            style={{ background: "none", border: "none", color: activeView === "profile" ? "#FF0050" : "white", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center" }}
+          >
             <BsFillPersonFill size={24} />
             <span className="coin-count" style={{ fontSize: "10px", color: "#FFBB00", marginTop: "2px" }}>
               {coins} 🪙
