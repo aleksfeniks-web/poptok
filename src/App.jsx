@@ -344,36 +344,45 @@ function App() {
 
         {/* Bottom Bar Navigation */}
         <div className="bottom-bar">
-          <button 
-            className="home-button" 
-            onClick={handleGoToFeed} 
-            style={{ background: "none", border: "none", color: (activeView === "explore" || activeView === "feed") ? "#FF0050" : "white", cursor: "pointer" }}
-          >  
-            <FiHome size={24} />
-          </button>
-          
-          <button className="shop-button" onClick={() => alert("¡Tienda Poptok próximamente!")} style={{ background: "none", border: "none", color: "white", cursor: "pointer" }}>
-            <FiShoppingCart size={24} />
+          {/* Home */}
+          <button
+            className="home-button"
+            onClick={handleGoToFeed}
+            style={{ color: (activeView === "explore" || activeView === "feed") ? "#FF0050" : undefined }}
+          >
+            <FiHome size={22} />
           </button>
 
+          {/* Shop */}
+          <button className="shop-button" onClick={() => alert("¡Tienda Poptok próximamente!")}>
+            <FiShoppingCart size={22} />
+          </button>
+
+          {/* Upload */}
           <button className="add-button" onClick={handleUploadClick}>+</button>
 
-          <button className="inbox-button" onClick={handleOpenChat} style={{ background: "none", border: "none", color: "white", cursor: "pointer", position: "relative" }}>
-            <FiCoffee size={24} color={unreadMessages ? "#FF0050" : "white"} />
-            {unreadMessages && <span className="notification-bubble" style={{ position: "absolute", top: "-5px", right: "-5px", background: "#FF0050", borderRadius: "50%", width: "8px", height: "8px" }} />}
+          {/* Chat / Inbox */}
+          <button className="inbox-button" onClick={handleOpenChat} style={{ position: "relative" }}>
+            <FiCoffee size={22} color={unreadMessages ? "#FF0050" : undefined} />
+            {unreadMessages && (
+              <span style={{
+                position: "absolute", top: "8px", right: "8px",
+                background: "#FF0050", borderRadius: "50%", width: "7px", height: "7px",
+                display: "block"
+              }} />
+            )}
           </button>
 
-          <button 
-            className="profile-button" 
-            onClick={handleGoToProfile} 
-            style={{ background: "none", border: "none", color: activeView === "profile" ? "#FF0050" : "white", cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center" }}
+          {/* Profile */}
+          <button
+            className="profile-button"
+            onClick={handleGoToProfile}
+            style={{ color: activeView === "profile" ? "#FF0050" : undefined }}
           >
-            <BsFillPersonFill size={24} />
-            <span className="coin-count" style={{ fontSize: "10px", color: "#FFBB00", marginTop: "2px" }}>
-              {coins} 🪙
-            </span>
+            <BsFillPersonFill size={22} />
           </button>
         </div>
+
 
         {/* Auth Modal - shown when auth selection or sign-up form is active */}
         {(showAuthSelection || isSignUp) && !user && (

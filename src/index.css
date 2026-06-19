@@ -345,62 +345,79 @@ body {
 }
 
 /* Franja negra en la parte inferior */
+/* ── Bottom Navigation Bar ──────────────────────────────── */
 .bottom-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: 56px; /* Altura de la franja */
-  background-color: rgba(0, 0, 0, 0.95); /* Fondo negro con opacidad */
+  height: 60px;
+  background: rgba(0, 0, 0, 0.92);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
   display: flex;
   justify-content: space-around;
   align-items: center;
-  z-index: 10;
+  z-index: 100;
+  padding: 0 8px;
 }
 
-.bottom-bar button {
+/* All nav icon buttons */
+.bottom-bar > button {
   background: none;
   border: none;
-  color: #ff0050;
+  color: rgba(255, 255, 255, 0.55);
   cursor: pointer;
-  opacity: 1;
-  transition: opacity 0.3s ease;
-}
-
-.bottom-bar button:hover {
-  opacity: 1;
-}
-
-/* Estilos para el botón "+" */
-.bottom-bar button.specific-button {
-  background-color: #ff4757 !important;
-}
-
-.bottom-bar button.specific-button:hover {
-  background-color: #ff1a6b;
-}
-
-/* Estilos específicos para el botón "+" */
-.bottom-bar .add-button {
-  background-color: #ff0050 !important; /* Color de fondo similar al de TikTok */
-  border: 2px solid #ff0050;
-  border-radius: 50%; /* Forma circular */
-  width: 48px; /* Tamaño fijo */
-  height: 48px; /* Tamaño fijo */
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white; /* Color del texto */
-  font-size: 24px; /* Tamaño del símbolo "+" */
+  border-radius: 12px;
+  transition: color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.bottom-bar > button:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.bottom-bar > button:active {
+  transform: scale(0.92);
+}
+
+/* Central "+" upload button */
+.bottom-bar .add-button {
+  background: linear-gradient(135deg, #ff0050, #ff6b35) !important;
+  border: none !important;
+  border-radius: 16px !important;
+  width: 46px !important;
+  height: 46px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: white !important;
+  font-size: 26px !important;
+  font-weight: 300 !important;
+  line-height: 1 !important;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-  z-index: 2000;
-  animation: border-color-change 4s infinite;
+  box-shadow: 0 4px 16px rgba(255, 0, 80, 0.45);
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s !important;
 }
 
 .bottom-bar .add-button:hover {
-  background-color: #ff1a6b !important; /* Cambio de color al hacer hover */
+  opacity: 0.9;
+  transform: scale(1.06) !important;
+  box-shadow: 0 6px 22px rgba(255, 0, 80, 0.6) !important;
+  background: linear-gradient(135deg, #ff0050, #ff6b35) !important;
 }
+
+.bottom-bar .add-button:active {
+  transform: scale(0.95) !important;
+}
+
 
 /* Estilos para el video */
 video {
