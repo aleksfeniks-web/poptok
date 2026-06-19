@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import axios from "axios";
 import { auth, db } from "../firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
@@ -53,7 +52,7 @@ const Comments = ({ riuzaki1234, onClose, onCommentSubmit }) => {
     }
   }, [riuzaki1234]);
 
-  // 📌 Obtener comentarios desde la API
+  // 📌 Obtener comentarios desde Firestore
   const fetchComments = useCallback(async () => {
     if (!riuzaki1234) {
       setError("Error: No se encontró el ID del video.");
@@ -64,27 +63,27 @@ const Comments = ({ riuzaki1234, onClose, onCommentSubmit }) => {
     setError(null);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || "https://www.kibimex.com";
-      const response = await axios.get(`${apiUrl}/GetCommentsFromVideos`, {
-        params: { riuzaki1234 },
-      });
-
-      console.log("Comentarios recibidos desde API:", response.data);
-
-      if (!response.data || !Array.isArray(response.data.comments)) {
-        console.warn("⚠️ No se encontraron comentarios en la API.");
+      const videoDoc = await getDoc(doc(db, "videos", riuzaki1234));
+      if (!videoDoc.exists()) {
+        console.warn("⚠️ No se encontró el video en Firestore.");
         setCommentsList([]);
         return;
       }
 
+      const videoData = videoDoc.data();
+      const comments = Array.isArray(videoData.comments) ? videoData.comments : [];
+
       // 🔹 Enriquecer comentarios con imágenes de perfil desde Firestore
       const profileCache = new Map();
       const enrichedComments = await Promise.all(
-        response.data.comments.map(async (c) => {
+        comments.map(async (c) => {
           if (!profileCache.has(c.userId)) {
             try {
               const userDoc = await getDoc(doc(db, "users", c.userId));
-              profileCache.set(c.userId, userDoc.exists() ? userDoc.data().profilePic || "/default-user.png" : "/default-user.png");
+              profileCache.set(
+                c.userId,
+                userDoc.exists() ? userDoc.data().profilePic || "/default-user.png" : "/default-user.png"
+              );
             } catch (err) {
               profileCache.set(c.userId, "/default-user.png");
             }

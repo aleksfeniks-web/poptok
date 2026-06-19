@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { auth } from "../firebase.js"; 
+import { auth, db, storage } from "../firebase.js"; 
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { collection, addDoc } from "firebase/firestore";
+import { v4 as uuidv4 } from "uuid";
 import { FaArrowUp, FaCheck, FaTimes } from "react-icons/fa";
 
 const UploadVideo = ({ onUploadSuccess, setPage }) => {
@@ -57,36 +60,22 @@ const UploadVideo = ({ onUploadSuccess, setPage }) => {
         fileInput.click();
     };
 
-    // ✅ Obtener URL firmada de S3
-    const getSignedUrl = async (fileName, fileType) => {
+    // ✅ Subir archivo a Firebase Storage
+    const uploadFileToStorage = async (file, type) => {
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || "https://www.kibimex.com";
-            const response = await fetch(`${apiUrl}/getUploadUrl?fileName=${encodeURIComponent(fileName)}&fileType=${encodeURIComponent(fileType)}`);
-            if (!response.ok) throw new Error("No se pudo obtener la URL de subida.");
-            return await response.json(); // Espera retornar { uploadUrl, fileKey }
-        } catch (error) {
-            console.error("❌ Error al obtener la URL firmada:", error);
-            alert("Error al obtener la URL de subida.");
-            throw error;
-        }
-    };
-    
-    // ✅ Subir archivo a S3
-    const uploadToS3 = async (file) => {
-        try {
-            const { uploadUrl, fileKey } = await getSignedUrl(file.name, file.type);
+            const fileId = uuidv4();
+            const fileExtension = file.name.split('.').pop();
+            const folder = type === 'video' ? 'videos' : 'images';
+            const filePath = `${folder}/${fileId}.${fileExtension}`;
+            const fileRef = storageRef(storage, filePath);
 
-            await fetch(uploadUrl, {
-                method: "PUT",
-                body: file,
-                headers: { "Content-Type": file.type },
-            });
-
-            console.log("✅ Archivo subido a S3!");
-            return fileKey;
+            await uploadBytes(fileRef, file);
+            const downloadUrl = await getDownloadURL(fileRef);
+            console.log(`✅ Archivo subido a Firebase Storage! URL: ${downloadUrl}`);
+            return downloadUrl;
         } catch (error) {
-            console.error("❌ Error al subir el archivo a S3:", error);
-            alert("Error al subir el archivo a S3.");
+            console.error("❌ Error al subir el archivo a Firebase Storage:", error);
+            alert("Error al subir el archivo a Firebase Storage.");
             throw error;
         }
     };
@@ -100,44 +89,42 @@ const UploadVideo = ({ onUploadSuccess, setPage }) => {
 
         setLoading(true);
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || "https://www.kibimex.com";
-
             if (videoFile) {
-                console.log("🔄 Subiendo video a S3...");
-                const fileKey = await uploadToS3(videoFile);
-                console.log("✅ Video subido a S3. fileKey:", fileKey);
+                console.log("🔄 Subiendo video a Firebase Storage...");
+                const downloadUrl = await uploadFileToStorage(videoFile, 'video');
+                console.log("✅ Video subido. URL:", downloadUrl);
 
-                // Guardar en DynamoDB
-                await fetch(`${apiUrl}/saveVideoMetadata`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        userId: user.uid,
-                        fileKey: fileKey,
-                        createdAt: new Date().toISOString(),
-                        description: description.trim(),
-                        interest: selectedInterest 
-                    }),
+                // Guardar metadatos en Firestore
+                await addDoc(collection(db, "videos"), {
+                    userId: user.uid,
+                    username: user.displayName || "Anónimo",
+                    fileUrl: downloadUrl,
+                    createdAt: new Date().toISOString(),
+                    description: description.trim(),
+                    interest: selectedInterest || "Random",
+                    likes: 0,
+                    favorites: 0,
+                    comments: []
                 });
 
                 alert("✅ Video subido con éxito!");
             } else if (imageFiles.length > 0) {
-                console.log("🔄 Subiendo imágenes a S3...");
+                console.log("🔄 Subiendo imágenes a Firebase Storage...");
                 for (const imageFile of imageFiles) {
-                    const fileKey = await uploadToS3(imageFile);
-                    console.log("✅ Imagen subida a S3. fileKey:", fileKey);
+                    const downloadUrl = await uploadFileToStorage(imageFile, 'image');
+                    console.log("✅ Imagen subida. URL:", downloadUrl);
 
-                    // Guardar en DynamoDB
-                    await fetch(`${apiUrl}/saveVideoMetadata`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            userId: user.uid,
-                            fileKey: fileKey,
-                            createdAt: new Date().toISOString(),
-                            description: description.trim(),
-                            interest: selectedInterest 
-                        }),
+                    // Guardar metadatos en Firestore
+                    await addDoc(collection(db, "videos"), {
+                        userId: user.uid,
+                        username: user.displayName || "Anónimo",
+                        fileUrl: downloadUrl,
+                        createdAt: new Date().toISOString(),
+                        description: description.trim(),
+                        interest: selectedInterest || "Random",
+                        likes: 0,
+                        favorites: 0,
+                        comments: []
                     });
                 }
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, onSnapshot, query, where, doc, getDoc, setDoc } from "firebase/firestore";
 import { auth, db } from "./firebase.js";
 
 import Sidebar from "./components/Sidebar.jsx";
@@ -33,20 +33,30 @@ function App() {
   const [unreadMessages, setUnreadMessages] = useState(false); 
   const [roomId, setRoomId] = useState(null);
 
-  // ✅ 1. Obtener monedas del usuario desde DynamoDB al iniciar sesión
-  const fetchUserCoins = async (userUid) => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || "https://www.kibimex.com";
-      const response = await fetch(`${apiUrl}/GetUserCoins?uid=${userUid}`);
-      if (!response.ok) throw new Error("Error al obtener monedas");
-      
-      const data = await response.json();
-      console.log("🔄 Monedas obtenidas:", data.coins);
-      setCoins(data.coins || 0); 
-    } catch (error) {
-      console.error("Error al obtener monedas:", error);
-    }
-  };
+  // ✅ 1. Escuchar monedas del usuario en tiempo real desde Firestore
+  useEffect(() => {
+    if (!uid) return;
+
+    const userRef = doc(db, "users", uid);
+    const unsubscribe = onSnapshot(userRef, async (snapshot) => {
+      if (snapshot.exists()) {
+        setCoins(snapshot.data().coins || 0);
+      } else {
+        try {
+          await setDoc(userRef, {
+            coins: 10,
+            highScore: 0,
+            createdAt: new Date().toISOString()
+          }, { merge: true });
+          setCoins(10);
+        } catch (error) {
+          console.error("Error al inicializar monedas de bienvenida:", error);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [uid]);
 
   // ✅ Simular un tiempo de carga inicial
   useEffect(() => {
@@ -54,13 +64,12 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // ✅ 2. Manejar autenticación y obtener monedas
+  // ✅ 2. Manejar autenticación
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       if (u) {
         setUser(u);
         setUid(u.uid);
-        fetchUserCoins(u.uid); 
       } else {
         setUser(null);
         setUid(null);

@@ -3,8 +3,7 @@ import "../index.css";
 import VideoPlayer from "./VideoPlayer.jsx";
 import { auth, db } from "../firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, doc, updateDoc } from "firebase/firestore";
-import axios from "axios";
+import { collection, doc, updateDoc, getDoc, getDocs, query, orderBy, limit, increment, arrayUnion, setDoc } from "firebase/firestore";
 
 const Feed = ({
   user,
@@ -38,22 +37,17 @@ const Feed = ({
     return () => unsubscribe();
   }, []);
 
-  const updateUserCoinsInDynamoDB = async (uid) => {
+  const updateUserCoinsInFirestore = async (uid) => {
     try {
-      const newCoins = coins + 1;
-      setCoins(newCoins);
-
-      const apiUrl = import.meta.env.VITE_API_URL || "https://www.kibimex.com";
-      const response = await fetch(`${apiUrl}/UpdateCoin`, {
-        method: "POST",
-        mode: "cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid, coins: newCoins }),
-      });
-
-      if (!response.ok) throw new Error("Error al actualizar monedas en DynamoDB");
-
-      console.log("✅ Monedas actualizadas correctamente en DynamoDB");
+      const userRef = doc(db, "users", uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const currentCoins = userSnap.data().coins || 0;
+        await updateDoc(userRef, { coins: currentCoins + 1 });
+      } else {
+        await setDoc(userRef, { coins: 11 }, { merge: true });
+      }
+      console.log("✅ Monedas actualizadas correctamente en Firestore");
     } catch (err) {
       console.error("❌ Error al actualizar monedas:", err);
     }
@@ -67,32 +61,18 @@ const Feed = ({
 
       const newComment = {
         commentId: comment.commentId || Date.now().toString(),
-        text: comment.text,  
+        text: comment.text || comment,  
         timestamp: comment.timestamp || new Date().toISOString(),
         userId: comment.userId || currentUser.uid,
         username: comment.username || currentUser.displayName || "Anónimo",
       };
     
-      const apiUrl = import.meta.env.VITE_API_URL || "https://www.kibimex.com";
-      const response = await fetch(`${apiUrl}/UpdateVideoComments`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          riuzaki1234,
-          userId: currentUser.uid,
-          comments: [newComment]   
-        }),
+      const videoRef = doc(db, "videos", riuzaki1234);
+      await updateDoc(videoRef, {
+        comments: arrayUnion(newComment)
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Error al guardar el comentario");
-      }
-
-      const responseData = await response.json(); 
-      console.log("✅ Comentario guardado en API:", responseData.comments);
+      console.log("✅ Comentario guardado en Firestore!");
       
       setVideos((prevVideos) =>
         prevVideos.map((v) =>
@@ -101,35 +81,42 @@ const Feed = ({
             : v
         )
       );
+
+      // Actualizar contador local de comentarios
+      setInteractions((prevInteractions) => ({
+        ...prevInteractions,
+        [riuzaki1234]: {
+          ...prevInteractions[riuzaki1234],
+          comments: (prevInteractions[riuzaki1234]?.comments || 0) + 1
+        }
+      }));
     } catch (err) {
       console.error("❌ Error en updateVideoComments:", err);
     }
   };
 
-  // ✅ Función para cargar videos con sus comentarios desde la API
+  // ✅ Función para cargar videos con sus comentarios desde Firestore
   const fetchVideos = async () => {
     try {
       setLoading(true);
       setError(null);
-      const apiUrl = import.meta.env.VITE_API_URL || "https://www.kibimex.com";
-      const response = await fetch(`${apiUrl}/getVideos?page=${page}&limit=5`);
       
-      if (!response.ok) throw new Error("Error en la respuesta de la API");
-
-      const data = await response.json();
-      console.log("✅ Videos recibidos:", data);
-
-      if (!Array.isArray(data)) throw new Error("La respuesta de la API no es un array");
-
-      const processedVideos = data.map((v) => ({
-        ...v,
-        comments: Array.isArray(v.comments) ? v.comments : [], 
+      const videosCollection = collection(db, "videos");
+      const q = query(videosCollection, orderBy("createdAt", "desc"), limit(5 * page));
+      const querySnapshot = await getDocs(q);
+      
+      const data = querySnapshot.docs.map((doc) => ({
+        riuzaki1234: doc.id,
+        ...doc.data(),
+        comments: Array.isArray(doc.data().comments) ? doc.data().comments : [],
       }));
+
+      console.log("✅ Videos recibidos desde Firestore:", data);
 
       // Append new videos (and prevent duplicating if they are already loaded)
       setVideos((prevVideos) => {
         const existingIds = new Set(prevVideos.map(v => v.riuzaki1234));
-        const filteredNew = processedVideos.filter(v => !existingIds.has(v.riuzaki1234));
+        const filteredNew = data.filter(v => !existingIds.has(v.riuzaki1234));
         return [...prevVideos, ...filteredNew];
       });
 
@@ -140,7 +127,7 @@ const Feed = ({
           if (v.riuzaki1234 && !newInteractions[v.riuzaki1234]) {
             newInteractions[v.riuzaki1234] = {
               likes: v.likes || 0,
-              comments: (v.comments || []).length, 
+              comments: v.comments.length, 
               favorites: v.favorites || 0,
               coins: v.coins || 0,
             };
@@ -177,28 +164,6 @@ const Feed = ({
     return () => observer.disconnect();
   }, [loading, setPage]);
 
-  const updateInteractionsInDynamoDB = async (riuzaki1234, currentInteractions) => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || "https://www.kibimex.com";
-      const response = await fetch(`${apiUrl}/UpdateItemCommand`, {
-        method: "POST",
-        mode: "cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          riuzaki1234,
-          likes: currentInteractions.likes,
-          comments: currentInteractions.comments,
-          favorites: currentInteractions.favorites,
-        }),
-      });
-
-      if (!response.ok) throw new Error("Error al actualizar interacciones en DynamoDB");
-      console.log("✅ Interacciones actualizadas correctamente en DynamoDB");
-    } catch (err) {
-      console.error("❌ Error al actualizar interacciones:", err);
-    }
-  };
-
   // ✅ Función para manejar interacciones (likes, comentarios, favoritos)
   const handleInteraction = async (riuzaki1234, type) => {
     if (!currentUser) {
@@ -208,22 +173,33 @@ const Feed = ({
 
     const uid = currentUser.uid;
     if (type === "coins") {
-      updateUserCoinsInDynamoDB(uid);
+      updateUserCoinsInFirestore(uid);
       return;
     }
 
-    setInteractions((prevInteractions) => {
-      const updatedInteractions = {
+    try {
+      const videoRef = doc(db, "videos", riuzaki1234);
+      if (type === "likes") {
+        await updateDoc(videoRef, {
+          likes: increment(1)
+        });
+      } else if (type === "favorites") {
+        await updateDoc(videoRef, {
+          favorites: increment(1)
+        });
+      }
+
+      setInteractions((prevInteractions) => ({
         ...prevInteractions,
         [riuzaki1234]: {
           ...prevInteractions[riuzaki1234],
           [type]: (prevInteractions[riuzaki1234]?.[type] || 0) + 1,
         },
-      };
-
-      updateInteractionsInDynamoDB(riuzaki1234, updatedInteractions[riuzaki1234]);
-      return updatedInteractions;
-    });
+      }));
+      console.log(`✅ Interacción ${type} actualizada en Firestore`);
+    } catch (err) {
+      console.error("❌ Error al actualizar interacciones:", err);
+    }
   };
 
   return (
