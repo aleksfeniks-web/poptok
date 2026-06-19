@@ -174,14 +174,14 @@ const Feed = ({
     }
   };
 
-  // ✅ Función para cargar videos desde Firestore + fallback a Pexels
-  const fetchVideos = async () => {
+  // ✅ Función para cargar videos desde Firestore + fallback a demo
+  const fetchVideos = async (currentPage) => {
     try {
       setLoading(true);
       setError(null);
 
       const videosCollection = collection(db, "videos");
-      const q = query(videosCollection, orderBy("createdAt", "desc"), limit(5 * page));
+      const q = query(videosCollection, orderBy("createdAt", "desc"), limit(5 * currentPage));
       const querySnapshot = await getDocs(q);
 
       const firestoreData = querySnapshot.docs.map((doc) => ({
@@ -192,25 +192,42 @@ const Feed = ({
 
       console.log("✅ Videos recibidos desde Firestore:", firestoreData);
 
-      if (firestoreData.length === 0 || firestoreData.length < 5 * page) {
+      // If Firestore is empty → use demo videos, no more pages
+      if (firestoreData.length === 0) {
         setHasMore(false);
+        // Only set demo videos once (on page 1)
+        if (currentPage === 1) {
+          setVideos(PEXELS_DEMO_VIDEOS);
+          const demoInteractions = {};
+          PEXELS_DEMO_VIDEOS.forEach(v => {
+            demoInteractions[v.riuzaki1234] = {
+              likes: v.likes, comments: 0, favorites: v.favorites, coins: v.coins,
+            };
+          });
+          setInteractions(demoInteractions);
+        }
+        return;
       }
 
-      // Si Firestore está vacío → mostrar videos de Pexels como contenido demo
-      const finalVideos = firestoreData.length > 0 ? firestoreData : PEXELS_DEMO_VIDEOS;
+      // If fewer results than expected → no more pages
+      if (firestoreData.length < 5 * currentPage) setHasMore(false);
 
-      setVideos((prevVideos) => {
-        const existingIds = new Set(prevVideos.map(v => v.riuzaki1234));
-        const filteredNew = finalVideos.filter(v => !existingIds.has(v.riuzaki1234));
-        return [...prevVideos, ...filteredNew];
-      });
+      // Page 1 → replace; page > 1 → append unique
+      if (currentPage === 1) {
+        setVideos(firestoreData);
+      } else {
+        setVideos((prev) => {
+          const ids = new Set(prev.map(v => v.riuzaki1234));
+          return [...prev, ...firestoreData.filter(v => !ids.has(v.riuzaki1234))];
+        });
+      }
 
-      // Cargar interacciones
-      setInteractions((prevInteractions) => {
-        const newInteractions = { ...prevInteractions };
-        finalVideos.forEach((v) => {
-          if (v.riuzaki1234 && !newInteractions[v.riuzaki1234]) {
-            newInteractions[v.riuzaki1234] = {
+      // Interactions
+      setInteractions((prev) => {
+        const next = { ...prev };
+        firestoreData.forEach((v) => {
+          if (!next[v.riuzaki1234]) {
+            next[v.riuzaki1234] = {
               likes: v.likes || 0,
               comments: v.comments?.length || 0,
               favorites: v.favorites || 0,
@@ -218,47 +235,45 @@ const Feed = ({
             };
           }
         });
-        return newInteractions;
+        return next;
       });
     } catch (err) {
       setError(err.message);
-      // Si hay error de red, igual mostrar Pexels
+      // On network error show demo videos
+      setHasMore(false);
       setVideos(PEXELS_DEMO_VIDEOS);
-      const initialInteractions = {};
+      const demoInteractions = {};
       PEXELS_DEMO_VIDEOS.forEach(v => {
-        initialInteractions[v.riuzaki1234] = {
-          likes: v.likes,
-          comments: 0,
-          favorites: v.favorites,
-          coins: v.coins,
-        };
+        demoInteractions[v.riuzaki1234] = { likes: v.likes, comments: 0, favorites: v.favorites, coins: v.coins };
       });
-      setInteractions(initialInteractions);
+      setInteractions(demoInteractions);
     } finally {
       setLoading(false);
     }
   };
 
+
   // ✅ Cargar videos al iniciar o cambiar paginación
   useEffect(() => {
     if (!isOpen) {
-      fetchVideos();
+      fetchVideos(page);
     }
   }, [page, refreshTrigger, isOpen]);
 
-  // ✅ Detectar fin de scroll para carga automática
+  // ✅ Detectar fin de scroll — solo si hay más y no es una carga demo
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && !loading && hasMore) {
-          setPage((prevPage) => prevPage + 1);
+          setPage((prev) => prev + 1);
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.1 }
     );
     if (observerRef.current) observer.observe(observerRef.current);
     return () => observer.disconnect();
   }, [loading, hasMore, setPage]);
+
 
   // ✅ Función para manejar interacciones (likes, comentarios, favoritos)
   const handleInteraction = async (riuzaki1234, type) => {
