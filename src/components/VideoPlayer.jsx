@@ -2,16 +2,20 @@ import React, { forwardRef, useState, useEffect, useRef } from "react";
 import { AiOutlineHeart, AiFillHeart, AiOutlineComment } from "react-icons/ai";
 import { BsStar, BsStarFill } from "react-icons/bs";
 import { FaCirclePlus } from "react-icons/fa6";
+import { FiShare2, FiDownload } from "react-icons/fi";
 import Comments from "./Comments.jsx";
 import { toggleFollow, getFollowingList } from "../utils/follow.js";
+import { db } from "../firebase.js";
+import { doc, getDoc } from "firebase/firestore";
 import { 
   FaGamepad, FaCat, FaCar, FaFlask, FaFilm, FaUtensils, FaLaugh, 
   FaHeart, FaMusic, FaRobot, FaBolt, FaGlobe, FaBitcoin, FaRandom, 
-  FaNewspaper, FaFutbol, FaSuperpowers, FaFireAlt, FaStar, FaPaw, FaPaypal 
+  FaNewspaper, FaFutbol, FaSuperpowers, FaFireAlt, FaStar, FaPaw, FaPaypal,
+  FaPlay, FaPause
 } from "react-icons/fa";
 
 const VideoPlayer = forwardRef(
-  ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userId, commentsList, updateVideoComments, description, interest }, ref) => {
+  ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userId, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload }, ref) => {
     const [hasError, setHasError] = useState(false);
     const [showCoin, setShowCoin] = useState(false);
     const [coinPosition, setCoinPosition] = useState({ x: 0, y: 0 });
@@ -26,6 +30,38 @@ const VideoPlayer = forwardRef(
     const [isFollowing, setIsFollowing] = useState(false);
     const defaultUserImage = "https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png"; 
     const [showDonateButton, setShowDonateButton] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [showPlayPauseIcon, setShowPlayPauseIcon] = useState(null); // "play" | "pause" | null
+    const [creatorPaypal, setCreatorPaypal] = useState("");
+    const [downloading, setDownloading] = useState(false);
+    const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+    const audioRef = useRef(null);
+
+    const handlePlayPause = (e) => {
+      if (
+        e.target.closest(".user-buttons-container") ||
+        e.target.closest(".user-name-container") ||
+        e.target.closest(".comments-sheet") ||
+        e.target.closest(".comments-backdrop") ||
+        e.target.closest(".donate-button")
+      ) {
+        return;
+      }
+
+      if (videoRef.current) {
+        if (videoRef.current.paused) {
+          videoRef.current.play().then(() => setIsPlaying(true)).catch((err) => console.log(err));
+          setShowPlayPauseIcon("play");
+        } else {
+          videoRef.current.pause();
+          setIsPlaying(false);
+          setShowPlayPauseIcon("pause");
+        }
+        setTimeout(() => {
+          setShowPlayPauseIcon(null);
+        }, 500);
+      }
+    };
 
     const interestIcons = {
       "Anime & Manga": <FaRobot style={{ color: "#8B5CF6" }} />, 
@@ -62,6 +98,128 @@ const VideoPlayer = forwardRef(
         setIsFollowing(following.includes(userId));
       });
     }, [userId]);
+
+    // ✅ Obtener detalles del creador (como el email de PayPal)
+    useEffect(() => {
+      if (!userId) {
+        setCreatorPaypal("");
+        return;
+      }
+      if (userId.startsWith("demo-") || userId.startsWith("mock-")) {
+        setCreatorPaypal("");
+        return;
+      }
+      const fetchCreatorDetails = async () => {
+        try {
+          const docRef = doc(db, "users", userId);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setCreatorPaypal(docSnap.data().paypalEmail || "");
+          } else {
+            setCreatorPaypal("");
+          }
+        } catch (e) {
+          console.error("Error fetching creator PayPal details:", e);
+          setCreatorPaypal("");
+        }
+      };
+      fetchCreatorDetails();
+    }, [userId]);
+
+    // ✅ Sincronizar música de fondo con el video
+    useEffect(() => {
+      const video = videoRef.current;
+      const audio = audioRef.current;
+      if (!video || !audio || !musicUrl) return;
+
+      const handlePlay = () => {
+        video.muted = true;
+        audio.play()
+          .then(() => setIsPlayingAudio(true))
+          .catch((err) => console.log("Audio background music play blocked:", err));
+      };
+
+      const handlePause = () => {
+        audio.pause();
+        setIsPlayingAudio(false);
+      };
+
+      const handleVolume = () => {
+        audio.muted = video.muted;
+        audio.volume = video.volume;
+      };
+
+      video.addEventListener("play", handlePlay);
+      video.addEventListener("pause", handlePause);
+      video.addEventListener("volumechange", handleVolume);
+      
+      // Auto-play sync if video is already running
+      if (!video.paused) {
+        video.muted = true;
+        audio.play().then(() => setIsPlayingAudio(true)).catch((err) => console.log(err));
+      }
+
+      return () => {
+        video.removeEventListener("play", handlePlay);
+        video.removeEventListener("pause", handlePause);
+        video.removeEventListener("volumechange", handleVolume);
+        audio.pause();
+        setIsPlayingAudio(false);
+      };
+    }, [musicUrl, videoUrl]);
+
+    const handleShare = async () => {
+      const shareData = {
+        title: `Mira este video de @${username} en Poptok`,
+        text: description || "¡Mira este increíble contenido en Poptok!",
+        url: videoUrl,
+      };
+
+      if (navigator.share) {
+        try {
+          await navigator.share(shareData);
+        } catch (err) {
+          console.log("Error sharing:", err);
+        }
+      } else {
+        try {
+          await navigator.clipboard.writeText(videoUrl);
+          alert("✅ ¡Enlace del video copiado al portapapeles!");
+        } catch (err) {
+          console.error("Error al copiar enlace:", err);
+          alert("No se pudo copiar el enlace.");
+        }
+      }
+    };
+
+    const handleDownload = async () => {
+      if (allowDownload === false) {
+        alert("🔒 El creador ha deshabilitado las descargas para este video.");
+        return;
+      }
+
+      setDownloading(true);
+      try {
+        const response = await fetch(videoUrl);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = `poptok_${username}_${riuzaki1234 || "video"}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        URL.revokeObjectURL(blobUrl);
+      } catch (err) {
+        console.error("Error downloading video:", err);
+        alert("Error al descargar el video.");
+      } finally {
+        setDownloading(false);
+      }
+    };
+
 
     // ✅ Seguir/Dejar de seguir usuario
     const handleFollow = async () => {
@@ -147,9 +305,10 @@ const VideoPlayer = forwardRef(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              videoRef.current?.play().catch((err) => console.log("Auto-play blocked:", err));
+              videoRef.current?.play().then(() => setIsPlaying(true)).catch((err) => console.log("Auto-play blocked:", err));
             } else {
               videoRef.current?.pause();
+              setIsPlaying(false);
             }
           });
         },
@@ -198,11 +357,11 @@ const VideoPlayer = forwardRef(
 
     // Función de Donación PayPal
     const handleDonate = () => {
-      if (!userId) {
-        alert("Error: El creador del video no está definido.");
+      if (!creatorPaypal) {
+        alert("Error: El creador del video no tiene registrado su PayPal.");
         return;
       }
-      window.open(`https://www.paypal.com/donate?business=${userId}@poptok.com&currency_code=MXN&amount=5`, "_blank");
+      window.open(`https://www.paypal.com/donate?business=${creatorPaypal}&currency_code=MXN&amount=5`, "_blank");
     };
 
     // Función para dar favorito
@@ -231,7 +390,14 @@ const VideoPlayer = forwardRef(
 
     return (
       <div className={`video-container ${isVertical ? "vertical" : "horizontal"} ${showComments ? "shrink" : ""}`}>
-        <div className="relative w-full h-full">
+        <div className="relative w-full h-full" onClick={handlePlayPause}>
+          {musicUrl && (
+            <audio
+              ref={audioRef}
+              src={musicUrl}
+              loop
+            />
+          )}
           {hasError ? (
             <p style={{ textAlign: "center", color: "gray", marginTop: "50%" }}>No se pudo cargar el video.</p>
           ) : (
@@ -242,12 +408,25 @@ const VideoPlayer = forwardRef(
               playsInline
               muted
               loop
-              controls
               onError={() => setHasError(true)}
             >
               <source src={videoUrl} type="video/mp4" />
               Tu navegador no soporta videos.
             </video>
+          )}
+
+          {/* Overlay de Play/Pause al hacer tap */}
+          {showPlayPauseIcon && (
+            <div className="play-pause-overlay-ping">
+              {showPlayPauseIcon === "play" ? <FaPlay size={36} /> : <FaPause size={36} />}
+            </div>
+          )}
+
+          {/* Icono de Play estático si el video está pausado */}
+          {!isPlaying && !showPlayPauseIcon && (
+            <div className="video-paused-indicator">
+              <FaPlay size={30} />
+            </div>
           )}
 
           {/* Coin animada */}
@@ -281,37 +460,35 @@ const VideoPlayer = forwardRef(
 
           {/* Ventana de comentarios */}
           {showComments && (
-            <div className="comments-container">
-              <Comments
-                riuzaki1234={riuzaki1234}
-                onClose={() => setShowComments(false)}
-                onCommentSubmit={(commentText) => {
-                  if (!riuzaki1234) {
-                    console.error("❌ Error: riuzaki1234 está indefinido en VideoPlayer.");
-                    return;
-                  }
-                  if (!currentUser) {
-                    console.error("❌ Error: currentUser está indefinido en VideoPlayer.");
-                    return;
-                  }
-                  if (typeof commentText !== "string") {
-                    console.error("🚨 Error: commentText no es un string válido.", commentText);
-                    return;
-                  }
-                  
-                  const newComment = {
-                    commentId: Date.now().toString(),
-                    text: commentText.trim(), 
-                    timestamp: new Date().toISOString(),
-                    userId: currentUser.uid,
-                    username: currentUser.displayName || "Anónimo",
-                  };
+            <Comments
+              riuzaki1234={riuzaki1234}
+              onClose={() => setShowComments(false)}
+              onCommentSubmit={(commentText) => {
+                if (!riuzaki1234) {
+                  console.error("❌ Error: riuzaki1234 está indefinido en VideoPlayer.");
+                  return;
+                }
+                if (!currentUser) {
+                  console.error("❌ Error: currentUser está indefinido en VideoPlayer.");
+                  return;
+                }
+                if (typeof commentText !== "string") {
+                  console.error("🚨 Error: commentText no es un string válido.", commentText);
+                  return;
+                }
+                
+                const newComment = {
+                  commentId: Date.now().toString(),
+                  text: commentText.trim(), 
+                  timestamp: new Date().toISOString(),
+                  userId: currentUser.uid,
+                  username: currentUser.displayName || "Anónimo",
+                };
 
-                  console.log(`📩 Enviando comentario: ${JSON.stringify(newComment)}`);
-                  updateVideoComments(riuzaki1234, newComment, currentUser);
-                }}
-              />
-            </div>
+                console.log(`📩 Enviando comentario: ${JSON.stringify(newComment)}`);
+                updateVideoComments(riuzaki1234, newComment, currentUser);
+              }}
+            />
           )}
 
           {/* Contenedor del nombre de usuario */}
@@ -335,8 +512,16 @@ const VideoPlayer = forwardRef(
               </div>
             )}
 
-            {/* Botón de Donar si el usuario le dio like */}
-            {showDonateButton && userId && (
+            {/* Music Info */}
+            {musicTitle && (
+              <div className="video-music-info" style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "6px", color: "#00f2fe", fontSize: "13px" }}>
+                <FaMusic className="music-icon-spin" />
+                <span className="music-marquee">{musicTitle}</span>
+              </div>
+            )}
+
+            {/* Botón de Donar si el usuario le dio like y el creador tiene PayPal */}
+            {showDonateButton && creatorPaypal && (
               <button 
                 onClick={handleDonate} 
                 className="donate-button" 
@@ -346,6 +531,15 @@ const VideoPlayer = forwardRef(
               </button>
             )}
           </div>
+
+          {/* Vinyl CSS Disc */}
+          {musicUrl && (
+            <div className={`music-disc-wrapper ${isPlaying ? "spinning" : ""}`}>
+              <div className="vinyl-disc">
+                <div className="vinyl-center" />
+              </div>
+            </div>
+          )}
 				 
           {/* Contenedor de la imagen de usuario y los botones */}
           <div className="user-buttons-container">
@@ -409,6 +603,18 @@ const VideoPlayer = forwardRef(
                     }}
                   />
                 ))}
+              </button>
+
+              {/* Botón de Compartir */}
+              <button onClick={handleShare} className="icon-button">
+                <FiShare2 className="icon" />
+                <span className="interaction-count">Compartir</span>
+              </button>
+
+              {/* Botón de Descargar */}
+              <button onClick={handleDownload} className="icon-button" disabled={downloading || allowDownload === false} style={{ opacity: allowDownload === false ? 0.4 : 1 }}>
+                <FiDownload className="icon" style={{ animation: downloading ? "bounce 1s infinite alternate" : "none" }} />
+                <span className="interaction-count">{downloading ? "Bajar..." : "Bajar"}</span>
               </button>
             </div>
           </div>

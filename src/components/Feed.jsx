@@ -458,6 +458,9 @@ const Feed = ({
               riuzaki1234={v.riuzaki1234}
               currentUser={currentUser}
               userId={v.userId}
+              musicUrl={v.musicUrl}
+              musicTitle={v.musicTitle}
+              allowDownload={v.allowDownload}
               interactions={
                 interactions[v.riuzaki1234] || {
                   likes: v.likes || 0,

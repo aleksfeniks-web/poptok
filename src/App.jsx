@@ -11,6 +11,7 @@ import UploadVideo from "./components/UploadVideo.jsx";
 import LiveCountdown from "./components/LiveCountdown.jsx";
 import LiveStream from "./components/LiveStream.jsx";
 import Profile from "./components/Profile.jsx";
+import Shop from "./components/Shop.jsx";
 
 import { FiCoffee, FiHome, FiShoppingCart } from "react-icons/fi";
 import { BsFillPersonFill } from "react-icons/bs";
@@ -35,6 +36,7 @@ function App() {
   const [roomId, setRoomId] = useState(null);
   const [activeView, setActiveView] = useState("explore"); // "explore", "feed", "profile"
   const [activeExploreVideoId, setActiveExploreVideoId] = useState(null);
+  const [chatFriendId, setChatFriendId] = useState(null);
 
   // ✅ 1. Escuchar monedas del usuario en tiempo real desde Firestore
   useEffect(() => {
@@ -135,6 +137,17 @@ function App() {
 
   const handleCloseChat = () => {
     setShowChat(false);
+    setChatFriendId(null);
+  };
+
+  const handleContactSeller = (sellerId) => {
+    if (!user) {
+      alert("⚠ Inicia sesión para chatear con el vendedor.");
+      setShowAuthSelection(true);
+      return;
+    }
+    setChatFriendId(sellerId);
+    setShowChat(true);
   };
 
   const handleGoToFeed = () => {
@@ -295,6 +308,8 @@ function App() {
             <>
               {activeView === "profile" ? (
                 <Profile />
+              ) : activeView === "shop" ? (
+                <Shop onContactSeller={handleContactSeller} />
               ) : (
                 <Feed
                   user={user}
@@ -336,6 +351,7 @@ function App() {
             sendCoin={() => setCoins((prev) => Math.max(0, prev - 1))}
             unreadMessages={unreadMessages}
             setUnreadMessages={setUnreadMessages}
+            initialFriend={chatFriendId}
           />
         )}
 
@@ -351,7 +367,15 @@ function App() {
           </button>
 
           {/* Shop */}
-          <button className="shop-button" onClick={() => alert("¡Tienda Poptok próximamente!")}>
+          <button
+            className="shop-button"
+            onClick={() => {
+              setActiveView("shop");
+              setShowUploadSection(false);
+              setShowChat(false);
+            }}
+            style={{ color: activeView === "shop" ? "#FF0050" : undefined }}
+          >
             <FiShoppingCart size={22} />
           </button>
 

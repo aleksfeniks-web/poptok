@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { auth, db } from "../firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { FiX, FiSend } from "react-icons/fi";
 import "../index.css";
+
 
 const Comments = ({ riuzaki1234, onClose, onCommentSubmit }) => {
   const [comment, setComment] = useState("");
@@ -143,7 +145,7 @@ const Comments = ({ riuzaki1234, onClose, onCommentSubmit }) => {
     );
   };
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -227,7 +229,8 @@ const Comments = ({ riuzaki1234, onClose, onCommentSubmit }) => {
           )}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 };
 

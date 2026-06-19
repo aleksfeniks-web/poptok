@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { auth, db } from "../firebase.js";
-import { onAuthStateChanged } from "firebase/auth";
+import React, { useState, useEffect, useRef } from "react";
+import { auth, db, storage } from "../firebase.js";
+import { onAuthStateChanged, updateProfile } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, query, where, updateDoc } from "firebase/firestore";
-import { updateProfile } from "firebase/auth";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { AiFillHeart, AiOutlineClose } from "react-icons/ai";
 import { BsAward, BsCoin, BsGrid3X3Gap } from "react-icons/bs";
 import { FaUserEdit } from "react-icons/fa";
@@ -10,12 +10,17 @@ import { FaUserEdit } from "react-icons/fa";
 const Profile = ({ onSelectVideo }) => {
   const [user, setUser] = useState(null);
   const [displayName, setDisplayName] = useState("");
+  const [paypalEmail, setPaypalEmail] = useState("");
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [coins, setCoins] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const [userVideos, setUserVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarInputRef = useRef(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -42,6 +47,9 @@ const Profile = ({ onSelectVideo }) => {
         const data = userSnap.data();
         setCoins(data.coins || 0);
         setHighScore(data.highScore || 0);
+        setPaypalEmail(data.paypalEmail || "");
+        setFollowersCount(Array.isArray(data.followers) ? data.followers.length : 0);
+        setFollowingCount(Array.isArray(data.following) ? data.following.length : 0);
       }
     } catch (err) {
       console.error("Error al obtener datos de perfil en Firestore:", err);
@@ -80,7 +88,8 @@ const Profile = ({ onSelectVideo }) => {
       // 2. Update Firestore User Document
       const userRef = doc(db, "users", user.uid);
       await updateDoc(userRef, {
-        name: displayName.trim()
+        name: displayName.trim(),
+        paypalEmail: paypalEmail.trim()
       });
 
       setIsEditing(false);
@@ -88,6 +97,36 @@ const Profile = ({ onSelectVideo }) => {
     } catch (error) {
       console.error("Error al guardar perfil:", error);
       alert("Error al actualizar el perfil.");
+    }
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !user) return;
+
+    setUploadingAvatar(true);
+    try {
+      const path = `avatars/${user.uid}.png`;
+      const ref = storageRef(storage, path);
+      
+      await uploadBytes(ref, file);
+      const downloadUrl = await getDownloadURL(ref);
+
+      // 1. Update auth photoURL
+      await updateProfile(user, { photoURL: downloadUrl });
+      
+      // 2. Update firestore doc
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, { profilePic: downloadUrl });
+
+      // Force re-render of local state
+      setUser({ ...auth.currentUser, photoURL: downloadUrl });
+      alert("✅ ¡Foto de perfil actualizada!");
+    } catch (err) {
+      console.error("Error al subir foto de perfil:", err);
+      alert("Error al subir la imagen: " + err.message);
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -111,38 +150,63 @@ const Profile = ({ onSelectVideo }) => {
     <div className="profile-container">
       {/* Tarjeta de Encabezado de Perfil */}
       <div className="profile-header-card">
-        <div className="profile-avatar-large-wrapper">
+        <div className="profile-avatar-large-wrapper" onClick={() => avatarInputRef.current?.click()} style={{ cursor: "pointer", position: "relative" }}>
           <img
             src={user.photoURL || "https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png"}
             alt="Avatar"
             className="profile-avatar-large"
           />
+          {uploadingAvatar ? (
+            <div className="avatar-upload-overlay">Subiendo...</div>
+          ) : (
+            <div className="avatar-upload-overlay">
+              <FaUserEdit size={16} />
+            </div>
+          )}
+          <input
+            type="file"
+            ref={avatarInputRef}
+            style={{ display: "none" }}
+            accept="image/*"
+            onChange={handleAvatarChange}
+          />
         </div>
 
         {isEditing ? (
-          <div className="profile-edit-section">
-            <input
-              type="text"
-              className="profile-edit-input"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Nombre de Usuario"
-              maxLength={20}
-            />
-            <button className="profile-save-button" onClick={handleSaveProfile}>
-              Guardar Nombre
-            </button>
-            <button
-              className="profile-save-button"
-              style={{ background: "#444", marginTop: "5px" }}
-              onClick={() => {
-                setDisplayName(user.displayName || "Creador Poptok");
-                setIsEditing(false);
-              }}
-            >
-              Cancelar
-            </button>
-          </div>
+            <div className="profile-edit-section">
+              <label className="profile-edit-label">Nombre de Usuario</label>
+              <input
+                type="text"
+                className="profile-edit-input"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Nombre de Usuario"
+                maxLength={20}
+              />
+              <label className="profile-edit-label" style={{ marginTop: "10px", display: "block" }}>Paypal Email (para recibir donaciones)</label>
+              <input
+                type="email"
+                className="profile-edit-input"
+                value={paypalEmail}
+                onChange={(e) => setPaypalEmail(e.target.value)}
+                placeholder="correo@paypal.com"
+                maxLength={50}
+              />
+              <button className="profile-save-button" onClick={handleSaveProfile} style={{ marginTop: "15px" }}>
+                Guardar Cambios
+              </button>
+              <button
+                className="profile-save-button"
+                style={{ background: "#444", marginTop: "5px" }}
+                onClick={() => {
+                  setDisplayName(user.displayName || "Creador Poptok");
+                  setPaypalEmail(user.paypalEmail || "");
+                  setIsEditing(false);
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
         ) : (
           <>
             <h2 className="profile-name-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -165,10 +229,16 @@ const Profile = ({ onSelectVideo }) => {
             <span className="profile-stat-lbl">Monedas</span>
           </div>
           <div className="profile-stat-item">
-            <span className="profile-stat-val">
-              <BsAward style={{ verticalAlign: "middle" }} /> {highScore}
+            <span className="profile-stat-val" style={{ color: "#ff0080" }}>
+              {followersCount}
             </span>
-            <span className="profile-stat-lbl">Record Juego</span>
+            <span className="profile-stat-lbl">Seguidores</span>
+          </div>
+          <div className="profile-stat-item">
+            <span className="profile-stat-val" style={{ color: "#00ff80" }}>
+              {followingCount}
+            </span>
+            <span className="profile-stat-lbl">Seguidos</span>
           </div>
           <div className="profile-stat-item">
             <span className="profile-stat-val" style={{ color: "#00ffff" }}>

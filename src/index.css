@@ -3255,3 +3255,971 @@ canvas {
   font-size: 14px;
 }
 
+/* ============================================================
+   PLAY / PAUSE OVERLAYS
+   ============================================================ */
+.play-pause-overlay-ping {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  pointer-events: none;
+  animation: pingFade 0.5s ease-out forwards;
+}
+
+@keyframes pingFade {
+  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+  30% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
+}
+
+.video-paused-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.9);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 90;
+  pointer-events: none;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================================
+   BACKGROUND MUSIC - VINYL DISC
+   ============================================================ */
+.music-disc-wrapper {
+  position: absolute;
+  bottom: 80px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.music-disc-wrapper.spinning {
+  animation: rotateVinyl 4s linear infinite;
+}
+
+@keyframes rotateVinyl {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.vinyl-disc {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: repeating-radial-gradient(circle, #181818, #181818 2px, #2a2a2a 3px, #181818 4px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.6), inset 0 0 2px rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #333;
+}
+
+.vinyl-center {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #FF0050;
+  border: 1.5px solid #fff;
+  box-shadow: inset 0 0 2px rgba(0,0,0,0.5);
+}
+
+.music-icon-spin {
+  animation: rotateVinyl 3s linear infinite;
+}
+
+/* ============================================================
+   PROFILE PICTURE UPLOAD
+   ============================================================ */
+.avatar-upload-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.profile-avatar-large-wrapper:hover .avatar-upload-overlay {
+  opacity: 1;
+}
+
+.profile-edit-label {
+  font-size: 12px;
+  font-weight: bold;
+  color: #aaa;
+  margin-top: 10px;
+  text-align: left;
+}
+
+/* ============================================================
+   SLEEK MESSENGER CHAT STYLING
+   ============================================================ */
+.chat-inbox-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: #181818;
+  overflow: hidden;
+}
+
+.chat-search-bar {
+  display: flex;
+  align-items: center;
+  background: #252525;
+  border-radius: 20px;
+  margin: 10px;
+  padding: 6px 12px;
+  gap: 8px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.chat-search-icon {
+  color: #888;
+}
+
+.chat-search-bar input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  flex: 1;
+  font-size: 13px;
+}
+
+.chat-friends-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 10px 10px;
+}
+
+.chat-friend-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.chat-friend-item:hover {
+  background: #252525;
+}
+
+.chat-friend-info {
+  flex: 1;
+  text-align: left;
+}
+
+.chat-friend-info h4 {
+  font-size: 14px;
+  color: #fff;
+  margin: 0;
+}
+
+.chat-friend-info p {
+  font-size: 11px;
+  color: #888;
+  margin: 2px 0 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chat-arrow-go {
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+.chat-avatar-fallback {
+  background: #ff0050;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.chat-empty-friends, .chat-empty-thread {
+  padding: 40px 20px;
+  text-align: center;
+  color: #888;
+  font-size: 13px;
+}
+
+.chat-back-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.chat-header-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.chat-header-name {
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.message-wrapper {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  max-width: 80%;
+}
+
+.message-wrapper.sent {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+  margin-left: auto;
+}
+
+.message-wrapper.received {
+  align-self: flex-start;
+  margin-right: auto;
+}
+
+.message-wrapper.system {
+  max-width: 100%;
+  align-self: center;
+  justify-content: center;
+  margin: 15px auto;
+}
+
+.message-wrapper.system .message-bubble {
+  background: rgba(255, 235, 59, 0.15) !important;
+  border: 1px dashed #fbcb24;
+  color: #fbcb24;
+  padding: 8px 16px;
+  font-weight: bold;
+  border-radius: 15px;
+}
+
+.message-bubble {
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: left;
+  position: relative;
+  word-break: break-word;
+}
+
+.message-wrapper.sent .message-bubble {
+  background: #ff0050;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.message-wrapper.received .message-bubble {
+  background: #2b2b2b;
+  color: #fff;
+  border-bottom-left-radius: 4px;
+}
+
+.message-time {
+  display: block;
+  font-size: 9px;
+  opacity: 0.5;
+  text-align: right;
+  margin-top: 4px;
+}
+
+.chat-quick-actions {
+  display: flex;
+  padding: 8px 10px;
+  background: #1e1e1e;
+  border-top: 1px solid #282828;
+  gap: 8px;
+  align-items: center;
+}
+
+.chat-coin-gift-btn {
+  background: linear-gradient(135deg, #ffd700, #ffa500);
+  border: none;
+  border-radius: 8px;
+  color: #000;
+  font-weight: bold;
+  font-size: 11px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chat-coin-gift-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.chat-coin-gift-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.chat-share-video-select {
+  flex: 1;
+  background: #2b2b2b;
+  border: 1px solid #3c3c3c;
+  color: #fff;
+  border-radius: 8px;
+  padding: 5px;
+  font-size: 11px;
+  outline: none;
+}
+
+.chat-input-container {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  background: #181818;
+  border-top: 1px solid #222;
+  gap: 8px;
+}
+
+.emoji-picker-wrapper {
+  position: relative;
+}
+
+.emoji-toggle-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  outline: none;
+}
+
+.emoji-picker-box {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  z-index: 1010;
+}
+
+.chat-input-container input {
+  flex: 1;
+  background: #252525;
+  border: none;
+  border-radius: 18px;
+  padding: 8px 14px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+}
+
+.chat-send-btn {
+  background: transparent;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+
+.chat-send-btn.active {
+  color: #ff0050;
+}
+
+/* ============================================================
+   POPTOK SHOP MARKETPLACE STYLING
+   ============================================================ */
+.shop-container {
+  background: #121212;
+  color: #fff;
+  width: 100%;
+  min-height: 100vh;
+  padding: 70px 15px 90px;
+  box-sizing: border-box;
+}
+
+.shop-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 20px;
+  background: #1a1a1a;
+  padding: 12px 18px;
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.shop-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.shop-brand h2 {
+  font-size: 18px;
+  margin: 0;
+  font-weight: bold;
+}
+
+.shop-search-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.shop-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+}
+
+.shop-search-wrapper input {
+  width: 100%;
+  background: #262626;
+  border: 1px solid #333;
+  border-radius: 20px;
+  padding: 8px 15px 8px 36px;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.shop-sell-btn {
+  background: #ff0050;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s ease;
+}
+
+.shop-sell-btn:hover {
+  background: #e60045;
+}
+
+.shop-loading, .shop-empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: #aaa;
+}
+
+.shop-sell-btn-large {
+  background: #ff0050;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 15px;
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+}
+
+@media(min-width: 768px) {
+  .shop-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media(min-width: 1024px) {
+  .shop-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.shop-card {
+  background: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.05);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.shop-card:hover {
+  transform: translateY(-4px);
+  border-color: #ff0050;
+}
+
+.shop-card-image-wrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 100%; /* Square */
+  background: #252525;
+}
+
+.shop-card-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.shop-card-price {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #ffd700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 12px;
+  backdrop-filter: blur(3px);
+}
+
+.shop-card-info {
+  padding: 12px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.shop-card-info h3 {
+  font-size: 14px;
+  margin: 0 0 6px;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.shop-card-desc {
+  font-size: 11px;
+  color: #aaa;
+  margin: 0 0 10px;
+  height: 32px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.shop-card-seller {
+  font-size: 10px;
+  color: #666;
+  margin-top: auto;
+}
+
+/* ============================================================
+   PRODUCT DETAIL & SELL MODALS
+   ============================================================ */
+.product-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px;
+}
+
+.product-modal-card {
+  background: #1a1a1a;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 750px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid #333;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+  animation: slideUp 0.3s ease-out;
+}
+
+.product-modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(0,0,0,0.5);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: background 0.2s;
+}
+
+.product-modal-close:hover {
+  background: #ff0050;
+}
+
+.product-modal-body {
+  display: flex;
+  flex-direction: column;
+}
+
+@media(min-width: 600px) {
+  .product-modal-body {
+    flex-direction: row;
+  }
+}
+
+.product-modal-left {
+  flex: 1.2;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+}
+
+.product-modal-left img {
+  width: 100%;
+  max-height: 450px;
+  object-fit: contain;
+}
+
+.product-modal-right {
+  flex: 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.product-modal-badge {
+  background: rgba(255, 0, 80, 0.15);
+  color: #ff0050;
+  border: 1px solid rgba(255, 0, 80, 0.3);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: bold;
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.product-modal-right h2 {
+  font-size: 20px;
+  margin: 12px 0 8px;
+  color: #fff;
+}
+
+.product-modal-price {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffd700;
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.product-modal-desc h4, .product-modal-seller h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: #888;
+  text-transform: uppercase;
+}
+
+.product-modal-desc p {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: #ddd;
+  line-height: 1.5;
+}
+
+.product-modal-seller p {
+  margin: 0 0 25px;
+  font-size: 13px;
+  color: #ff0050;
+  font-weight: bold;
+}
+
+.product-modal-contact-btn {
+  background: #ff0050;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.product-modal-contact-btn:hover {
+  background: #e60045;
+  transform: translateY(-2px);
+}
+
+.product-modal-own-item {
+  text-align: center;
+  color: #666;
+  font-size: 12px;
+  margin: 10px 0 0;
+  font-style: italic;
+}
+
+/* SELL MODAL STYLING */
+.sell-modal {
+  max-width: 600px;
+}
+
+.product-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+}
+
+.product-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #fff;
+}
+
+.sell-form {
+  padding: 20px;
+}
+
+.sell-form-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media(min-width: 500px) {
+  .sell-form-columns {
+    flex-direction: row;
+  }
+}
+
+.sell-form-left {
+  flex: 0.8;
+}
+
+.sell-image-upload {
+  width: 100%;
+  aspect-ratio: 1;
+  border: 2px dashed #444;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s;
+  background: #111;
+}
+
+.sell-image-upload:hover {
+  border-color: #ff0050;
+}
+
+.sell-image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sell-image-placeholder {
+  text-align: center;
+  padding: 10px;
+}
+
+.sell-image-placeholder span {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  color: #eee;
+  margin-bottom: 4px;
+}
+
+.sell-image-placeholder p {
+  font-size: 10px;
+  color: #666;
+  margin: 0;
+}
+
+.sell-form-right {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.sell-form-right label {
+  font-size: 11px;
+  font-weight: bold;
+  color: #aaa;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.sell-form-right input[type="text"], .sell-form-right textarea {
+  background: #252525;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 13px;
+  margin-bottom: 15px;
+  outline: none;
+}
+
+.sell-form-right input[type="text"]:focus, .sell-form-right textarea:focus {
+  border-color: #ff0050;
+}
+
+.sell-price-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #252525;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 0 12px;
+}
+
+.sell-price-icon {
+  color: #ffd700;
+  margin-right: 8px;
+}
+
+.sell-price-input-wrapper input {
+  background: transparent;
+  border: none;
+  padding: 8px 0;
+  color: #fff;
+  font-size: 13px;
+  outline: none;
+  flex: 1;
+}
+
+.sell-progress-wrapper {
+  margin-top: 15px;
+  background: #222;
+  border-radius: 6px;
+  height: 20px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sell-progress-bar {
+  background: #ff0050;
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+}
+
+.sell-progress-wrapper span {
+  font-size: 10px;
+  font-weight: bold;
+  color: #fff;
+  z-index: 2;
+}
+
+.sell-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  border-top: 1px solid #333;
+  padding-top: 15px;
+}
+
+.sell-cancel-btn {
+  background: #333;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.sell-submit-btn {
+  background: #ff0050;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.sell-submit-btn:hover {
+  background: #e60045;
+}
+
+

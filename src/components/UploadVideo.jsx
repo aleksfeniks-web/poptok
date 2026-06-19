@@ -32,6 +32,14 @@ const AI_FILTERS = [
   { id: "cool",       label: "❄️ Frío",     filter: "hue-rotate(30deg) saturate(1.2)" },
 ];
 
+const MUSIC_TRACKS = [
+  { id: "none", name: "🎵 Sin música de fondo" },
+  { id: "vibes", name: "🌴 Summer Vibes (Electro)", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+  { id: "synth", name: "🎹 Tech Beat (Synthwave)", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+  { id: "folk", name: "🎸 Acoustic Folk (Guitar)", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
+  { id: "lofi", name: "☕ Relaxing Lofi (Hip Hop)", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" },
+];
+
 const UploadVideo = ({ onUploadSuccess }) => {
   const [tab, setTab] = useState("video"); // "video" | "photo" | "text"
   const [videoFile, setVideoFile] = useState(null);
@@ -50,14 +58,53 @@ const UploadVideo = ({ onUploadSuccess }) => {
   const [selectedFilter, setSelectedFilter] = useState("none");
   const [selectedStyle, setSelectedStyle] = useState("gradient");
   const [textContent, setTextContent] = useState("");
+  const [allowDownload, setAllowDownload] = useState(true);
+  const [selectedMusic, setSelectedMusic] = useState("none");
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
 
   const fileInputRef = useRef(null);
   const canvasRef = useRef(null);
+  const previewAudioRef = useRef(null);
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(setUser);
-    return () => unsub();
+    return () => {
+      unsub();
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+      }
+    };
   }, []);
+
+  const handleMusicChange = (e) => {
+    const val = e.target.value;
+    setSelectedMusic(val);
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+    setIsPlayingPreview(false);
+  };
+
+  const togglePreviewMusic = () => {
+    const track = MUSIC_TRACKS.find(t => t.id === selectedMusic);
+    if (!track || !track.url) return;
+
+    if (isPlayingPreview) {
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+      }
+      setIsPlayingPreview(false);
+    } else {
+      if (!previewAudioRef.current) {
+        previewAudioRef.current = new Audio(track.url);
+        previewAudioRef.current.loop = true;
+      }
+      previewAudioRef.current.play()
+        .then(() => setIsPlayingPreview(true))
+        .catch(err => console.error("Error playing music preview:", err));
+    }
+  };
 
   // ─── File selection ────────────────────────────────────────────────────────
   const handleFileDrop = (e) => {
@@ -181,6 +228,8 @@ const UploadVideo = ({ onUploadSuccess }) => {
       });
 
       const url = await getDownloadURL(ref);
+      const musicObj = MUSIC_TRACKS.find(m => m.id === selectedMusic);
+
       await addDoc(collection(db, "videos"), {
         userId: user.uid,
         username: user.displayName || "Anónimo",
@@ -193,6 +242,9 @@ const UploadVideo = ({ onUploadSuccess }) => {
         likes: 0,
         favorites: 0,
         comments: [],
+        allowDownload: allowDownload,
+        musicUrl: musicObj ? (musicObj.url || null) : null,
+        musicTitle: musicObj ? (musicObj.name || null) : null,
       });
 
       if (onUploadSuccess) onUploadSuccess();
@@ -386,6 +438,54 @@ const UploadVideo = ({ onUploadSuccess }) => {
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>
+            </div>
+
+            {/* Music Selector with Preview */}
+            <div className="upload-music-wrapper" style={{ marginTop: "12px" }}>
+              <label className="upload-field-label">🎵 Música de fondo gratuita</label>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <select
+                  className="upload-category-select"
+                  value={selectedMusic}
+                  onChange={handleMusicChange}
+                  style={{ flex: 1 }}
+                >
+                  {MUSIC_TRACKS.map(track => (
+                    <option key={track.id} value={track.id}>{track.name}</option>
+                  ))}
+                </select>
+                {selectedMusic !== "none" && (
+                  <button
+                    type="button"
+                    onClick={togglePreviewMusic}
+                    style={{
+                      background: isPlayingPreview ? "#FF0050" : "#333",
+                      border: "none",
+                      borderRadius: "6px",
+                      color: "#fff",
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      fontSize: "12px"
+                    }}
+                  >
+                    {isPlayingPreview ? "Pausar" : "Escuchar"}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Allow download option */}
+            <div className="upload-download-toggle-wrapper" style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <input
+                type="checkbox"
+                id="allowDownload"
+                checked={allowDownload}
+                onChange={e => setAllowDownload(e.target.checked)}
+                style={{ width: "16px", height: "16px", cursor: "pointer" }}
+              />
+              <label htmlFor="allowDownload" style={{ color: "#fff", fontSize: "14px", cursor: "pointer" }}>
+                Permitir que otros usuarios descarguen este video/foto
+              </label>
             </div>
           </div>
 
