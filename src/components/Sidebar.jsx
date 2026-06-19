@@ -1,0 +1,171 @@
+import React, { useState, useEffect } from "react";
+import { auth, db } from "../firebase.js";
+import { collection, getDocs } from "firebase/firestore";
+import { toggleFollow, getFollowingList } from "../utils/follow.js";
+import { saveScore } from "../utils/saveScore.js";
+import PrivacyPolicy from "./PrivacyPolicy.jsx";
+import Copyright from "./Copyright.jsx";
+import Game from "./Game.jsx";
+
+const Sidebar = ({ isOpen, onClose, coins, setCoins }) => {
+  const [showContent, setShowContent] = useState("profile"); // "profile", "privacy", "copyright", "explore"
+  const [user, setUser] = useState(null);
+  const [users, setUsers] = useState([]); // Lista de usuarios en Firestore
+  const [following, setFollowing] = useState([]); // Lista de usuarios seguidos
+  const [uid, setUid] = useState(null);
+  const [startGame, setStartGame] = useState(false);
+
+  const handleCloseGame = () => { 
+    setStartGame(false); 
+  };
+
+  // ✅ Obtener usuario autenticado
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (u) => {
+      if (u) {
+        setUser(u);
+        setUid(u.uid);
+        try {
+          const followingList = await getFollowingList();
+          setFollowing(followingList);
+        } catch (err) {
+          console.error("Error fetching following list in sidebar:", err);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // ✅ Obtener lista de usuarios en Firestore
+  useEffect(() => {
+    if (isOpen && users.length === 0) {
+      const fetchUsers = async () => {
+        try {
+          const usersCollection = collection(db, "users");
+          const snapshot = await getDocs(usersCollection);
+          setUsers(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+        } catch (err) {
+          console.error("Error fetching users list in sidebar:", err);
+        }
+      };
+      fetchUsers();
+    }
+  }, [isOpen, users.length]);
+
+  const handleClose = () => {
+    setShowContent("profile"); // Siempre vuelve al perfil cuando se cierra
+    onClose();
+  };
+
+  return (
+    <div className={`sidebar-overlay ${isOpen ? "active" : ""}`} onClick={handleClose}>
+      <div
+        className={`sidebar ${isOpen ? "active" : ""} ${showContent !== "profile" ? "expanded" : ""}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Sección de perfil */}
+        {showContent === "profile" && (
+          <>
+            <div className="profile-section">
+              <img src={user?.photoURL || "https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png"} alt="Usuario" className="profile-image" />
+              <h3 className="profile-name">{user?.displayName || user?.email || "Usuario"}</h3>
+              <div className="coin-count-sidebar" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", margin: "10px 0" }}>
+                <img src="https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/coin.png" alt="Coin" className="small-coin-icon" 
+                  style={{
+                    animation: "rotate 2s linear infinite, glow 1s infinite alternate",
+                    width: "20px",
+                    height: "20px"
+                  }} />
+                <span style={{ fontSize: "16px", fontWeight: "bold" }}>{coins} 🪙</span>
+              </div>
+
+              {!startGame ? (
+                <div className="start-screen" style={{ marginTop: "15px", cursor: "pointer" }}>
+                  <img
+                    src="https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/game.gif" 
+                    alt="Iniciar Juego"
+                    className="start-button"
+                    style={{ width: "100%", borderRadius: "10px", maxHeight: "150px", objectFit: "cover" }}
+                    onClick={() => setStartGame(true)} 
+                  />
+                  <p style={{ fontSize: "12px", color: "#aaa", marginTop: "5px" }}>👉 Haz clic en la consola para iniciar el minijuego.</p>
+                </div>
+              ) : (
+                <Game
+                  coins={coins}
+                  setCoins={setCoins}
+                  uid={uid}
+                  saveScore={saveScore}
+                  onCloseGame={handleCloseGame} 
+                />
+              )}
+            </div>
+
+            {/* Botón para explorar usuarios */}
+            <button onClick={() => setShowContent("explore")} className="sidebar-button" style={{ width: "100%", background: "#FF0050", border: "none", color: "white", padding: "10px", borderRadius: "20px", fontWeight: "bold", cursor: "pointer", marginTop: "15px" }}>
+              🔍 Buscar Usuarios
+            </button>
+
+            <div className="sidebar-links" style={{ marginTop: "auto", padding: "20px 0" }}>
+              <p onClick={() => setShowContent("privacy")} style={{ cursor: "pointer", color: "#888", fontSize: "12px", textAlign: "center" }}>
+                Política de privacidad
+              </p>
+              <p onClick={() => setShowContent("copyright")} style={{ cursor: "pointer", color: "#888", fontSize: "12px", textAlign: "center", marginTop: "10px" }}>
+                Protección de derechos
+              </p>
+            </div>
+          </>
+        )}
+
+        {/* Sección para explorar y seguir usuarios */}
+        {showContent === "explore" && (
+          <>
+            <button onClick={() => setShowContent("profile")} className="back-button" style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "white", padding: "6px 12px", borderRadius: "15px", cursor: "pointer", marginBottom: "15px", width: "fit-content" }}>
+              ← Atrás
+            </button>
+            <h3>Explorar Usuarios</h3>
+            <ul className="user-list" style={{ listStyle: "none", padding: 0, overflowY: "auto", flex: 1 }}>
+              {users.length === 0 ? (
+                <p style={{ color: "#777", fontSize: "13px" }}>No hay otros usuarios registrados.</p>
+              ) : (
+                users.map((u) => (
+                  <li key={u.id} className="user-item" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #333" }}>
+                    <span style={{ fontSize: "14px" }}>{u.name || u.email || "Usuario"}</span>
+                    <button
+                      className={following.includes(u.id) ? "unfollow-button" : "follow-button"}
+                      style={{
+                        background: following.includes(u.id) ? "#444" : "#FF0050",
+                        color: "white",
+                        border: "none",
+                        padding: "4px 10px",
+                        borderRadius: "15px",
+                        fontSize: "12px",
+                        cursor: "pointer"
+                      }}
+                      onClick={async () => {
+                        const updated = await toggleFollow(u.id);
+                        if (updated !== undefined) {
+                          setFollowing(updated ? [...following, u.id] : following.filter(id => id !== u.id));
+                        }
+                      }}
+                    >
+                      {following.includes(u.id) ? "Dejar de seguir" : "Seguir"}
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </>
+        )}
+
+        {/* Sección de Política de Privacidad */}
+        {showContent === "privacy" && <PrivacyPolicy onBack={() => setShowContent("profile")} />}
+
+        {/* Sección de Protección de Derechos */}
+        {showContent === "copyright" && <Copyright onBack={() => setShowContent("profile")} />}
+      </div>
+    </div>
+  );
+};
+
+export default Sidebar;

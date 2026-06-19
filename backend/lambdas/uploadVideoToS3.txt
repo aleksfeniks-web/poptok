@@ -1,0 +1,127 @@
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { v4 as uuidv4 } from "uuid";
+
+// Configurar S3 y DynamoDB
+const s3 = new S3Client({ region: "us-east-2" });
+const dynamoDB = new DynamoDBClient({ region: "us-east-2" });
+
+// Tipos de archivos permitidos
+const allowedFileTypes = ["mp4", "mov", "avi"];
+
+export const handler = async (event) => {
+    try {
+        console.log("Evento recibido:", JSON.stringify(event, null, 2));
+
+        // ✅ Manejo de solicitudes OPTIONS (Preflight) para CORS
+        if (event.httpMethod === "OPTIONS") {
+            return {
+                statusCode: 200,
+                headers: {
+                    "Access-Control-Allow-Origin": "https://main.d5ef8qxtt288v.amplifyapp.com",
+                    "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
+                    "Access-Control-Allow-Headers": "Content-Type,Authorization",
+                },
+                body: "",
+            };
+        }
+
+        // ✅ Validar si el cuerpo está vacío
+        if (!event.body) {
+            throw new Error("El cuerpo de la solicitud está vacío.");
+        }
+
+        // ✅ Ajuste para detectar JSON anidado o plano
+        let parsedData;
+        try {
+            const bodyObject = typeof event.body === "string" ? JSON.parse(event.body) : event.body;
+            parsedData = bodyObject.body ? JSON.parse(bodyObject.body) : bodyObject;
+        } catch (err) {
+            console.error("Error al parsear JSON anidado:", err);
+            throw new Error("Formato de JSON inválido. Revisa el cuerpo de la solicitud.");
+        }
+
+        // ✅ Extraer campos
+        const { username, videoData, fileName } = parsedData;
+
+        // ✅ Validar campos requeridos
+        if (!username || !videoData || !fileName) {
+            throw new Error("Datos incompletos. Se requieren 'username', 'videoData' y 'fileName'.");
+        }
+
+        // ✅ Validar tipo de archivo
+        const fileType = fileName.split(".").pop().toLowerCase();
+        if (!allowedFileTypes.includes(fileType)) {
+            throw new Error("Tipo de archivo no permitido.");
+        }
+
+        // ✅ Convertir Base64 a Buffer
+        const videoBuffer = Buffer.from(videoData, 'base64');
+
+        // ✅ Generar un nombre único para el archivo en S3
+        const videoKey = `videos/${username}/${uuidv4()}.${fileType}`;
+        console.log("Subiendo video a S3...");
+
+        // ✅ Subir el video a S3
+        await s3.send(
+            new PutObjectCommand({
+                Bucket: "mybucketvideos",
+                Key: videoKey,
+                Body: videoBuffer,
+                ContentType: `video/${fileType}`,
+                
+            })
+        );
+
+        console.log("Guardando metadatos en DynamoDB...");
+
+        // ✅ Generar URL del video
+        const videoUrl = `https://mybucketvideos.s3.us-east-2.amazonaws.com/${videoKey}`;
+
+        // ✅ Guardar en DynamoDB
+        await dynamoDB.send(
+            new PutItemCommand({
+                TableName: "videos",
+                Item: {
+                    riuzaki1234: { S: uuidv4() },
+                    username: { S: username },
+                    videoUrl: { S: videoUrl },
+                    fileName: { S: fileName },
+                    createdAt: { S: new Date().toISOString() },
+                },
+            })
+        );
+
+        console.log("✅ Video subido exitosamente!");
+
+        return {
+            statusCode: 200,
+            headers: {
+                "Access-Control-Allow-Origin": "https://main.d5ef8qxtt288v.amplifyapp.com",
+                "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                message: "Video subido exitosamente!",
+                url: videoUrl
+            }),
+        };
+    } catch (error) {
+        console.error("❌ Error:", error);
+
+        return {
+            statusCode: 500,
+            headers: {
+                "Access-Control-Allow-Origin": "https://main.d5ef8qxtt288v.amplifyapp.com",
+                "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                message: "Error al subir el video",
+                error: error.message,
+            }),
+        };
+    }
+};

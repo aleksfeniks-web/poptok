@@ -1,0 +1,22 @@
+# Render Blueprint Specification for Poptok
+services:
+  - type: web
+    name: poptok-app
+    runtime: static
+    buildCommand: npm run build
+    publishDir: dist
+    envVars:
+      - key: VITE_FIREBASE_API_KEY
+        value: "AIzaSyBuGUsI9YoeIpvpfiNl9xbdkwyGSE1i4Yk"
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        value: "kibimex.firebaseapp.com"
+      - key: VITE_FIREBASE_PROJECT_ID
+        value: "kibimex"
+      - key: VITE_FIREBASE_STORAGE_BUCKET
+        value: "kibimex.firebasestorage.app"
+      - key: VITE_FIREBASE_MESSAGING_SENDER_ID
+        value: "678268067561"
+      - key: VITE_FIREBASE_APP_ID
+        value: "1:678268067561:web:a64a482ae5210dd1d25a78"
+      - key: VITE_FIREBASE_MEASUREMENT_ID
+        value: "G-XZ77PCH8H0"

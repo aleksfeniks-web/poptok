@@ -1,0 +1,128 @@
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { execSync } from "child_process";
+import fs from "fs";
+import os from "os";
+import path from "path";
+import { v4 as uuidv4 } from "uuid";
+import Busboy from "busboy";
+
+const s3 = new S3Client({ region: "us-east-2" });
+const dynamoDB = new DynamoDBClient({ region: "us-east-2" });
+const BUCKET_NAME = "mybucketvideos";
+
+export const handler = async (event) => {
+    try {
+        console.log("📥 Evento recibido:", JSON.stringify(event, null, 2));
+
+        // ✅ Verificar que `headers` exista y contenga `Content-Type`
+        const contentType = event.headers?.["Content-Type"] || event.headers?.["content-type"];
+        if (!contentType) {
+            throw new Error("Missing Content-Type");
+        }
+
+        if (!contentType.startsWith("multipart/form-data")) {
+            throw new Error("El Content-Type debe ser multipart/form-data.");
+        }
+
+        return new Promise((resolve, reject) => {
+            const busboy = new Busboy({ headers: { "content-type": contentType } });
+            let fileName = "";
+            let fileType = "";
+            let fileBuffer = Buffer.alloc(0);
+
+            busboy.on("file", (fieldname, file, filename, encoding, mimetype) => {
+                console.log(`📂 Procesando archivo: ${filename}`);
+                fileName = filename;
+                fileType = mimetype;
+
+                const chunks = [];
+                file.on("data", (chunk) => {
+                    chunks.push(chunk);
+                });
+
+                file.on("end", () => {
+                    fileBuffer = Buffer.concat(chunks);
+                });
+            });
+
+            busboy.on("finish", async () => {
+                if (!fileBuffer.length) {
+                    return reject(new Error("No se encontró ningún archivo en la solicitud."));
+                }
+
+                const isVideo = fileType.includes("video/");
+                const fileExtension = isVideo ? "mp4" : "png";
+                const fileKey = `uploads/${uuidv4()}.${fileExtension}`;
+                const tempInputPath = path.join(os.tmpdir(), `input.${fileExtension}`);
+                const tempOutputPath = path.join(os.tmpdir(), `output.${fileExtension}`);
+
+                // ✅ Guardar el archivo temporalmente
+                fs.writeFileSync(tempInputPath, fileBuffer);
+                let processedFileBuffer;
+
+                if (isVideo) {
+                    console.log("🎬 Procesando video con FFmpeg...");
+
+                    // ✅ Convertir video a 720p
+                    execSync(
+                        `ffmpeg -i ${tempInputPath} -vf "scale=1280:720" -preset fast -c:v libx264 -c:a aac ${tempOutputPath}`
+                    );
+
+                    console.log("✅ Video procesado con éxito!");
+                    processedFileBuffer = fs.readFileSync(tempOutputPath);
+                } else {
+                    console.log("🖼 Es una imagen, no requiere procesamiento.");
+                    processedFileBuffer = fs.readFileSync(tempInputPath);
+                }
+
+                // ✅ Subir el archivo procesado a S3
+                await s3.send(
+                    new PutObjectCommand({
+                        Bucket: BUCKET_NAME,
+                        Key: fileKey,
+                        Body: processedFileBuffer,
+                        ContentType: fileType,
+                    })
+                );
+
+                console.log("✅ Archivo subido exitosamente!");
+                const fileUrl = `https://${BUCKET_NAME}.s3.us-east-2.amazonaws.com/${fileKey}`;
+
+                // ✅ Guardar metadata en DynamoDB
+                await dynamoDB.send(
+                    new PutItemCommand({
+                        TableName: "videos",
+                        Item: {
+                            riuzaki1234: { S: uuidv4() },
+                            fileUrl: { S: fileUrl },
+                            fileName: { S: fileKey },
+                            fileType: { S: fileType },
+                            createdAt: { S: new Date().toISOString() },
+                        },
+                    })
+                );
+
+                console.log("✅ Metadata guardada en DynamoDB!");
+                resolve({
+                    statusCode: 200,
+                    headers: {
+                        "Access-Control-Allow-Origin": "*",
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ message: "Archivo procesado y subido con éxito!", url: fileUrl }),
+                });
+            });
+
+            busboy.end(event.body);
+        });
+    } catch (error) {
+        console.error("❌ Error:", error);
+        return {
+            statusCode: 500,
+            headers: { "Access-Control-Allow-Origin": "*" },
+            body: JSON.stringify({ message: "Error al subir el archivo", error: error.message }),
+        };
+    }
+};
+

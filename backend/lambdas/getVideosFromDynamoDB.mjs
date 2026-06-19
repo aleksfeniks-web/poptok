@@ -1,0 +1,66 @@
+import { DynamoDBClient, ScanCommand } from "@aws-sdk/client-dynamodb";
+import { unmarshall } from "@aws-sdk/util-dynamodb";
+
+const dynamoDB = new DynamoDBClient({ region: "us-east-2" });
+
+export const handler = async (event) => {
+    try {
+        let videos = [];
+        let lastEvaluatedKey = null;
+
+        do {
+            const command = new ScanCommand({
+                TableName: "videos",
+                ExclusiveStartKey: lastEvaluatedKey, // Usamos la clave de paginación
+            });
+
+            const data = await dynamoDB.send(command);
+
+            if (data.Items && data.Items.length > 0) {
+                const unmarshalledItems = data.Items.map((item) => unmarshall(item));
+                videos = videos.concat(unmarshalledItems);
+            }
+
+            lastEvaluatedKey = data.LastEvaluatedKey; // Actualizamos la clave para la próxima página
+        } while (lastEvaluatedKey); // Continuamos hasta que no haya más páginas
+
+        if (videos.length === 0) {
+            return {
+                statusCode: 404,
+                headers: {
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "Content-Type,Authorization",
+                    "Access-Control-Allow-Methods": "OPTIONS, GET",
+                    "Content-Type": "application/json",
+                    
+                },
+                body: JSON.stringify({ message: "No se encontraron videos." }),
+            };
+        }
+
+        return {
+            statusCode: 200,
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
+                "Access-Control-Allow-Methods": "OPTIONS, GET",
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(videos),
+        };
+
+    } catch (error) {
+        console.error("Error al obtener los videos:", error);
+        return {
+            statusCode: 500,
+            headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
+                "Access-Control-Allow-Methods": "OPTIONS, GET",
+                "Content-Type": "application/json",
+                
+            },
+            body: JSON.stringify({ message: "Error al obtener los videos", error: error.message }),
+        };
+    }
+};

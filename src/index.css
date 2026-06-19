@@ -1,0 +1,1829 @@
+
+/* Estilos generales */
+
+:root {
+  --rosa-mexicano: #ff0050;
+  --blanco: #ffffff;
+  --borde-redondeado: 8px;
+  --gris-oscuro: #555;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #000; /* Fondo oscuro para un estilo moderno */
+  color: #fff; /* Texto blanco */
+  overflow: hidden; /* Evita el desplazamiento no deseado */
+}
+
+/* Contenedor principal */
+.app-container {
+  position: relative;
+  min-height: 100vh;
+  background-color: black;
+}
+.donate-button {
+  background-color: #ffc439;
+  border: none;
+  color: #00457C;
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.donate-button:hover {
+  background-color: #ffb900;
+}
+
+.paypal-icon {
+  font-size: 24px;
+}
+
+/* Pantalla de carga */
+.loading-screen {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-screen img {
+  width: 400px;
+  height: 700px;
+}
+
+/* Botones en la parte superior */
+.top-buttons {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 11;
+}
+
+.top-buttons h1 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #ff4757; /* Color llamativo para el logo */
+}
+
+.top-buttons .buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.top-buttons button {
+  background-color: #ff0050; /* Color de fondo similar al de TikTok */
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s ease;
+}
+
+.top-buttons button:hover {
+  background-color: #ff1a6b; /* Color más claro al hacer hover */
+}
+
+/* Sección de subir video */
+.upload-section {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.9);
+  padding: 20px;
+  border-radius: 10px;
+  z-index: 1000; /* Asegúrate de que sea menor que el z-index del botón de cierre */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 300px;
+}
+
+.upload-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.upload-section h2 {
+  font-size: 15px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-align: center;
+  color: var(--rosa-mexicano);
+}
+
+.upload-input {
+  background-color: var(--rosa-mexicano);
+  color: var(--blanco);
+  border: none;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: var(--borde-redondeado);
+  cursor: pointer;
+  transition: background 0.3s ease;
+  text-align: center;
+  display: inline-block;
+}
+.upload-input:hover {
+  background-color: #c7006e; /* Un tono más oscuro de rosa mexicano */
+}
+.upload-input::placeholder {
+  color: #aaa; /* Color del placeholder */
+}
+/* Estilo cuando el input file está oculto */
+.upload-input input[type="file"] {
+  display: none;}
+.cancel-button {
+  background-color: var(--gris-oscuro);
+  color: var(--blanco);
+  border: none;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: var(--borde-redondeado);
+  cursor: pointer;
+  transition: background 0.3s ease;
+  text-align: center;
+  display: inline-block;
+}
+
+.cancel-button:hover {
+  background-color: #555; /* Un tono más claro de gris oscuro */
+}
+  
+  
+
+.upload-button {
+    background-color: #e6007e; /* Rosa mexicano */
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+.upload-button:disabled {
+  background-color: #7a7a7a !important; 
+  cursor: not-allowed;
+}
+
+  .upload-button:hover {
+    background-color: #c7006e;
+}
+  
+.upload-button:hover:not(:disabled) {
+  background-color: #ff1a6b; /* Color más claro al hacer hover */
+}
+.upload-button {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #FF0050;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+.upload-button.uploading {
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: green;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+
+/* Componente Feed como fondo */
+.feed-container {
+  width: 100%;
+  height: 100vh; /* Altura completa de la pantalla */
+  overflow-y: auto; /* Habilita el scroll vertical */
+  scroll-snap-type: y mandatory; /* Scroll suave y obligatorio */
+  scroll-behavior: smooth; /* Desplazamiento suave */
+}
+
+/* Botón de cierre fuera de la upload-section */
+.close-button {
+  position: fixed; /* Cambia a fixed para que esté fijo en la pantalla */
+  top: 150px; /* Ajusta la distancia desde la parte superior */
+  right: 20px; /* Ajusta la distancia desde la derecha */
+  background-color: rgba(0, 0, 0, 0.5); /* Fondo semitransparente */
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* Centra el contenido */
+  cursor: pointer;
+  margin: 0;
+  z-index: 1500; /* Asegura que esté por encima de otros elementos */
+}
+
+.close-button:hover {
+  background-color: rgba(255, 0, 80, 0.7); /* Cambio de color al pasar el mouse */
+}
+
+/* Franja negra en la parte inferior */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px; /* Altura de la franja */
+  background-color: rgba(0, 0, 0, 0.95); /* Fondo negro con opacidad */
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 10;
+}
+
+.bottom-bar button {
+  background: none;
+  border: none;
+  color: #ff0050;
+  cursor: pointer;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.bottom-bar button:hover {
+  opacity: 1;
+}
+
+/* Estilos para el botón "+" */
+.bottom-bar button.specific-button {
+  background-color: #ff4757 !important;
+}
+
+.bottom-bar button.specific-button:hover {
+  background-color: #ff1a6b;
+}
+
+/* Estilos específicos para el botón "+" */
+.bottom-bar .add-button {
+  background-color: #ff0050 !important; /* Color de fondo similar al de TikTok */
+  border: 2px solid #ff0050;
+  border-radius: 50%; /* Forma circular */
+  width: 48px; /* Tamaño fijo */
+  height: 48px; /* Tamaño fijo */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white; /* Color del texto */
+  font-size: 24px; /* Tamaño del símbolo "+" */
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  z-index: 2000;
+  animation: border-color-change 4s infinite;
+}
+
+.bottom-bar .add-button:hover {
+  background-color: #ff1a6b !important; /* Cambio de color al hacer hover */
+}
+
+/* Estilos para el video */
+video {
+  width: 100%;
+  height: 100%;
+  scroll-snap-align: start;
+  object-fit: cover; /* NO MOVER */
+  position: relative;
+  border-radius: 10px; /* Bordes redondeados */
+}
+
+.video-container video {
+  width: auto;
+  height: 100%;
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain; /*se cambio de contain a cover para revisar video vertical*/
+
+  
+/* Ajustar el video dentro del contenedor sin recortar */
+}
+
+/* Contenedor del video */
+.video-container {
+ display: flex; /* ✅ Flexbox para centrar el contenido */
+  justify-content: center; /* ✅ Centrar el video horizontalmente */
+  align-items: center; /* ✅ Centrar el video verticalmente */
+  position: relative; /* ✅ Mantener el video en su posición */
+  width: 100%;
+  max-width: 800px;
+  transition: height 0.3s ease-in-out;
+  height: 100vh; /* ✅ Cada video ocupa toda la pantalla */
+  scroll-snap-align: start; /* ✅ Asegura que cada video se alinee al hacer scroll */
+  overflow: hidden; /* Posible error */
+  z-index: 10 ;  /*comentar si causa error 7 marzo*/
+}
+
+/* Videos verticales (9:16) */
+.video-container.vertical video {
+  aspect-ratio: 9 / 16;
+  width: 100%;
+  height: auto;
+}
+
+/* Videos horizontales (16:9) */
+.video-container.horizontal video {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: auto;
+}
+
+.video-container.shrink {
+  height: 100vh; /* Ajusta la altura cuando los comentarios están abiertos */
+  overflow: hidden; /* Evita que los siguientes videos se desplacen hacia arriba */
+}
+
+.video-container.shrink video {
+  height: 100%; /* Ajustar el video al nuevo tamaño del contenedor */
+  width:auto;
+  max-height:100% ;
+  
+}
+
+
+ /* Contenedor del nombre de usuario (parte inferior izquierda) */
+.user-name-container {
+  position: absolute;
+  bottom: 80px; /* Posición sobre la bottom-bar */
+  left: 8px; /* Ajusta la distancia desde el borde izquierdo */
+  z-index: 20; /* Asegura que esté por encima de otros elementos */
+}
+
+.video-container.shrink .user-name-container {
+  transform: translateY(-40%);
+}
+
+.user-name-container h3 {
+  font-size: 0.8rem; /* 18px */
+  font-weight: 500;
+  color: white;
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 0.5rem; /* 8px */
+  border-radius: 0.25rem; /* 4px */
+}
+
+/* Contenedor de la imagen de usuario y los botones (parte derecha) */
+.user-buttons-container {
+  position: absolute;
+  top: 70%;
+  right: 10px; /* Ajusta la distancia desde el borde derecho */
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: bottom; /* Alinea los elementos a la derecha */
+  gap: 0.5rem; /* Espacio entre los elementos */
+  z-index: 20; /* Asegura que esté por encima de otros elementos */
+}
+
+.user-image {
+  position: relative; /* 🔹 Permite que .follow-icon se posicione dentro */
+  display: inline-block;
+}
+
+/* Imagen de usuario */
+.user-image img {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 3px solid #ff0050;
+  object-fit: cover;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave */
+}
+
+.follow-icon {
+  position: absolute;
+  top: -7px; /* Ajusta para que esté justo arriba */
+  right: 50%;
+  background: white; /* Opcional: fondo para mayor visibilidad */
+  border-radius: 50%;
+  padding: 2px;
+  font-size: 15px;
+  color: #ff1a6b; /* 🔥 Color llamativo */
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
+  display: flex;
+}
+
+.follow-icon:hover {
+  transform: scale(1.2);
+}
+
+/* Asegura que los números estén debajo de los iconos */
+.interaction-count {
+  font-size: 12px; /* Tamaño adecuado */
+  margin-top: 0.8px; /* Espacio entre el icono y el número */
+  font-weight: bold;
+  color: white;
+  text-align: center;
+  display: inline-block; /* Esto fuerza que el número esté debajo del icono */
+}
+
+/* Contenedor de botones */
+.buttons-container {
+  display: flex;
+  flex-direction: column;
+  align-items:center;
+  gap: 0.8rem; /* Espacio entre los botones */
+}
+
+.buttons-container button {
+  color: white;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.buttons-container button:hover {
+  opacity: 1;
+}
+
+/* Estilo de los botones de iconos like, comentario y favorito */
+/* Estilo base para los iconos (glassmorphism) */
+.icon-button {
+  background: none;
+ /* backdrop-filter: blur(10px); */
+  font-size: 30px; 
+  align-items: center;
+  justify-content: center;
+  /*width: 35px;*/
+  /*height:35px;*/
+  border:none; /*comentar si error*/
+  flex-direction: column; /*comentar si error*/
+  cursor: pointer;
+  gap:2px;
+  transition: background 0.3s ease, color 0.3s ease;
+ /*  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); Sombra para profundidad */
+}
+
+.icon-button:hover {
+  opacity: 1;
+  text-shadow: 
+    0 0 10px rgba(255, 255, 255, 1), /* Resplandor más intenso al hacer hover */
+    0 0 20px rgba(255, 255, 255, 0.8), 
+    0 0 30px rgba(255, 255, 255, 0.6);
+}
+
+
+/* Cambiar el color del icono cuando está activo (like o favorito) */
+.icon-button.active {
+  background: rgba(0, 0, 0, 0.5); /* Fondo más oscuro */
+  color: #ff0050; /* Color del icono cuando está activo */
+}
+
+/* Estilo para el ícono de comentarios (siempre visible) */
+.icon-button.comments {
+  color: #ffffff; /* Color blanco para el ícono de comentarios */
+}
+
+/* Estilo para el ícono de comentarios cuando está activo */
+.icon-button.comments.active {
+  background: rgba(0, 0, 0, 0.5); /* Fondo más oscuro */
+  color: #ff0050; /* Color del icono cuando está activo */
+}
+
+.coin-count {
+  position: absolute;
+  bottom: 5px;
+  right: 20px;
+  background-color: none;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 10px;
+}
+.small-coin-icon {
+  width: 1em;        /* Ajusta el tamaño al de la fuente */
+  height: 1em;
+  vertical-align: middle; /* Para que se alinee con el texto */
+  margin-right: 0.2em;    /* Espacio entre la imagen y el número */
+}
+
+.big-coin-icon {
+  width: 1em;        /* Ajusta el tamaño al de la fuente */
+  height: 1em;
+  vertical-align: middle; /* Para que se alinee con el texto */
+  margin-right: 0.2em;    /* Espacio entre la imagen y el número */
+}
+/*Autenticacion*/
+/* Estilos para la pantalla de autenticación (AuthSelection) */
+.auth-selection {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.9); /* Fondo oscuro con transparencia */
+  padding: 20px;
+  border-radius: 10px;
+  width: 300px;
+  text-align: center;
+  z-index: 1000;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Sombra para dar profundidad */
+}
+
+.auth-selection h2 {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #ff0050; /* Color rosa mexicano para el título */
+}
+
+.auth-selection p {
+  font-size: 14px;
+  margin-bottom: 15px;
+  color: #ccc; /* Color gris claro para el texto */
+}
+
+/* Contenedor para los botones */
+.auth-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 10px;
+}
+
+/* Botones con estilo similar a upload-section */
+.auth-buttons button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  background-color: #ff0050; /* Color rosa mexicano */
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Sombra para los botones */
+}
+
+.auth-buttons button:hover {
+  background-color: #ff1a6b; /* Color más claro al hacer hover */
+  transform: translateY(-2px); /* Efecto de levantar el botón */
+}
+
+.auth-buttons button:active {
+  transform: translateY(0); /* Efecto de presionar el botón */
+}
+
+/* Estilos adicionales para hacer la ventana más moderna */
+.auth-selection::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: rgba(255, 0, 80, 0.1); /* Borde luminoso */
+  border-radius: 15px;
+  z-index: -1;
+  animation: border-glow 2s infinite alternate;
+}
+
+@keyframes border-glow {
+  0% {
+    box-shadow: 0 0 10px rgba(255, 0, 80, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(255, 0, 80, 0.6);
+  }
+}
+
+/* Estilos para el contenedor de autenticación */
+.auth-container {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  max-width: 400px; /* Ancho máximo para la ventana de autenticación */
+  z-index: 1000; /* Asegura que esté por encima de otros elementos */
+}
+/* Estilos para el formulario de registro/inicio de sesión */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-form input {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+.auth-form button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: #84d441; /* Color verde */
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.auth-form button:hover {
+  background-color: #218838; /* Color verde más oscuro al pasar el mouse */
+}
+
+.auth-form .toggle-button {
+  background-color: transparent;
+  color: #f6f6f9;
+  text-decoration: underline;
+  font-size: 14px;
+  cursor: pointer;
+}
+.custom-file-upload {
+    display: inline-block;
+    background-color: #e6007e; /* Rosa mexicano */
+    color: white;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    margin-bottom: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.custom-file-upload:hover {
+    background-color: #c7006e; /* Tono más oscuro */
+}
+
+.auth-form .toggle-button:hover {
+  color: #0056b3;
+}
+/*side bar css*/
+/* ✅ Fondo oscuro transparente */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-in-out;
+  z-index: 1000;
+}
+
+/* ✅ Activa la ventana lateral */
+.sidebar-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ✅ Contenedor de la ventana lateral */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -30%;
+  width: 30%;
+  height: 100vh;
+  background: rgba(20, 20, 20, 0.9);
+  backdrop-filter: blur(10px);
+  box-shadow: 3px 0px 10px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: left 0.3s ease-in-out;
+}
+
+/* ✅ Activa la ventana cuando está abierta */
+.sidebar-overlay.active .sidebar {
+  left: 0;
+}
+
+/* ✅ Perfil del usuario */
+.profile-section {
+  text-align: center;
+  cursor: pointer;
+  padding: 20px;
+}
+
+.profile-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 2px solid white;
+  object-fit: cover; /* Evita que se deforme */
+  display: block;
+  margin: 0 auto; /* Centrar la imagen */
+}
+.profile-name {
+  margin-top: 10px;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+}
+
+/* ✅ Enlaces */
+.sidebar-links {
+    margin-top: 20px;
+    font-size: 14px; /* Un poco más grande para mejorar legibilidad */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px; /* Espacio entre los links */
+}
+
+.sidebar-links a {
+    display: block;
+    background-color: #ff007f; /* 🌸 Rosa vibrante */
+    color: white;
+    text-decoration: none;
+    padding: 10px 15px;
+    border-radius: 10px; /* Bordes redondeados */
+    font-weight: bold;
+    text-align: center;
+    transition: background 0.3s ease, transform 0.2s ease;
+    width: 90%;
+    max-width: 200px; /* Para evitar que se estiren demasiado */
+}
+
+.sidebar-links a:hover {
+    background-color: #e60073; /* Un tono más oscuro al pasar el mouse */
+    transform: scale(1.05); /* Efecto sutil de agrandado */
+}
+
+
+/* ✅ Sidebar expandida */
+.sidebar.expanded {
+  width: 90%; /* Ancho similar a un móvil */
+  max-width: 400px; /* Ancho máximo */
+  left: -90%; /* Ajusta la posición inicial */
+}
+
+/* ✅ Activa la ventana cuando está abierta */
+.sidebar-overlay.active .sidebar.expanded {
+  left: 0; /* Muestra la sidebar expandida */
+}
+
+.coin-count-sidebar {
+  display: flex;
+  align-items: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  margin-top: 10px;
+}
+.sidebar-button {
+    background: linear-gradient(135deg, #ff0050, #ff1a6b); /* 🔥 Degradado más dinámico */
+    color: white;
+    border: none;
+    padding: 12px 18px;
+    width: 90%;
+    max-width: 250px; /* Para que no sea demasiado ancho */
+    cursor: pointer;
+    font-weight: bold;
+    text-transform: uppercase;
+    border-radius: 25px; /* Bordes redondeados para un look moderno */
+    font-size: 14px;
+    letter-spacing: 1px; /* Espaciado en las letras para mejor estética */
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0 4px 10px rgba(255, 0, 80, 0.4); /* Sombra para efecto flotante */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Espacio entre icono y texto */
+}
+
+.sidebar-button:hover {
+    background: linear-gradient(135deg, #ff1a6b, #ff337a); /* Un poco más claro en hover */
+    transform: scale(1.05); /* Efecto de expansión al pasar el mouse */
+    box-shadow: 0 6px 15px rgba(255, 0, 80, 0.6);
+}
+
+.sidebar-button:active {
+    transform: scale(0.95); /* Pequeño efecto al hacer clic */
+    box-shadow: 0 2px 5px rgba(255, 0, 80, 0.5);
+}
+
+.back-button {
+  background-color: #ddd;
+  padding: 5px 10px;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+.user-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.user-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.follow-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  display: none !important;
+}
+
+.unfollow-button {
+  background-color: #ff0050;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+  display: none !important;
+}
+
+/* ✅ Miniaturas de videos */
+.video-header {
+  font-size: 18px;
+  color: white;
+  margin-bottom: 10px;
+}
+
+.video-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.video-thumbnail {
+  width: 1cm;
+  height: 1.5cm;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+.thumbnail-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-info {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 5px;
+}
+
+.likes-count {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size:12px;
+  
+}
+/*Comments*/
+
+.no-comments {
+  font-size: 12px; /* Reducir 3px el tamaño */
+  color: #888; /* Hacerlo un poco más tenue */
+}
+
+.comments-overlay {
+  position: fixed;
+  top: 55%;
+  left: 0;
+  right:10px;
+  width: 95%;
+  height:100vh;
+  background: rgba(255, 255, 255, 0.9); /* Fondo oscuro semi-transparente */
+  display: flex;
+  justify-content: center;
+  align-items: flex-end ; /* Alinea la ventana en la parte inferior */
+  z-index: 1000; /* Asegura que esté por encima de otros elementos */
+  transition: transform 0.3s ease-out; /* 🔹 Animación suave */
+  /*position: relative Eliminar si no funcionan lo comments 24 FEB*/
+}
+
+.comments-overlay.open {
+  transform: translateY(0); /* 🔹 Aparece suavemente */
+  top: 0;
+}
+
+.comments-container {
+  width: 100%;
+  height: 100vh; /* 70% de la altura de la pantalla */
+  background: rgba(246, 248, 250, 0.8); /* Fondo oscuro tipo cristal */
+  backdrop-filter: blur(10px); /* Efecto de desenfoque */
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 -4px 10px rgba(255, 0, 150, 0.6); /* glow rosa mex */
+  overflow-y: auto; /* Permite el desplazamiento */
+  top:0 ;
+  z-index: 1001;
+   animation: slideUp 0.3s ease-out; /* Aplica la animación */
+   
+}
+
+.close-button {
+  position: relative;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: black;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.comments-container .comments-list {
+  max-height: 100vh; /*50vh*/
+  overflow-y: auto;
+}
+.comments-list {
+  margin-bottom: 20px;
+}
+
+.comment {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+  padding: 12px;
+  background: rgba(246, 248, 250, 0.9); /* Fondo semi-transparente rosa */
+  border-radius: 15px;
+  box-shadow: 0 0 10px rgba(255, 0, 150, 0.6); /* Glow rosa mexicano */
+  color:black ; 
+  
+}
+
+.comment-profile {
+  width: 50px;
+  height: 50px;
+  border-radius: 15px; /* Marco semi-redondeado */
+  background: rgba(255, 0, 150, 0.2); /* Fondo rosa suave */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(255, 0, 150, 0.5);
+}
+
+
+.comment-profile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 15px;
+}
+
+
+.comment-time {
+  color: #ccc;
+  font-size: 12px;
+  display: block;
+  margin-top: 5px;
+}
+
+.comment-content {
+  flex: 1;
+}
+
+.comment-form {
+  display: flex;
+  gap: 10px;
+}
+
+.comment-form input {
+ flex: 1;
+  padding: 10px;
+  border: 1px solid #FF0050;
+  border-radius: 10px;
+  background: rgba(255, 255,255, 0.8);
+  color: black;
+  font-weight: bold;
+}
+
+.comment-form input::placeholder {
+    color: #888;
+}
+
+.comment-form button {
+ padding: 10px 20px;
+  background: #F0F0F0;
+  color: #FAFAFA;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(40, 39, 47, 0.8);
+}
+
+.comment-form button:hover {
+  background: #cc007a;
+}
+.character-counter {
+  font-size: 0.8rem;
+  color: #666;
+  text-align: right;
+}
+
+.error-message {
+  color: red;
+  font-size: 0.9rem;
+}
+
+/* Animaciones */
+/* Animación para deslizar desde abajo */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+
+/* Ajustes para móviles */
+@media (max-width: 768px) {
+  .comments-container {
+    height: 70vh; /* Aumenta la altura en móviles */
+    padding: 10px; /* Reduce el padding para aprovechar el espacio */
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+  }
+
+
+}
+/*Animacion de coin*/
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes glow {
+  0% {
+    filter: drop-shadow(0 0 5px lime);
+  }
+  50% {
+    filter: drop-shadow(0 0 15px lime);
+  }
+  100% {
+    filter: drop-shadow(0 0 5px lime);
+  }
+}
+/*animacion botones likes, favoritos*/
+
+@keyframes heart-pop {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes heart-float {
+  0% { transform: translateY(0) scale(0.8); opacity: 1; }
+  100% { transform: translateY(-30px) scale(1.2); opacity: 0; }
+}
+
+@keyframes spark-pop {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes spark-fly {
+  0% { transform: translateY(0) scale(0.8); opacity: 1; }
+  100% { transform: translateY(-20px) scale(1.2); opacity: 0; }
+}
+
+/* Clase para los corazones flotantes */
+.floating-heart {
+  position: absolute;
+  backdrop-filter: blur(10px);
+ background: rgba(255, 0, 80, 0.5); /* 50% de opacidad */
+  animation: heart-float 0.6s ease-out forwards;
+  font-size: 20px;
+  color: #ff0050;
+}
+/* Contenedor principal del chat */
+.chat-container {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 350px;
+  height: 500px;
+  background: rgba(246, 248, 250, 0.9); /* Fondo oscuro */
+  backdrop-filter: blur(10px); /* Efecto glassmorphism */
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  box-shadow: 0 -4px 10px rgba(255, 0, 150, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;
+}
+
+/* Encabezado del chat */
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  font-weight: bold;
+  color: black;
+  border-bottom: 2px solid rgba(255, 0, 150, 0.4);
+}
+
+.chat-header h2 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.close-button:hover {
+  color: #ff5050;
+}
+
+/* Selector de amigos */
+.friend-selector {
+  padding: 10px;
+  background: #222;
+  border-bottom: 1px solid #333;
+  display: flex;
+  flex-direction: column;
+}
+
+.friend-selector label {
+  color: #aaa;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.friend-selector select {
+  background: #2a2a2a;
+  color: #fff;
+  border: none;
+  padding: 8px;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Área de mensajes */
+.chat-messages {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a1a;
+}
+
+/* Mensajes */
+.message {
+  display: flex;
+  align-items: center;
+  max-width: 80%;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.4;
+  word-break: break-word;
+  animation: fadeIn 0.3s ease-in-out;
+  background: rgba(246, 248, 250, 0.9);
+  box-shadow: 0 0 10px rgba(255, 0, 150, 0.6); /* Glow rosa mexicano */
+}
+
+.message img {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px; /* Bordes semi-redondeados */
+  background: rgba(255, 0, 150, 0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(255, 0, 150, 0.5);
+}
+
+/* Mensaje enviado */
+.sent {
+  align-self: flex-end;
+  background: #007aff;
+  color: white;
+  border-bottom-right-radius: 2px;
+}
+
+/* Mensaje recibido */
+.received {
+  align-self: flex-start;
+  background: #444;
+  color: white;
+  border-bottom-left-radius: 2px;
+}
+
+/* Input del mensaje */
+.chat-input {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background: #222;
+  border-top: 1px solid #333;
+}
+
+.chat-input input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  border-top: 2px solid rgba(255, 0, 150, 0.4);
+  border-radius: 10px;
+}
+
+.chat-input input:focus {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #FF0050;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  color: black;
+  font-weight: bold;
+}
+
+/* Botón de enviar */
+.chat-input button {
+  background: #007aff;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.chat-input button:hover {
+  background: #cc007a;
+}
+
+/* Selector de emojis */
+.emoji-container {
+  position: relative;
+}
+
+.emoji-picker {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  background: #222;
+  padding: 8px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Acciones de chat */
+.chat-actions {
+  padding: 10px;
+  background: #222;
+  border-top: 1px solid #333;
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.chat-actions button {
+  background: #FF0050;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-size: 14px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.chat-actions button:disabled {
+  background: #555;
+  cursor: not-allowed;
+}
+
+/* Botón de bandeja de entrada */
+.chat-inbox {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+}
+
+.inbox-button {
+  background: #007aff;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.inbox-button:hover {
+  background: #005ecb;
+}
+
+.home-button {
+  background: none;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 50%;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  font-size: 18px;
+}
+
+
+/* Notificación de mensajes nuevos */
+.notification-bubble {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background-color: red;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* Animación de aparición */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.video-editor-container {
+    max-height: 90vh; /* ✅ Limita el alto total al 90% del viewport */
+    overflow: hidden; /* ✅ Evita que el contenido se desborde */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+  z-index:1000; 
+}
+
+/* Contenedor del video y el canvas (overlay) */
+.video-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 640px; /* ✅ Ajusta el tamaño según el video */
+    display: flex;
+    justify-content: center;
+  z-index:1400; 
+    
+}
+.video-wrapper video {
+    pointer-events: none; /* Permite que el canvas capture eventos */
+}
+
+/* Permitir interacción con los subtítulos y emojis */
+.konva-stage {
+   /* pointer-events: none;  No bloquea la interacción con el video */
+}
+
+.konva-stage * {
+    pointer-events: auto; /* Permite interacción con los elementos dentro del canvas */
+}
+
+/* Canvas sobre el video */
+.canvas-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+  z-index:1401;
+}
+
+/* Permitir interacción con el contenido del canvas */
+.canvas-overlay canvas {
+    pointer-events: auto;
+}
+
+/* Controles de botones */
+.video-editor-buttons {
+    position: relative;
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    z-index: 1500;
+}
+
+.video-editor-buttons button {
+    background: #ffcc00;
+    color: black;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Estilo de los botones */
+.buttons-container-editor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    margin-top: 10px;
+    z-index:1500; 
+}
+
+.buttons-container-editor button {
+    background: #ff0050;
+    color: black;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 90%;
+}
+
+/* Contenedor del input y el selector */
+.input-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    align-items: center;
+  z-index:1502;
+}
+
+.input-container input,
+.input-container select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+#game-container {
+  position:absolute; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  height: 100vh; /* Ajusta para que el juego ocupe toda la pantalla */
+  background-color: black;
+top:0 ;
+left:0;
+}
+
+canvas {
+  max-width: 100%; /* Asegura que se adapte a pantallas móviles */
+  height: auto;
+}
+
+.start-screen {
+   position: absolute; /* Se coloca encima de otros elementos */
+ bottom: 80px; /* Aproximadamente 2 cm desde la parte superior */
+  left: 30px; /* Aproximadamente 2 cm desde la izquierda */
+  width: 80px; /* 2 cm de ancho (1cm ≈ 20px) */
+  height: 80px; /* 2 cm de alto */
+  z-index: 1000; /* Asegura que esté por encima de los videos */
+}
+
+
+
+.start-button {
+  width: 80px; /* Ajusta el tamaño del GIF */
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out;
+}
+
+.start-button:hover {
+  transform: scale(1.1); /* Efecto de agrandado al pasar el mouse */
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-50px) scale(0.5);
+    opacity: 0;
+  }
+}
+/* Clase para las chispas flotantes */
+.floating-spark {
+  position: absolute;
+  animation: spark-fly 0.5s ease-out forwards;
+  font-size: 18px;
+  color: yellow;
+}
+@keyframes sparkBurst {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+     transform: translateY(-50px) scale(0.5);
+    opacity: 0;
+  }
+}
+/* Animación al hacer clic */
+.like-button.clicked {
+  animation: heart-pop 0.4s ease-out;
+  color: #ff0050; /* Cambia el color cuando está activo */
+}
+
+.favorite-button.clicked {
+  animation: spark-pop 0.4s ease-out;
+  color: #ffd700; /* Cambia el color cuando está activo */
+}
+/* Estilos para el textarea */
+.description-input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.6); /* Fondo oscuro translúcido */
+    color: white; /* Letra blanca */
+    font-weight: bold; /* Negrita */
+    font-size: 14px;
+    resize: vertical; /* Permitir redimensionamiento vertical */
+    transition: background-color 0.3s ease;
+}
+
+.description-input::placeholder {
+    color: rgba(255, 255, 255, 0.7); /* Color del placeholder */
+}
+
+.description-input:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(0, 0, 0, 0.8); /* Fondo más oscuro al enfocar */
+}
+
+/* Estilos para el label de interés */
+.interest-label {
+    display: block;
+    margin-top: 20px;
+    font-size: 16px;
+    font-weight: bold;
+    color: white; /* Letra blanca */
+}
+
+/* Estilos para el select de interés */
+.interest-select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.6); /* Fondo oscuro translúcido */
+    color: white; /* Letra blanca */
+    font-weight: bold; /* Negrita */
+    font-size: 14px;
+    appearance: none; /* Eliminar el estilo por defecto del select */
+    transition: background-color 0.3s ease;
+}
+
+.interest-select:focus {
+    outline: none;
+    border-color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(0, 0, 0, 0.8); /* Fondo más oscuro al enfocar */
+}
+/* Estilos para el modal de Cuenta PayPal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.9); /* Fondo semi-transparente */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  transform: translateX(100%);
+}
+
+.modal-overlay.open {
+  transform: translateX(0);
+}
+
+.modal-content {
+  background: rgba(246, 248, 250, 0.9);
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 0 10px rgba(255, 0, 150, 0.6);
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    height: 90vh;
+    max-width: none;
+    border-radius: 15px;
+  }
+}
+
+.modal-content h2 {
+  color: black;
+  font-size: 22px;
+  margin-bottom: 15px;
+}
+
+.modal-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.modal-content label {
+  font-weight: bold;
+  color: black;
+  text-align: left;
+}
+
+.modal-content input,
+.modal-content select {
+  padding: 12px;
+  border: 1px solid #FF0050;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.8);
+  color: black;
+  font-weight: bold;
+}
+
+.modal-content input::placeholder {
+  color: #888;
+}
+
+.modal-content button {
+  padding: 12px;
+  background: #F0F0F0;
+  color: black;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(40, 39, 47, 0.8);
+  transition: background 0.3s ease;
+}
+
+.modal-content button:hover {
+  background: #cc007a;
+  color: white;
+}
+
+.modal-content button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+/* Botón de cancelar */
+.modal-content button[type="button"] {
+  background: transparent;
+  color: black;
+  box-shadow: none;
+}
+
+.modal-content button[type="button"]:hover {
+  background: rgba(255, 0, 150, 0.2);
+}
+
+/*animacion de boton upload */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.like-animation {
+  animation: pulse 0.5s ease;
+}
+
+@keyframes border-color-change {
+  0% {
+    border-color: #ff0050; /* Color inicial */
+  }
+  50% {
+    border-color: #00ffff; /* Cian */
+  }
+  75% {
+    border-color: #ff00ff; /* Magenta */
+  }
+  100% {
+    border-color: #ff0050; /* Vuelve al color inicial */
+  }
+}
