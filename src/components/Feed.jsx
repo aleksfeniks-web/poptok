@@ -5,7 +5,85 @@ import { auth, db } from "../firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, doc, updateDoc, getDoc, getDocs, query, orderBy, limit, increment, arrayUnion, setDoc } from "firebase/firestore";
 import { AiFillHeart } from "react-icons/ai";
-import { FiSearch } from "react-icons/fi";
+import { FiSearch, FiVideo } from "react-icons/fi";
+
+// ─── Videos de demostración (Pexels CDN — sin API key) ───────────────────────
+// Pexels permite enlazar directamente sus videos bajo Creative Commons.
+// Atribución: Videos provided by Pexels (https://www.pexels.com)
+const PEXELS_DEMO_VIDEOS = [
+  {
+    riuzaki1234: "pexels-1",
+    fileUrl: "https://videos.pexels.com/video-files/3571264/3571264-uhd_2560_1440_30fps.mp4",
+    username: "Pexels",
+    description: "🌊 Olas del océano al atardecer",
+    interest: "Lifestyle",
+    likes: 142,
+    favorites: 38,
+    coins: 5,
+    comments: [],
+    isPexels: true,
+  },
+  {
+    riuzaki1234: "pexels-2",
+    fileUrl: "https://videos.pexels.com/video-files/856263/856263-hd_1920_1080_25fps.mp4",
+    username: "Pexels",
+    description: "🌆 Ciudad de noche con luces neón",
+    interest: "Lifestyle",
+    likes: 209,
+    favorites: 61,
+    coins: 8,
+    comments: [],
+    isPexels: true,
+  },
+  {
+    riuzaki1234: "pexels-3",
+    fileUrl: "https://videos.pexels.com/video-files/2169880/2169880-uhd_2560_1440_30fps.mp4",
+    username: "Pexels",
+    description: "🌌 Galaxia y estrellas en movimiento",
+    interest: "Science & Tech",
+    likes: 318,
+    favorites: 97,
+    coins: 12,
+    comments: [],
+    isPexels: true,
+  },
+  {
+    riuzaki1234: "pexels-4",
+    fileUrl: "https://videos.pexels.com/video-files/4763824/4763824-hd_1920_1080_30fps.mp4",
+    username: "Pexels",
+    description: "🌿 Naturaleza y bosque tranquilo",
+    interest: "Lifestyle",
+    likes: 87,
+    favorites: 24,
+    coins: 3,
+    comments: [],
+    isPexels: true,
+  },
+  {
+    riuzaki1234: "pexels-5",
+    fileUrl: "https://videos.pexels.com/video-files/7364752/7364752-hd_1920_1080_30fps.mp4",
+    username: "Pexels",
+    description: "🏙️ Timelapse de una gran ciudad",
+    interest: "Lifestyle",
+    likes: 453,
+    favorites: 121,
+    coins: 16,
+    comments: [],
+    isPexels: true,
+  },
+  {
+    riuzaki1234: "pexels-6",
+    fileUrl: "https://videos.pexels.com/video-files/3015538/3015538-hd_1920_1080_30fps.mp4",
+    username: "Pexels",
+    description: "🐠 Vida submarina colorida",
+    interest: "Animals & Pets",
+    likes: 274,
+    favorites: 73,
+    coins: 9,
+    comments: [],
+    isPexels: true,
+  },
+];
 
 const Feed = ({
   user,
@@ -17,8 +95,8 @@ const Feed = ({
   page,
   setPage,
   isOpen,
-  setIsOpen, 
-  layout = "feed", // "feed" o "explore"
+  setIsOpen,
+  layout = "feed",
   onSelectExploreVideo,
   activeExploreVideoId,
   setActiveExploreVideoId
@@ -36,13 +114,8 @@ const Feed = ({
   // ✅ Manejo de autenticación del usuario
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
-      if (u) {
-        setCurrentUser(u);
-      } else {
-        setCurrentUser(null);
-      }
+      setCurrentUser(u || null);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -56,7 +129,6 @@ const Feed = ({
       } else {
         await setDoc(userRef, { coins: 11 }, { merge: true });
       }
-      console.log("✅ Monedas actualizadas correctamente en Firestore");
     } catch (err) {
       console.error("❌ Error al actualizar monedas:", err);
     }
@@ -64,25 +136,23 @@ const Feed = ({
 
   const updateVideoComments = async (riuzaki1234, comment, currentUser) => {
     try {
-      if (!riuzaki1234 || !comment || !currentUser) {
-        throw new Error("Faltan datos requeridos: riuzaki1234, comment o currentUser");
-      }
+      if (!riuzaki1234 || !comment || !currentUser) return;
 
       const newComment = {
         commentId: comment.commentId || Date.now().toString(),
-        text: comment.text || comment,  
+        text: comment.text || comment,
         timestamp: comment.timestamp || new Date().toISOString(),
         userId: comment.userId || currentUser.uid,
         username: comment.username || currentUser.displayName || "Anónimo",
       };
-    
-      const videoRef = doc(db, "videos", riuzaki1234);
-      await updateDoc(videoRef, {
-        comments: arrayUnion(newComment)
-      });
 
-      console.log("✅ Comentario guardado en Firestore!");
-      
+      // Solo guardar en Firestore si NO es un video de Pexels
+      const video = videos.find(v => v.riuzaki1234 === riuzaki1234);
+      if (!video?.isPexels) {
+        const videoRef = doc(db, "videos", riuzaki1234);
+        await updateDoc(videoRef, { comments: arrayUnion(newComment) });
+      }
+
       setVideos((prevVideos) =>
         prevVideos.map((v) =>
           v.riuzaki1234 === riuzaki1234
@@ -91,7 +161,6 @@ const Feed = ({
         )
       );
 
-      // Actualizar contador local de comentarios
       setInteractions((prevInteractions) => ({
         ...prevInteractions,
         [riuzaki1234]: {
@@ -104,43 +173,45 @@ const Feed = ({
     }
   };
 
-  // ✅ Función para cargar videos con sus comentarios desde Firestore
+  // ✅ Función para cargar videos desde Firestore + fallback a Pexels
   const fetchVideos = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const videosCollection = collection(db, "videos");
       const q = query(videosCollection, orderBy("createdAt", "desc"), limit(5 * page));
       const querySnapshot = await getDocs(q);
-      
-      const data = querySnapshot.docs.map((doc) => ({
+
+      const firestoreData = querySnapshot.docs.map((doc) => ({
         riuzaki1234: doc.id,
         ...doc.data(),
         comments: Array.isArray(doc.data().comments) ? doc.data().comments : [],
       }));
 
-      console.log("✅ Videos recibidos desde Firestore:", data);
+      console.log("✅ Videos recibidos desde Firestore:", firestoreData);
 
-      if (data.length === 0 || data.length < 5 * page) {
+      if (firestoreData.length === 0 || firestoreData.length < 5 * page) {
         setHasMore(false);
       }
 
-      // Append new videos (and prevent duplicating if they are already loaded)
+      // Si Firestore está vacío → mostrar videos de Pexels como contenido demo
+      const finalVideos = firestoreData.length > 0 ? firestoreData : PEXELS_DEMO_VIDEOS;
+
       setVideos((prevVideos) => {
         const existingIds = new Set(prevVideos.map(v => v.riuzaki1234));
-        const filteredNew = data.filter(v => !existingIds.has(v.riuzaki1234));
+        const filteredNew = finalVideos.filter(v => !existingIds.has(v.riuzaki1234));
         return [...prevVideos, ...filteredNew];
       });
 
       // Cargar interacciones
       setInteractions((prevInteractions) => {
         const newInteractions = { ...prevInteractions };
-        data.forEach((v) => {
+        finalVideos.forEach((v) => {
           if (v.riuzaki1234 && !newInteractions[v.riuzaki1234]) {
             newInteractions[v.riuzaki1234] = {
               likes: v.likes || 0,
-              comments: v.comments.length, 
+              comments: v.comments?.length || 0,
               favorites: v.favorites || 0,
               coins: v.coins || 0,
             };
@@ -150,6 +221,18 @@ const Feed = ({
       });
     } catch (err) {
       setError(err.message);
+      // Si hay error de red, igual mostrar Pexels
+      setVideos(PEXELS_DEMO_VIDEOS);
+      const initialInteractions = {};
+      PEXELS_DEMO_VIDEOS.forEach(v => {
+        initialInteractions[v.riuzaki1234] = {
+          likes: v.likes,
+          comments: 0,
+          favorites: v.favorites,
+          coins: v.coins,
+        };
+      });
+      setInteractions(initialInteractions);
     } finally {
       setLoading(false);
     }
@@ -172,17 +255,13 @@ const Feed = ({
       },
       { threshold: 0.5 }
     );
-
     if (observerRef.current) observer.observe(observerRef.current);
     return () => observer.disconnect();
   }, [loading, hasMore, setPage]);
 
   // ✅ Función para manejar interacciones (likes, comentarios, favoritos)
   const handleInteraction = async (riuzaki1234, type) => {
-    if (!currentUser) {
-      console.error("Usuario no autenticado");
-      return;
-    }
+    if (!currentUser) return;
 
     const uid = currentUser.uid;
     if (type === "coins") {
@@ -190,29 +269,29 @@ const Feed = ({
       return;
     }
 
-    try {
-      const videoRef = doc(db, "videos", riuzaki1234);
-      if (type === "likes") {
-        await updateDoc(videoRef, {
-          likes: increment(1)
-        });
-      } else if (type === "favorites") {
-        await updateDoc(videoRef, {
-          favorites: increment(1)
-        });
-      }
+    const video = videos.find(v => v.riuzaki1234 === riuzaki1234);
 
-      setInteractions((prevInteractions) => ({
-        ...prevInteractions,
-        [riuzaki1234]: {
-          ...prevInteractions[riuzaki1234],
-          [type]: (prevInteractions[riuzaki1234]?.[type] || 0) + 1,
-        },
-      }));
-      console.log(`✅ Interacción ${type} actualizada en Firestore`);
-    } catch (err) {
-      console.error("❌ Error al actualizar interacciones:", err);
+    // Para videos de Pexels solo actualizamos el estado local
+    if (!video?.isPexels) {
+      try {
+        const videoRef = doc(db, "videos", riuzaki1234);
+        if (type === "likes") {
+          await updateDoc(videoRef, { likes: increment(1) });
+        } else if (type === "favorites") {
+          await updateDoc(videoRef, { favorites: increment(1) });
+        }
+      } catch (err) {
+        console.error("❌ Error al actualizar interacciones:", err);
+      }
     }
+
+    setInteractions((prevInteractions) => ({
+      ...prevInteractions,
+      [riuzaki1234]: {
+        ...prevInteractions[riuzaki1234],
+        [type]: (prevInteractions[riuzaki1234]?.[type] || 0) + 1,
+      },
+    }));
   };
 
   const categories = [
@@ -226,9 +305,7 @@ const Feed = ({
     const matchesSearch = searchQuery.trim() === "" ||
       (v.description && v.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (v.username && v.username.toLowerCase().includes(searchQuery.toLowerCase()));
-
     const matchesCategory = selectedCategory === "" || selectedCategory === "All" || v.interest === selectedCategory;
-
     return matchesSearch && matchesCategory;
   });
 
@@ -239,10 +316,30 @@ const Feed = ({
       ]
     : filteredVideos;
 
+  // ─── Empty state component ─────────────────────────────────────────────────
+  const EmptyState = ({ message = "¡Sé el primero en subir un video!" }) => (
+    <div className="feed-empty-state">
+      <div className="feed-empty-icon">
+        <FiVideo size={52} />
+      </div>
+      <h3 className="feed-empty-title">Sin contenido aún</h3>
+      <p className="feed-empty-text">{message}</p>
+    </div>
+  );
+
+  // ─── Loading skeleton ──────────────────────────────────────────────────────
+  const LoadingState = () => (
+    <div className="feed-loading-state">
+      <div className="feed-loading-spinner" />
+      <p className="feed-loading-text">Cargando videos...</p>
+    </div>
+  );
+
+  // ─── EXPLORAR MODE ─────────────────────────────────────────────────────────
   if (layout === "explore") {
     return (
       <div className="explore-container">
-        {/* Explorador de Categorías y Buscador */}
+        {/* Buscador */}
         <div className="search-container">
           <FiSearch className="search-icon" />
           <input
@@ -254,6 +351,7 @@ const Feed = ({
           />
         </div>
 
+        {/* Categorías */}
         <div className="category-pills">
           {categories.map((cat) => (
             <button
@@ -266,11 +364,12 @@ const Feed = ({
           ))}
         </div>
 
-        {loading && page === 1 && <p style={{ color: "#aaa", textAlign: "center" }}>Cargando exploración...</p>}
-        {error && <p style={{ color: "red", textAlign: "center" }}>{`Error: ${error}`}</p>}
-
-        {filteredVideos.length === 0 && !loading ? (
-          <p style={{ color: "#666", textAlign: "center", padding: "50px 0" }}>No se encontraron videos en esta categoría.</p>
+        {loading && page === 1 ? (
+          <LoadingState />
+        ) : error ? (
+          <p style={{ color: "#ff6b6b", textAlign: "center", padding: "50px 0" }}>Error al cargar: {error}</p>
+        ) : filteredVideos.length === 0 ? (
+          <EmptyState message="No se encontraron videos en esta categoría." />
         ) : (
           <div className="rednote-grid">
             {filteredVideos.map((v) => (
@@ -303,29 +402,43 @@ const Feed = ({
           </div>
         )}
 
-        {/* Carga automática */}
-        <div ref={observerRef} style={{ height: "10px", marginTop: "20px" }}></div>
+        {/* Pexels attribution */}
+        {videos.some(v => v.isPexels) && (
+          <p className="pexels-attribution">
+            Videos de muestra proporcionados por{" "}
+            <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer">Pexels</a>
+          </p>
+        )}
+
+        <div ref={observerRef} style={{ height: "10px", marginTop: "20px" }} />
         {loading && page > 1 && <p style={{ color: "#aaa", textAlign: "center", padding: "10px" }}>Cargando más...</p>}
       </div>
     );
   }
 
-  // Layout = "feed" (TikTok Scroll Snap)
+  // ─── FEED MODE (Snap-scroll vertical) ─────────────────────────────────────
   return (
     <div className="feed-container snap-mode">
-      {loading && page === 1 && <p className="text-center text-gray-400" style={{ padding: "20px" }}>Cargando videos...</p>}
-      {error && <p className="text-center text-red-500" style={{ padding: "20px" }}>{`Error: ${error}`}</p>}
-
-      {displayVideos.length === 0 && !loading ? (
-        <p className="text-center text-gray-400" style={{ padding: "50px 20px" }}>No hay videos aún. ¡Sé el primero en subir uno!</p>
+      {loading && page === 1 ? (
+        <div className="feed-snap-loading">
+          <LoadingState />
+        </div>
+      ) : error && displayVideos.length === 0 ? (
+        <div className="feed-snap-loading">
+          <EmptyState message="Error al conectar. Por favor revisa tu conexión." />
+        </div>
+      ) : displayVideos.length === 0 ? (
+        <div className="feed-snap-loading">
+          <EmptyState />
+        </div>
       ) : (
         displayVideos.map((v) => (
           <div key={v.riuzaki1234} className="video-item">
             <VideoPlayer
               videoUrl={v.fileUrl}
               username={v.username}
-              description={v.description}  
-              interest={v.interest}  
+              description={v.description}
+              interest={v.interest}
               riuzaki1234={v.riuzaki1234}
               currentUser={currentUser}
               userId={v.userId}
@@ -346,9 +459,9 @@ const Feed = ({
         ))
       )}
 
-      <div ref={observerRef} style={{ height: "10px" }}></div>
-      {loading && page > 1 && <p className="text-center text-gray-400" style={{ padding: "10px" }}>Cargando más videos...</p>}
-      <div style={{ height: "60px" }}></div>
+      <div ref={observerRef} style={{ height: "10px" }} />
+      {loading && page > 1 && <p style={{ color: "#aaa", textAlign: "center", padding: "10px" }}>Cargando más videos...</p>}
+      <div style={{ height: "60px" }} />
     </div>
   );
 };

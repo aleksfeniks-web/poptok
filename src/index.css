@@ -2144,8 +2144,117 @@ canvas {
   color: #fff;
 }
 
+/* ──────────────────────────────────────────────
+   Empty State & Loading State
+   ────────────────────────────────────────────── */
+
+/* Centrado en snap-feed (ocupa todo el viewport) */
+.feed-snap-loading {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Empty state */
+.feed-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 30px;
+  text-align: center;
+  min-height: 50vh;
+}
+
+.feed-empty-icon {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(255,0,80,0.15), rgba(255,107,53,0.1));
+  border: 1px solid rgba(255, 0, 80, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff0050;
+  animation: pulse-icon 2.5s ease-in-out infinite;
+}
+
+@keyframes pulse-icon {
+  0%, 100% { transform: scale(1);   box-shadow: 0 0 0   0px rgba(255,0,80,0.2); }
+  50%       { transform: scale(1.06); box-shadow: 0 0 20px 6px rgba(255,0,80,0.15); }
+}
+
+.feed-empty-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.feed-empty-text {
+  font-size: 14px;
+  color: rgba(255,255,255,0.45);
+  max-width: 260px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Loading spinner */
+.feed-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 30px;
+  min-height: 50vh;
+}
+
+.feed-loading-spinner {
+  width: 44px;
+  height: 44px;
+  border: 3px solid rgba(255,255,255,0.08);
+  border-top-color: #ff0050;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.feed-loading-text {
+  font-size: 14px;
+  color: rgba(255,255,255,0.4);
+  margin: 0;
+}
+
+/* Pexels attribution */
+.pexels-attribution {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.3);
+  padding: 20px 0 10px;
+  margin-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.pexels-attribution a {
+  color: rgba(255,255,255,0.5);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.pexels-attribution a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
 /* 2-Column Pinterest-like Grid */
 .rednote-grid {
+
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 15px;
