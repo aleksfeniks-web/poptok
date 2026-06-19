@@ -1,0 +1,20 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Permite lectura y escritura a cualquier usuario autenticado en la colección de usuarios
+    match /users/{userId} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Permite lectura pública de videos, pero solo escritura a usuarios autenticados
+    match /videos/{videoId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Permite lectura y escritura de mensajes solo a usuarios autenticados
+    match /messages/{messageId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
