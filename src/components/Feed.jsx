@@ -22,6 +22,7 @@ const Feed = ({
   const [error, setError] = useState(null);
   const [interactions, setInteractions] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
   const observerRef = useRef(null);
 
   // ✅ Manejo de autenticación del usuario
@@ -113,6 +114,10 @@ const Feed = ({
 
       console.log("✅ Videos recibidos desde Firestore:", data);
 
+      if (data.length === 0 || data.length < 5 * page) {
+        setHasMore(false);
+      }
+
       // Append new videos (and prevent duplicating if they are already loaded)
       setVideos((prevVideos) => {
         const existingIds = new Set(prevVideos.map(v => v.riuzaki1234));
@@ -153,7 +158,7 @@ const Feed = ({
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !loading) {
+        if (entries[0].isIntersecting && !loading && hasMore) {
           setPage((prevPage) => prevPage + 1);
         }
       },
@@ -162,7 +167,7 @@ const Feed = ({
 
     if (observerRef.current) observer.observe(observerRef.current);
     return () => observer.disconnect();
-  }, [loading, setPage]);
+  }, [loading, hasMore, setPage]);
 
   // ✅ Función para manejar interacciones (likes, comentarios, favoritos)
   const handleInteraction = async (riuzaki1234, type) => {
