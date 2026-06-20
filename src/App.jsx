@@ -417,7 +417,7 @@ function App() {
     return (
       <div className="loading-screen">
         <img
-          src="/logopoptok.svg"
+          src="/logopoptok.png"
           alt="Poptok"
           className="loading-logo-img"
           onError={(e) => { e.target.style.display = 'none'; }}

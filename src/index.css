@@ -63,14 +63,14 @@ body.scrollable-view {
 }
 
 .loading-screen img {
-  width: 40px;
-  height: 40px;
+  width: 1.5cm;
+  height: 1.5cm;
 }
 
 /* Logo de inicio animado */
 .loading-logo-img {
-  width: 40px;
-  height: 40px;
+  width: 1.5cm;
+  height: 1.5cm;
   object-fit: contain;
   animation: logoPopIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both,
              logoFloat 3s ease-in-out 0.7s infinite;
