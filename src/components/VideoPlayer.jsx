@@ -14,12 +14,13 @@ import {
   FaPlay, FaPause
 } from "react-icons/fa";
 
-import coin1 from "../assets/coin_1.png";
-import coin2 from "../assets/coin_2.png";
-import coin3 from "../assets/coin_3.png";
-import coin4 from "../assets/coin_4.png";
-import coin5 from "../assets/coin_5.png";
-import coin6 from "../assets/coin_6.png";
+import coin1 from "../assets/coin_1.svg";
+import coin2 from "../assets/coin_2.svg";
+import coin3 from "../assets/coin_3.svg";
+import coin4 from "../assets/coin_4.svg";
+import coin5 from "../assets/coin_5.svg";
+import coin6 from "../assets/coin_6.svg";
+import coin7 from "../assets/coin_7.svg";
 
 const coinImages = {
   1: coin1,
@@ -27,7 +28,8 @@ const coinImages = {
   3: coin3,
   4: coin4,
   5: coin5,
-  6: coin6
+  6: coin6,
+  7: coin7
 };
 
 const coinGlowColors = {
@@ -36,7 +38,8 @@ const coinGlowColors = {
   3: "#10b981", // Green
   4: "#8b5cf6", // Purple
   5: "#3b82f6", // Blue
-  6: "#fbbf24"  // Gold
+  6: "#00f0ff", // Celeste/Teal
+  7: "#fbbf24"  // Gold
 };
 
 const VideoPlayer = forwardRef(
@@ -301,8 +304,11 @@ const VideoPlayer = forwardRef(
           // Coin 3 (Verde): 6h (21600s) (prob 0.001)
           // Coin 4 (Púrpura): 16h (57600s) (prob 0.0005)
           // Coin 5 (Azul): 40h (144000s) (prob 0.0001)
+          // Coin 6 (Celeste): 100h (360000s) (prob 0.00005)
           
-          if (newWatchTime >= 144000 && Math.random() < 0.0001) {
+          if (newWatchTime >= 360000 && Math.random() < 0.00005) {
+            spawnCoin(6);
+          } else if (newWatchTime >= 144000 && Math.random() < 0.0001) {
             spawnCoin(5);
           } else if (newWatchTime >= 57600 && Math.random() < 0.0005) {
             spawnCoin(4);

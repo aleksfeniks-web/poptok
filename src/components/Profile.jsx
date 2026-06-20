@@ -7,12 +7,13 @@ import { AiFillHeart, AiOutlineClose } from "react-icons/ai";
 import { BsAward, BsCoin, BsGrid3X3Gap } from "react-icons/bs";
 import { FaUserEdit } from "react-icons/fa";
 
-import coin1 from "../assets/coin_1.png";
-import coin2 from "../assets/coin_2.png";
-import coin3 from "../assets/coin_3.png";
-import coin4 from "../assets/coin_4.png";
-import coin5 from "../assets/coin_5.png";
-import coin6 from "../assets/coin_6.png";
+import coin1 from "../assets/coin_1.svg";
+import coin2 from "../assets/coin_2.svg";
+import coin3 from "../assets/coin_3.svg";
+import coin4 from "../assets/coin_4.svg";
+import coin5 from "../assets/coin_5.svg";
+import coin6 from "../assets/coin_6.svg";
+import coin7 from "../assets/coin_7.svg";
 
 const PEXELS_DEMO_VIDEOS = [
   {
@@ -110,7 +111,8 @@ const Profile = ({ onSelectVideo }) => {
     coin_3: 0,
     coin_4: 0,
     coin_5: 0,
-    coin_6: 0
+    coin_6: 0,
+    coin_7: 0
   });
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -156,7 +158,8 @@ const Profile = ({ onSelectVideo }) => {
           coin_3: 0,
           coin_4: 0,
           coin_5: 0,
-          coin_6: 0
+          coin_6: 0,
+          coin_7: 0
         });
 
         // Obtener videos favoritos
@@ -211,10 +214,11 @@ const Profile = ({ onSelectVideo }) => {
           coin_3: 0,
           coin_4: 0,
           coin_5: 0,
-          coin_6: 0
+          coin_6: 0,
+          coin_7: 0
         };
 
-        currentCounts.coin_6 = (currentCounts.coin_6 || 0) + amount;
+        currentCounts.coin_7 = (currentCounts.coin_7 || 0) + amount;
 
         await updateDoc(userRef, {
           coins: currentCoins + amount,
@@ -235,10 +239,10 @@ const Profile = ({ onSelectVideo }) => {
 
   const handleSimulateWatchTime = () => {
     const cur = Number(localStorage.getItem("poptok_cumulative_watch_time") || 0);
-    const next = cur + 3600; // +1 hora
+    const next = cur + 36000; // +10 horas
     localStorage.setItem("poptok_cumulative_watch_time", next);
     setDevWatchTime(next);
-    alert(`⏳ Watch time simulado: +1 Hora. Total acumulado: ${(next / 3600).toFixed(1)} horas.`);
+    alert(`⏳ Watch time simulado: +10 Horas. Total acumulado: ${(next / 3600).toFixed(1)} horas.`);
   };
 
   // Cargar devWatchTime al iniciar
@@ -471,7 +475,7 @@ const Profile = ({ onSelectVideo }) => {
           onMouseOver={(e) => e.target.style.background = "rgba(255,255,255,0.18)"}
           onMouseOut={(e) => e.target.style.background = "rgba(255,255,255,0.1)"}
         >
-          ⚙️ Simular +1 Hora
+          ⚙️ Simular +10 Horas
         </button>
       </div>
 
@@ -505,7 +509,8 @@ const Profile = ({ onSelectVideo }) => {
             { id: 3, name: "Gema Verde", img: coin3, desc: "Rara (6h)", color: "#32CD32" },
             { id: 4, name: "Gema Púrpura", img: coin4, desc: "Épica (16h)", color: "#BA55D3" },
             { id: 5, name: "Gema Azul", img: coin5, desc: "Legendaria (40h)", color: "#1E90FF" },
-            { id: 6, name: "Gema Dorada", img: coin6, desc: "Dinero Real", color: "#FFD700", isGolden: true }
+            { id: 6, name: "Gema Celeste", img: coin6, desc: "Mítica (100h)", color: "#00F0FF" },
+            { id: 7, name: "Gema Dorada", img: coin7, desc: "Dinero Real", color: "#FFD700", isGolden: true }
           ].map((gem) => {
             const count = coinCounts[`coin_${gem.id}`] || 0;
             return (
