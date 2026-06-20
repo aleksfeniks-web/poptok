@@ -3,7 +3,7 @@ import "../index.css";
 import VideoPlayer from "./VideoPlayer.jsx";
 import { auth, db } from "../firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, doc, updateDoc, getDoc, getDocs, query, orderBy, limit, increment, arrayUnion, setDoc } from "firebase/firestore";
+import { collection, doc, updateDoc, getDoc, getDocs, query, orderBy, limit, increment, arrayUnion, setDoc, onSnapshot } from "firebase/firestore";
 import { AiFillHeart } from "react-icons/ai";
 import { FiSearch, FiVideo } from "react-icons/fi";
 
@@ -107,6 +107,7 @@ const Feed = ({
   const [error, setError] = useState(null);
   const [interactions, setInteractions] = useState({});
   const [currentUser, setCurrentUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -119,6 +120,23 @@ const Feed = ({
     });
     return () => unsubscribe();
   }, []);
+
+  // ✅ Escuchar en tiempo real los me gusta y favoritos del usuario
+  useEffect(() => {
+    if (!currentUser) {
+      setUserProfile(null);
+      return;
+    }
+    const userRef = doc(db, "users", currentUser.uid);
+    const unsubscribe = onSnapshot(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        setUserProfile(snapshot.data());
+      }
+    }, (err) => {
+      console.error("❌ Error al escuchar perfil del usuario en Feed:", err);
+    });
+    return () => unsubscribe();
+  }, [currentUser]);
 
   const updateUserCoinsInFirestore = async (uid, coinType = 1) => {
     try {
@@ -309,35 +327,33 @@ const Feed = ({
 
     const video = videos.find(v => v.riuzaki1234 === riuzaki1234);
 
-    // Para videos de Pexels solo actualizamos el estado local
-    if (!video?.isPexels) {
-      try {
-        const videoRef = doc(db, "videos", riuzaki1234);
-        if (type === "likes") {
+    try {
+      const userRef = doc(db, "users", uid);
+      if (type === "likes") {
+        if (userProfile?.likedVideos?.includes(riuzaki1234)) return;
+
+        await updateDoc(userRef, {
+          likedVideos: arrayUnion(riuzaki1234)
+        });
+
+        if (video && !video.isPexels) {
+          const videoRef = doc(db, "videos", riuzaki1234);
           await updateDoc(videoRef, { likes: increment(1) });
-        } else if (type === "favorites") {
+        }
+      } else if (type === "favorites") {
+        if (userProfile?.favorites?.includes(riuzaki1234)) return;
+
+        await updateDoc(userRef, {
+          favorites: arrayUnion(riuzaki1234)
+        });
+
+        if (video && !video.isPexels) {
+          const videoRef = doc(db, "videos", riuzaki1234);
           await updateDoc(videoRef, { favorites: increment(1) });
-          // Guardar en la lista de favoritos del usuario
-          const userRef = doc(db, "users", uid);
-          await updateDoc(userRef, {
-            favorites: arrayUnion(riuzaki1234)
-          });
-        }
-      } catch (err) {
-        console.error("❌ Error al actualizar interacciones:", err);
-      }
-    } else {
-      // Guardar video demo en la lista de favoritos del usuario
-      if (type === "favorites") {
-        try {
-          const userRef = doc(db, "users", uid);
-          await updateDoc(userRef, {
-            favorites: arrayUnion(riuzaki1234)
-          });
-        } catch (err) {
-          console.error("❌ Error al guardar video demo en favoritos:", err);
         }
       }
+    } catch (err) {
+      console.error(`❌ Error al actualizar interacción (${type}):`, err);
     }
 
     setInteractions((prevInteractions) => ({
@@ -496,6 +512,7 @@ const Feed = ({
               interest={v.interest}
               riuzaki1234={v.riuzaki1234}
               currentUser={currentUser}
+              userProfile={userProfile}
               userId={v.userId}
               musicUrl={v.musicUrl}
               musicTitle={v.musicTitle}

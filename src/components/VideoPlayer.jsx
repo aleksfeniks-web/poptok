@@ -31,7 +31,7 @@ const coinImages = {
 };
 
 const VideoPlayer = forwardRef(
-  ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userId, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload }, ref) => {
+  ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload }, ref) => {
     const [hasError, setHasError] = useState(false);
     const [showCoin, setShowCoin] = useState(false);
     const [spawnedCoinType, setSpawnedCoinType] = useState(1);
@@ -43,6 +43,17 @@ const VideoPlayer = forwardRef(
     const [floatingHearts, setFloatingHearts] = useState([]);
     const [floatingSparks, setFloatingSparks] = useState([]);
     const [showComments, setShowComments] = useState(false);
+
+    // ✅ Sincronizar estado de Me Gusta y Favoritos con el perfil del usuario
+    useEffect(() => {
+      if (userProfile) {
+        setHasLiked(userProfile.likedVideos?.includes(riuzaki1234) || false);
+        setHasFavorited(userProfile.favorites?.includes(riuzaki1234) || false);
+      } else {
+        setHasLiked(false);
+        setHasFavorited(false);
+      }
+    }, [userProfile, riuzaki1234]);
     const [isVertical, setIsVertical] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false);
     const defaultUserImage = "https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png"; 
@@ -408,6 +419,10 @@ const VideoPlayer = forwardRef(
 
     // Función para dar like
     const handleLikes = () => {
+      if (!currentUser) {
+        alert("⚠ Debes iniciar sesión para dar Like.");
+        return;
+      }
       if (!hasLiked) {
         onInteraction(riuzaki1234, "likes");
         setHasLiked(true);
@@ -435,6 +450,10 @@ const VideoPlayer = forwardRef(
 
     // Función para dar favorito
     const handleFavorites = () => {
+      if (!currentUser) {
+        alert("⚠ Debes iniciar sesión para guardar en Favoritos.");
+        return;
+      }
       if (!hasFavorited) {
         onInteraction(riuzaki1234, "favorites");
         setHasFavorited(true);
