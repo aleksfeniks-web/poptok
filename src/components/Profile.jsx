@@ -124,6 +124,44 @@ const Profile = ({ onSelectVideo }) => {
   const [devWatchTime, setDevWatchTime] = useState(0);
   const [favoriteVideos, setFavoriteVideos] = useState([]);
   const [activeTab, setActiveTab] = useState("my-videos"); // "my-videos" | "favorites"
+  const [showFollowModal, setShowFollowModal] = useState(null); // null | "followers" | "following"
+  const [followUsersList, setFollowUsersList] = useState([]);
+  const [loadingFollowList, setLoadingFollowList] = useState(false);
+  const videosRef = useRef(null);
+
+  const openFollowModal = async (type) => {
+    setShowFollowModal(type);
+    setLoadingFollowList(true);
+    setFollowUsersList([]);
+    try {
+      const userRef = doc(db, "users", auth.currentUser.uid);
+      const snap = await getDoc(userRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        const uids = type === "followers" ? (data.followers || []) : (data.following || []);
+        if (uids.length > 0) {
+          const promises = uids.map(async (uid) => {
+            const docSnap = await getDoc(doc(db, "users", uid));
+            if (docSnap.exists()) {
+              return { id: docSnap.id, ...docSnap.data() };
+            }
+            return { id: uid, name: "Usuario de Poptok", email: "Sin correo" };
+          });
+          const list = await Promise.all(promises);
+          setFollowUsersList(list);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading follow list:", err);
+    } finally {
+      setLoadingFollowList(false);
+    }
+  };
+
+  const scrollToVideos = () => {
+    setActiveTab("my-videos");
+    videosRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
@@ -462,10 +500,6 @@ const Profile = ({ onSelectVideo }) => {
           <>
             <h2 className="profile-name-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               {user.displayName || "Creador Poptok"}
-              <FaUserEdit
-                style={{ fontSize: "16px", cursor: "pointer", color: "#ff0050" }}
-                onClick={() => setIsEditing(true)}
-              />
             </h2>
             <p className="profile-email-sub">{user.email}</p>
             <div className="profile-social-links" style={{ display: "flex", gap: "14px", justifyContent: "center", marginTop: "10px" }}>
@@ -495,59 +529,85 @@ const Profile = ({ onSelectVideo }) => {
                 </a>
               )}
             </div>
-            <button
-              onClick={handleSignOut}
-              className="profile-logout-btn"
-              style={{
-                background: "rgba(255, 0, 80, 0.12)",
-                border: "1px solid rgba(255, 0, 80, 0.4)",
-                color: "#ff0050",
-                borderRadius: "15px",
-                padding: "5px 14px",
-                fontSize: "12px",
-                fontWeight: "bold",
-                cursor: "pointer",
-                marginTop: "10px",
-                transition: "all 0.2s",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "5px"
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.background = "rgba(255, 0, 80, 0.25)";
-                e.currentTarget.style.border = "1px solid #ff0050";
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.background = "rgba(255, 0, 80, 0.12)";
-                e.currentTarget.style.border = "1px solid rgba(255, 0, 80, 0.4)";
-              }}
-            >
-              🚪 Cerrar Sesión
-            </button>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "12px" }}>
+              <button
+                onClick={() => setIsEditing(true)}
+                style={{
+                  background: "rgba(255, 255, 255, 0.08)",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  color: "#fff",
+                  borderRadius: "15px",
+                  padding: "6px 14px",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px"
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.16)";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
+                }}
+              >
+                ✏️ Editar Perfil
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="profile-logout-btn"
+                style={{
+                  background: "rgba(255, 0, 80, 0.12)",
+                  border: "1px solid rgba(255, 0, 80, 0.4)",
+                  color: "#ff0050",
+                  borderRadius: "15px",
+                  padding: "6px 14px",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px"
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = "rgba(255, 0, 80, 0.25)";
+                  e.currentTarget.style.border = "1px solid #ff0050";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = "rgba(255, 0, 80, 0.12)";
+                  e.currentTarget.style.border = "1px solid rgba(255, 0, 80, 0.4)";
+                }}
+              >
+                🚪 Cerrar Sesión
+              </button>
+            </div>
           </>
         )}
 
         {/* Fila de Estadísticas */}
         <div className="profile-stats-row">
-          <div className="profile-stat-item">
+          <div className="profile-stat-item" onClick={() => { setPurchaseSuccess(false); setShowPurchaseModal(true); }} style={{ cursor: "pointer" }}>
             <span className="profile-stat-val coins" style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "15px" }}>
               <img src={coin6} alt="Gema" style={{ width: "15px", height: "15px", "--glow-color": "#fbbf24", border: "none", borderRadius: "0", background: "none", boxShadow: "none" }} className="rotating-gem" /> {coins}
             </span>
             <span className="profile-stat-lbl" style={{ fontSize: "10px" }}>Gemas</span>
           </div>
-          <div className="profile-stat-item">
+          <div className="profile-stat-item" onClick={() => openFollowModal("followers")} style={{ cursor: "pointer" }}>
             <span className="profile-stat-val" style={{ color: "#ff0080" }}>
               {followersCount}
             </span>
             <span className="profile-stat-lbl">Seguidores</span>
           </div>
-          <div className="profile-stat-item">
+          <div className="profile-stat-item" onClick={() => openFollowModal("following")} style={{ cursor: "pointer" }}>
             <span className="profile-stat-val" style={{ color: "#00ff80" }}>
               {followingCount}
             </span>
             <span className="profile-stat-lbl">Seguidos</span>
           </div>
-          <div className="profile-stat-item">
+          <div className="profile-stat-item" onClick={scrollToVideos} style={{ cursor: "pointer" }}>
             <span className="profile-stat-val" style={{ color: "#00ffff" }}>
               <BsGrid3X3Gap style={{ verticalAlign: "middle" }} /> {userVideos.length}
             </span>
@@ -613,8 +673,8 @@ const Profile = ({ onSelectVideo }) => {
         </h3>
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-          gap: "15px"
+          gridTemplateColumns: "repeat(auto-fit, minmax(95px, 1fr))",
+          gap: "10px"
         }}>
           {[
             { id: 1, name: "Gema Rosa", img: coin1, desc: "Común (Ver videos)", color: "#FF69B4" },
@@ -629,7 +689,7 @@ const Profile = ({ onSelectVideo }) => {
               <div key={gem.id} style={{
                 background: "rgba(255, 255, 255, 0.04)",
                 borderRadius: "12px",
-                padding: "10px",
+                padding: "8px 6px",
                 textAlign: "center",
                 border: "1px solid rgba(255, 255, 255, 0.08)",
                 display: "flex",
@@ -644,18 +704,18 @@ const Profile = ({ onSelectVideo }) => {
                   alt={gem.name}
                   className="rotating-gem"
                   style={{
-                    width: "32px",
-                    height: "32px",
+                    width: "24px",
+                    height: "24px",
                     "--glow-color": gem.color
                   }}
                 />
-                <div style={{ fontWeight: "bold", fontSize: "13px", color: gem.color }}>
+                <div style={{ fontWeight: "bold", fontSize: "11px", color: gem.color }}>
                   {gem.name}
                 </div>
-                <div style={{ fontSize: "10px", color: "#888", minHeight: "26px" }}>
+                <div style={{ fontSize: "8px", color: "#888", minHeight: "22px", lineHeight: "1.1" }}>
                   {gem.desc}
                 </div>
-                <div style={{ fontSize: "18px", fontWeight: "bold", color: "#fff" }}>
+                <div style={{ fontSize: "14px", fontWeight: "bold", color: "#fff" }}>
                   x{count}
                 </div>
                 {gem.isGolden && (
@@ -667,14 +727,15 @@ const Profile = ({ onSelectVideo }) => {
                     style={{
                       background: "linear-gradient(45deg, #FFD700, #FFA500)",
                       border: "none",
-                      borderRadius: "15px",
-                      padding: "5px 12px",
-                      fontSize: "11px",
+                      borderRadius: "12px",
+                      padding: "4px 8px",
+                      fontSize: "9px",
                       fontWeight: "bold",
                       color: "#000",
                       cursor: "pointer",
-                      boxShadow: "0 4px 10px rgba(255, 215, 0, 0.3)",
-                      transition: "transform 0.1s"
+                      boxShadow: "0 2px 6px rgba(255, 215, 0, 0.2)",
+                      transition: "transform 0.1s",
+                      marginTop: "2px"
                     }}
                     className="gem-buy-btn"
                   >
@@ -688,7 +749,7 @@ const Profile = ({ onSelectVideo }) => {
       </div>
 
       {/* Selector de pestañas */}
-      <div style={{
+      <div ref={videosRef} style={{
         display: "flex",
         justifyContent: "center",
         borderBottom: "1px solid #333",
@@ -969,6 +1030,95 @@ const Profile = ({ onSelectVideo }) => {
                 </button>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Seguidores / Seguidos */}
+      {showFollowModal && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          backgroundColor: "rgba(0,0,0,0.85)",
+          backdropFilter: "blur(8px)",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 9999
+        }} onClick={() => setShowFollowModal(null)}>
+          <div style={{
+            width: "90%",
+            maxWidth: "360px",
+            background: "#18181c",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            borderRadius: "20px",
+            padding: "20px",
+            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+            color: "#fff"
+          }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#fff", marginBottom: "15px", textAlign: "center" }}>
+              {showFollowModal === "followers" ? "👥 Seguidores" : "👤 Seguidos"}
+            </h3>
+
+            {loadingFollowList ? (
+              <div style={{ padding: "30px 0", textAlign: "center" }}>
+                <div style={{
+                  width: "30px",
+                  height: "30px",
+                  border: "3px solid rgba(255,255,255,0.1)",
+                  borderTop: "3px solid #ff0050",
+                  borderRadius: "50%",
+                  animation: "spin 1s linear infinite",
+                  margin: "0 auto 10px auto"
+                }} className="secure-spinner"></div>
+                <p style={{ color: "#aaa", fontSize: "13px" }}>Cargando lista...</p>
+              </div>
+            ) : followUsersList.length === 0 ? (
+              <p style={{ textAlign: "center", color: "#666", padding: "20px 0", fontSize: "13px" }}>
+                No hay usuarios para mostrar.
+              </p>
+            ) : (
+              <div style={{ maxHeight: "250px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "10px", marginBottom: "15px", paddingRight: "5px" }}>
+                {followUsersList.map((u) => (
+                  <div key={u.id} style={{ display: "flex", alignItems: "center", gap: "12px", background: "rgba(255,255,255,0.03)", padding: "8px 12px", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                    <img
+                      src={u.profilePic || "https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png"}
+                      alt="avatar"
+                      style={{ width: "36px", height: "36px", borderRadius: "50%", border: "1px solid rgba(255,255,255,0.1)", objectFit: "cover" }}
+                      onError={(e) => { e.target.src = "https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png"; }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: "bold", fontSize: "13px", color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {u.name || "Usuario de Poptok"}
+                      </div>
+                      <div style={{ fontSize: "10px", color: "#aaa", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {u.email}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowFollowModal(null)}
+              style={{
+                background: "#ff0050",
+                border: "none",
+                borderRadius: "20px",
+                padding: "8px 20px",
+                color: "white",
+                fontWeight: "bold",
+                cursor: "pointer",
+                width: "100%",
+                fontSize: "13px"
+              }}
+            >
+              Cerrar
+            </button>
           </div>
         </div>
       )}
