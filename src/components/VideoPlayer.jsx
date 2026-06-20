@@ -541,8 +541,8 @@ const VideoPlayer = forwardRef(
                 position: "absolute",
                 left: coinPosition.x,
                 top: coinPosition.y,
-                width: "55px",
-                height: "55px",
+                width: "40px",
+                height: "40px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -556,6 +556,8 @@ const VideoPlayer = forwardRef(
                 alt={`Coin ${spawnedCoinType}`}
                 className="rotating-gem"
                 style={{
+                  width: "24px",
+                  height: "24px",
                   "--glow-color": coinGlowColors[spawnedCoinType] || "#ff4a9a"
                 }}
               />

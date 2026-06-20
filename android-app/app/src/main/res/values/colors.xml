@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="poptok_red">#FF0050</color>
+    <color name="poptok_pink">#FF3B7A</color>
+    <color name="poptok_dark">#0A0A0A</color>
+    <color name="poptok_surface">#161616</color>
+    <color name="poptok_surface2">#1E1E1E</color>
+    <color name="poptok_border">#2A2A2A</color>
+    <color name="poptok_text_primary">#FFFFFF</color>
+    <color name="poptok_text_secondary">#AAAAAA</color>
+    <color name="poptok_text_muted">#666666</color>
+    <color name="poptok_accent">#FF0050</color>
+    <color name="poptok_coin">#FFD700</color>
+    <color name="poptok_online">#00D26A</color>
+    <color name="transparent">#00000000</color>
+    <color name="black_semi">#88000000</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

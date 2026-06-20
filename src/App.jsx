@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, OAuthProvider, signInWithPopup } from "firebase/auth";
+import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithCredential } from "firebase/auth";
 import { collection, onSnapshot, query, where, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "./firebase.js";
 
@@ -92,9 +92,46 @@ function App() {
     return () => unsubscribe();
   }, [uid]);
 
+  // ✅ Reproducir sonido de pop al iniciar
+  const playPop = () => {
+    const audio = new Audio("/pop.mp3");
+    audio.play().catch(() => {
+      // Fallback programático con Web Audio API si el archivo no existe o está bloqueado
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        const audioCtx = new AudioContextClass();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.type = "sine";
+        const now = audioCtx.currentTime;
+        
+        // Frecuencia rápida de 600Hz a 150Hz en 120ms (sonido de pop de burbuja)
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(150, now + 0.12);
+        
+        // Decaimiento rápido del volumen
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        
+        osc.start(now);
+        osc.stop(now + 0.12);
+      } catch (e) {
+        console.warn("Web Audio API bloqueado o no soportado:", e);
+      }
+    });
+  };
+
   // ✅ Simular un tiempo de carga inicial
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 2500);
+    const timer = setTimeout(() => {
+      setLoading(false);
+      playPop();
+    }, 2500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -127,6 +164,31 @@ function App() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // ✅ Soporte para Google Sign-In Nativo desde Android
+  useEffect(() => {
+    window.__poptokAndroidGoogleCallback = async (idToken, email, displayName, photoUrl) => {
+      try {
+        const credential = GoogleAuthProvider.credential(idToken);
+        const result = await signInWithCredential(auth, credential);
+        console.log("Usuario autenticado en Android vía Google:", result.user);
+        setShowAuthSelection(false);
+      } catch (error) {
+        console.error("Error al autenticar con credencial de Google nativa:", error);
+        alert("Error al iniciar sesión con Google (Android): " + error.message);
+      }
+    };
+
+    window.__poptokAndroidGoogleError = (statusCode) => {
+      console.error("Error nativo de Google Sign-In, código:", statusCode);
+      alert("Error en Google Sign-In de Android: " + statusCode);
+    };
+
+    return () => {
+      delete window.__poptokAndroidGoogleCallback;
+      delete window.__poptokAndroidGoogleError;
+    };
   }, []);
 
   // ✅ Verificar mensajes no leídos en tiempo real
@@ -242,6 +304,11 @@ function App() {
 
   // ✅ Iniciar sesión con Google
   const handleGoogleSignIn = async () => {
+    // Si estamos en la app Android, usar Google Sign-In nativo
+    if (window.PoptokAndroid && typeof window.PoptokAndroid.triggerGoogleSignIn === "function") {
+      window.PoptokAndroid.triggerGoogleSignIn();
+      return;
+    }
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);

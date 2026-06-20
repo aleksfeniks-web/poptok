@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { auth, db, storage } from "../firebase.js";
-import { onAuthStateChanged, updateProfile } from "firebase/auth";
+import { onAuthStateChanged, updateProfile, signOut } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, query, where, updateDoc } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { AiFillHeart, AiOutlineClose } from "react-icons/ai";
@@ -291,6 +291,19 @@ const Profile = ({ onSelectVideo }) => {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      if (window.PoptokAndroid && typeof window.PoptokAndroid.signOutGoogle === 'function') {
+        window.PoptokAndroid.signOutGoogle();
+      }
+      await signOut(auth);
+      window.location.reload();
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      alert("Error al cerrar sesión.");
+    }
+  };
+
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file || !user) return;
@@ -408,16 +421,45 @@ const Profile = ({ onSelectVideo }) => {
               />
             </h2>
             <p className="profile-email-sub">{user.email}</p>
+            <button
+              onClick={handleSignOut}
+              className="profile-logout-btn"
+              style={{
+                background: "rgba(255, 0, 80, 0.12)",
+                border: "1px solid rgba(255, 0, 80, 0.4)",
+                color: "#ff0050",
+                borderRadius: "15px",
+                padding: "5px 14px",
+                fontSize: "12px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                marginTop: "10px",
+                transition: "all 0.2s",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px"
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = "rgba(255, 0, 80, 0.25)";
+                e.currentTarget.style.border = "1px solid #ff0050";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = "rgba(255, 0, 80, 0.12)";
+                e.currentTarget.style.border = "1px solid rgba(255, 0, 80, 0.4)";
+              }}
+            >
+              🚪 Cerrar Sesión
+            </button>
           </>
         )}
 
         {/* Fila de Estadísticas */}
         <div className="profile-stats-row">
           <div className="profile-stat-item">
-            <span className="profile-stat-val coins" style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
-              <img src={coin6} alt="Gema" style={{ width: "20px", height: "20px", "--glow-color": "#fbbf24", border: "none", borderRadius: "0", background: "none", boxShadow: "none" }} className="rotating-gem" /> {coins}
+            <span className="profile-stat-val coins" style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "15px" }}>
+              <img src={coin6} alt="Gema" style={{ width: "15px", height: "15px", "--glow-color": "#fbbf24", border: "none", borderRadius: "0", background: "none", boxShadow: "none" }} className="rotating-gem" /> {coins}
             </span>
-            <span className="profile-stat-lbl">Gemas</span>
+            <span className="profile-stat-lbl" style={{ fontSize: "10px" }}>Gemas</span>
           </div>
           <div className="profile-stat-item">
             <span className="profile-stat-val" style={{ color: "#ff0080" }}>
@@ -513,14 +555,14 @@ const Profile = ({ onSelectVideo }) => {
               <div key={gem.id} style={{
                 background: "rgba(255, 255, 255, 0.04)",
                 borderRadius: "12px",
-                padding: "15px",
+                padding: "10px",
                 textAlign: "center",
                 border: "1px solid rgba(255, 255, 255, 0.08)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "space-between",
-                gap: "8px",
+                gap: "4px",
                 transition: "transform 0.2s"
               }} className="gem-inventory-card">
                 <img
@@ -528,8 +570,8 @@ const Profile = ({ onSelectVideo }) => {
                   alt={gem.name}
                   className="rotating-gem"
                   style={{
-                    width: "55px",
-                    height: "55px",
+                    width: "32px",
+                    height: "32px",
                     "--glow-color": gem.color
                   }}
                 />

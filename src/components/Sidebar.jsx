@@ -106,10 +106,50 @@ const Sidebar = ({ isOpen, onClose, coins, setCoins }) => {
               )}
             </div>
 
-            {/* Botón para explorar usuarios */}
-            <button onClick={() => setShowContent("explore")} className="sidebar-button" style={{ width: "100%", background: "#FF0050", border: "none", color: "white", padding: "10px", borderRadius: "20px", fontWeight: "bold", cursor: "pointer", marginTop: "15px" }}>
-              🔍 Buscar Usuarios
-            </button>
+            {/* Botones de navegación de la Sidebar (Juego, Amigos, Buscar) */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "15px", width: "100%" }}>
+              <button
+                onClick={() => setShowContent("friends")}
+                className="sidebar-button"
+                style={{
+                  width: "100%",
+                  background: "linear-gradient(45deg, #00f2fe, #4facfe)",
+                  border: "none",
+                  color: "black",
+                  padding: "10px",
+                  borderRadius: "20px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px"
+                }}
+              >
+                👥 Mis Amigos
+              </button>
+
+              <button
+                onClick={() => setShowContent("explore")}
+                className="sidebar-button"
+                style={{
+                  width: "100%",
+                  background: "#FF0050",
+                  border: "none",
+                  color: "white",
+                  padding: "10px",
+                  borderRadius: "20px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px"
+                }}
+              >
+                🔍 Buscar Amigos
+              </button>
+            </div>
 
             <div className="sidebar-links" style={{ marginTop: "auto", padding: "20px 0" }}>
               <p onClick={() => setShowContent("privacy")} style={{ cursor: "pointer", color: "#888", fontSize: "12px", textAlign: "center" }}>
@@ -122,20 +162,105 @@ const Sidebar = ({ isOpen, onClose, coins, setCoins }) => {
           </>
         )}
 
+        {/* Sección de Mis Amigos */}
+        {showContent === "friends" && (
+          <>
+            <button onClick={() => setShowContent("profile")} className="back-button" style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "white", padding: "6px 12px", borderRadius: "15px", cursor: "pointer", marginBottom: "15px", width: "fit-content" }}>
+              ← Atrás
+            </button>
+            <h3>Mis Amigos</h3>
+            <ul className="user-list" style={{ listStyle: "none", padding: 0, overflowY: "auto", flex: 1, marginTop: "10px" }}>
+              {users.filter(u => following.includes(u.id)).length === 0 ? (
+                <p style={{ color: "#777", fontSize: "13px", textAlign: "center", marginTop: "20px" }}>
+                  Aún no tienes amigos agregados.<br/>¡Busca usuarios y agrégalos!
+                </p>
+              ) : (
+                users.filter(u => following.includes(u.id)).map((u) => (
+                  <li key={u.id} className="user-item" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #333" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <img 
+                        src={u.photoURL || "https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png"} 
+                        alt="avatar" 
+                        style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }} 
+                      />
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span style={{ fontSize: "14px", fontWeight: "bold", color: "#fff" }}>
+                          {u.name || u.email?.split("@")[0] || "Usuario"}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          <span style={{ fontSize: "11px", color: "#888" }}>
+                            @{u.email?.split("@")[0] || "poptok"}
+                          </span>
+                          {u.following?.includes(uid) && (
+                            <span style={{ fontSize: "9px", background: "rgba(0, 242, 254, 0.15)", color: "#00f2fe", padding: "1px 5px", borderRadius: "4px", marginLeft: "6px", fontWeight: "bold" }}>
+                              Mutual
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      className="unfollow-button"
+                      style={{
+                        background: "rgba(255,255,255,0.08)",
+                        color: "#ccc",
+                        border: "1px solid rgba(255,255,255,0.15)",
+                        padding: "4px 10px",
+                        borderRadius: "15px",
+                        fontSize: "12px",
+                        cursor: "pointer"
+                      }}
+                      onClick={async () => {
+                        const updated = await toggleFollow(u.id);
+                        if (updated !== undefined) {
+                          setFollowing(following.filter(id => id !== u.id));
+                        }
+                      }}
+                    >
+                      Eliminar
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </>
+        )}
+
         {/* Sección para explorar y seguir usuarios */}
         {showContent === "explore" && (
           <>
             <button onClick={() => setShowContent("profile")} className="back-button" style={{ background: "rgba(255,255,255,0.1)", border: "none", color: "white", padding: "6px 12px", borderRadius: "15px", cursor: "pointer", marginBottom: "15px", width: "fit-content" }}>
               ← Atrás
             </button>
-            <h3>Explorar Usuarios</h3>
-            <ul className="user-list" style={{ listStyle: "none", padding: 0, overflowY: "auto", flex: 1 }}>
+            <h3>Buscar Amigos</h3>
+            <ul className="user-list" style={{ listStyle: "none", padding: 0, overflowY: "auto", flex: 1, marginTop: "10px" }}>
               {users.length === 0 ? (
                 <p style={{ color: "#777", fontSize: "13px" }}>No hay otros usuarios registrados.</p>
               ) : (
                 users.map((u) => (
                   <li key={u.id} className="user-item" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #333" }}>
-                    <span style={{ fontSize: "14px" }}>{u.name || u.email || "Usuario"}</span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                      <img 
+                        src={u.photoURL || "https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png"} 
+                        alt="avatar" 
+                        style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }} 
+                      />
+                      <div style={{ display: "flex", flexDirection: "column" }}>
+                        <span style={{ fontSize: "14px", fontWeight: "bold", color: "#fff" }}>
+                          {u.name || u.email?.split("@")[0] || "Usuario"}
+                        </span>
+                        <div style={{ display: "flex", alignItems: "center" }}>
+                          <span style={{ fontSize: "11px", color: "#888" }}>
+                            @{u.email?.split("@")[0] || "poptok"}
+                          </span>
+                          {u.following?.includes(uid) && (
+                            <span style={{ fontSize: "9px", background: "rgba(0, 242, 254, 0.15)", color: "#00f2fe", padding: "1px 5px", borderRadius: "4px", marginLeft: "6px", fontWeight: "bold" }}>
+                              Mutual
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                     <button
                       className={following.includes(u.id) ? "unfollow-button" : "follow-button"}
                       style={{
@@ -154,7 +279,7 @@ const Sidebar = ({ isOpen, onClose, coins, setCoins }) => {
                         }
                       }}
                     >
-                      {following.includes(u.id) ? "Dejar de seguir" : "Seguir"}
+                      {following.includes(u.id) ? "Eliminar" : "Agregar"}
                     </button>
                   </li>
                 ))
