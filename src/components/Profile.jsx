@@ -1092,10 +1092,10 @@ const Profile = ({ onSelectVideo }) => {
                     />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: "bold", fontSize: "13px", color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {u.name || "Usuario de Poptok"}
+                        {u.name || u.email?.split("@")[0] || "Usuario de Poptok"}
                       </div>
                       <div style={{ fontSize: "10px", color: "#aaa", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {u.email}
+                        @{u.email?.split("@")[0] || "poptok"}
                       </div>
                     </div>
                   </div>
