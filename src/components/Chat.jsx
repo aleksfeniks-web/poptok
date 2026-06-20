@@ -226,9 +226,9 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
               <AiOutlineArrowLeft size={20} />
             </button>
             <div className="chat-header-user">
-              <Avatar src={selectedFriendData?.profilePic} name={selectedFriendData?.name || selectedFriendData?.email} size={32} />
+              <Avatar src={selectedFriendData?.profilePic} name={selectedFriendData?.name || selectedFriendData?.email || "Usuario"} size={32} />
               <span className="chat-header-name">
-                {selectedFriendData?.name || selectedFriendData?.email || "Cargando..."}
+                {selectedFriendData ? (selectedFriendData.name || selectedFriendData.email || "Usuario de Poptok") : "Cargando..."}
               </span>
             </div>
           </>
@@ -265,10 +265,10 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
                   className="chat-friend-item"
                   onClick={() => setSelectedFriend(friend.id)}
                 >
-                  <Avatar src={friend.profilePic} name={friend.name || friend.email} />
+                  <Avatar src={friend.profilePic} name={friend.name || friend.email || "Usuario"} />
                   <div className="chat-friend-info">
-                    <h4>{friend.name || "Usuario de Poptok"}</h4>
-                    <p>{friend.email}</p>
+                    <h4>{friend.name || friend.email || "Usuario de Poptok"}</h4>
+                    <p>{friend.email || "Sin correo"}</p>
                   </div>
                   <div className="chat-friend-action">
                     <span className="chat-arrow-go">💬</span>

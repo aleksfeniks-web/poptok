@@ -57,9 +57,23 @@ function App() {
 
     const userRef = doc(db, "users", uid);
     const unsubscribe = onSnapshot(userRef, async (snapshot) => {
+      const currentUser = auth.currentUser;
       if (snapshot.exists()) {
         const data = snapshot.data();
         setCoins(data.coins || 0);
+
+        // Self-heal: If user document exists but is missing name/email/profilePic, update it in Firestore
+        if (currentUser && (!data.name || !data.email || (currentUser.photoURL && data.profilePic !== currentUser.photoURL))) {
+          try {
+            await updateDoc(userRef, {
+              name: data.name || currentUser.displayName || currentUser.email?.split("@")[0] || "Usuario de Poptok",
+              email: data.email || currentUser.email || "",
+              profilePic: data.profilePic || currentUser.photoURL || ""
+            });
+          } catch (e) {
+            console.error("Error updating user details in Firestore:", e);
+          }
+        }
         
         // Si el usuario existe pero no tiene coinCounts, migrar monedas actuales a coin_1
         if (data.coins !== undefined && !data.coinCounts) {
@@ -81,6 +95,9 @@ function App() {
       } else {
         try {
           await setDoc(userRef, {
+            name: currentUser?.displayName || currentUser?.email?.split("@")[0] || "Usuario de Poptok",
+            email: currentUser?.email || "",
+            profilePic: currentUser?.photoURL || "",
             coins: 0,
             coinCounts: {
               coin_1: 0,

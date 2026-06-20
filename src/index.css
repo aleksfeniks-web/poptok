@@ -2126,7 +2126,7 @@ video {
 }
 
 /* Mensaje enviado */
-.sent {
+.message.sent {
   align-self: flex-end;
   background: #007aff;
   color: white;
@@ -2134,7 +2134,7 @@ video {
 }
 
 /* Mensaje recibido */
-.received {
+.message.received {
   align-self: flex-start;
   background: #444;
   color: white;
