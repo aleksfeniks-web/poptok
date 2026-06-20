@@ -58,8 +58,7 @@ function App() {
                 coin_3: 0,
                 coin_4: 0,
                 coin_5: 0,
-                coin_6: 0,
-                coin_7: 0
+                coin_6: 0
               }
             });
           } catch (error) {
@@ -76,8 +75,7 @@ function App() {
               coin_3: 0,
               coin_4: 0,
               coin_5: 0,
-              coin_6: 0,
-              coin_7: 0
+              coin_6: 0
             },
             highScore: 0,
             createdAt: new Date().toISOString()

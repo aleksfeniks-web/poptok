@@ -6,6 +6,7 @@ import { saveScore } from "../utils/saveScore.js";
 import PrivacyPolicy from "./PrivacyPolicy.jsx";
 import Copyright from "./Copyright.jsx";
 import Game from "./Game.jsx";
+import coin6 from "../assets/coin_6.svg";
 
 const Sidebar = ({ isOpen, onClose, coins, setCoins }) => {
   const [showContent, setShowContent] = useState("profile"); // "profile", "privacy", "copyright", "explore"
@@ -70,13 +71,17 @@ const Sidebar = ({ isOpen, onClose, coins, setCoins }) => {
               <img src={user?.photoURL || "https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png"} alt="Usuario" className="profile-image" />
               <h3 className="profile-name">{user?.displayName || user?.email || "Usuario"}</h3>
               <div className="coin-count-sidebar" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", margin: "10px 0" }}>
-                <img src="https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/coin.png" alt="Coin" className="small-coin-icon" 
+                <img src={coin6} alt="Gema" className="rotating-gem" 
                   style={{
-                    animation: "rotate 2s linear infinite, glow 1s infinite alternate",
                     width: "20px",
-                    height: "20px"
+                    height: "20px",
+                    "--glow-color": "#fbbf24",
+                    border: "none",
+                    borderRadius: "0",
+                    background: "none",
+                    boxShadow: "none"
                   }} />
-                <span style={{ fontSize: "16px", fontWeight: "bold" }}>{coins} 🪙</span>
+                <span style={{ fontSize: "16px", fontWeight: "bold" }}>{coins} Gemas</span>
               </div>
 
               {!startGame ? (

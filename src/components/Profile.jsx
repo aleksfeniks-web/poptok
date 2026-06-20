@@ -13,7 +13,6 @@ import coin3 from "../assets/coin_3.svg";
 import coin4 from "../assets/coin_4.svg";
 import coin5 from "../assets/coin_5.svg";
 import coin6 from "../assets/coin_6.svg";
-import coin7 from "../assets/coin_7.svg";
 
 const PEXELS_DEMO_VIDEOS = [
   {
@@ -158,8 +157,7 @@ const Profile = ({ onSelectVideo }) => {
           coin_3: 0,
           coin_4: 0,
           coin_5: 0,
-          coin_6: 0,
-          coin_7: 0
+          coin_6: 0
         });
 
         // Obtener videos favoritos
@@ -214,11 +212,10 @@ const Profile = ({ onSelectVideo }) => {
           coin_3: 0,
           coin_4: 0,
           coin_5: 0,
-          coin_6: 0,
-          coin_7: 0
+          coin_6: 0
         };
 
-        currentCounts.coin_7 = (currentCounts.coin_7 || 0) + amount;
+        currentCounts.coin_6 = (currentCounts.coin_6 || 0) + amount;
 
         await updateDoc(userRef, {
           coins: currentCoins + amount,
@@ -417,10 +414,10 @@ const Profile = ({ onSelectVideo }) => {
         {/* Fila de Estadísticas */}
         <div className="profile-stats-row">
           <div className="profile-stat-item">
-            <span className="profile-stat-val coins">
-              <BsCoin style={{ verticalAlign: "middle" }} /> {coins}
+            <span className="profile-stat-val coins" style={{ display: "inline-flex", alignItems: "center", gap: "5px" }}>
+              <img src={coin6} alt="Gema" style={{ width: "20px", height: "20px", "--glow-color": "#fbbf24", border: "none", borderRadius: "0", background: "none", boxShadow: "none" }} className="rotating-gem" /> {coins}
             </span>
-            <span className="profile-stat-lbl">Monedas</span>
+            <span className="profile-stat-lbl">Gemas</span>
           </div>
           <div className="profile-stat-item">
             <span className="profile-stat-val" style={{ color: "#ff0080" }}>
@@ -509,8 +506,7 @@ const Profile = ({ onSelectVideo }) => {
             { id: 3, name: "Gema Verde", img: coin3, desc: "Rara (6h)", color: "#32CD32" },
             { id: 4, name: "Gema Púrpura", img: coin4, desc: "Épica (16h)", color: "#BA55D3" },
             { id: 5, name: "Gema Azul", img: coin5, desc: "Legendaria (40h)", color: "#1E90FF" },
-            { id: 6, name: "Gema Celeste", img: coin6, desc: "Mítica (100h)", color: "#00F0FF" },
-            { id: 7, name: "Gema Dorada", img: coin7, desc: "Dinero Real", color: "#FFD700", isGolden: true }
+            { id: 6, name: "Gema Dorada", img: coin6, desc: "Dinero Real", color: "#FFD700", isGolden: true }
           ].map((gem) => {
             const count = coinCounts[`coin_${gem.id}`] || 0;
             return (

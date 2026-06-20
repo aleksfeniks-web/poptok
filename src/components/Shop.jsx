@@ -4,7 +4,7 @@ import { collection, addDoc, query, orderBy, onSnapshot } from "firebase/firesto
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { v4 as uuidv4 } from "uuid";
 import { FiPlus, FiX, FiSearch, FiShoppingBag, FiTag } from "react-icons/fi";
-import { BsCoin } from "react-icons/bs";
+import coin6 from "../assets/coin_6.svg";
 import "../index.css";
 
 const Shop = ({ onContactSeller }) => {
@@ -164,7 +164,7 @@ const Shop = ({ onContactSeller }) => {
               <div className="shop-card-image-wrapper">
                 <img src={prod.imageUrl} alt={prod.title} className="shop-card-image" />
                 <span className="shop-card-price">
-                  <BsCoin size={12} style={{ marginRight: "4px", verticalAlign: "middle" }} />
+                  <img src={coin6} alt="Gema" style={{ width: "12px", height: "12px", marginRight: "4px", verticalAlign: "middle", "--glow-color": "#fbbf24", border: "none", borderRadius: "0", background: "none", boxShadow: "none" }} className="rotating-gem" />
                   {prod.price}
                 </span>
               </div>
@@ -198,8 +198,8 @@ const Shop = ({ onContactSeller }) => {
                 </div>
                 <h2>{selectedProduct.title}</h2>
                 <div className="product-modal-price">
-                  <BsCoin size={18} />
-                  <span>{selectedProduct.price} Coins</span>
+                  <img src={coin6} alt="Gema" style={{ width: "18px", height: "18px", marginRight: "4px", verticalAlign: "middle", "--glow-color": "#fbbf24", border: "none", borderRadius: "0", background: "none", boxShadow: "none" }} className="rotating-gem" />
+                  <span>{selectedProduct.price} Gemas</span>
                 </div>
                 <div className="product-modal-desc">
                   <h4>Descripción</h4>
@@ -291,9 +291,9 @@ const Shop = ({ onContactSeller }) => {
                     required
                   />
 
-                  <label>Precio (en Monedas/Coins)</label>
+                  <label>Precio (en Gemas)</label>
                   <div className="sell-price-input-wrapper">
-                    <BsCoin className="sell-price-icon" />
+                    <img src={coin6} alt="Gema" className="sell-price-icon rotating-gem" style={{ width: "16px", height: "16px", "--glow-color": "#fbbf24", border: "none", borderRadius: "0", background: "none", boxShadow: "none" }} />
                     <input
                       type="number"
                       placeholder="100"
