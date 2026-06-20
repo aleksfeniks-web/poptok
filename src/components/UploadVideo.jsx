@@ -233,6 +233,7 @@ const UploadVideo = ({ onUploadSuccess }) => {
       await addDoc(collection(db, "videos"), {
         userId: user.uid,
         username: user.displayName || "Anónimo",
+        userPhotoURL: user.photoURL || null,
         fileUrl: url,
         fileType,
         aiFilter: selectedFilter !== "none" ? selectedFilter : null,

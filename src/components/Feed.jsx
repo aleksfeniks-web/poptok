@@ -100,7 +100,8 @@ const Feed = ({
   layout = "feed",
   onSelectExploreVideo,
   activeExploreVideoId,
-  setActiveExploreVideoId
+  setActiveExploreVideoId,
+  onVideoPlayStateChange
 }) => {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -514,6 +515,7 @@ const Feed = ({
               currentUser={currentUser}
               userProfile={userProfile}
               userId={v.userId}
+              userPhotoURL={v.userPhotoURL}
               musicUrl={v.musicUrl}
               musicTitle={v.musicTitle}
               allowDownload={v.allowDownload}
@@ -529,6 +531,7 @@ const Feed = ({
               isOpen={isOpen}
               setIsOpen={setIsOpen}
               updateVideoComments={updateVideoComments}
+              onVideoPlayStateChange={onVideoPlayStateChange}
             />
           </div>
         ))

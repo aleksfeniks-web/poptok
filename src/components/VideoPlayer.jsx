@@ -40,7 +40,7 @@ const coinGlowColors = {
 };
 
 const VideoPlayer = forwardRef(
-  ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload }, ref) => {
+  ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange }, ref) => {
     const [hasError, setHasError] = useState(false);
     const [showCoin, setShowCoin] = useState(false);
     const [spawnedCoinType, setSpawnedCoinType] = useState(1);
@@ -87,11 +87,15 @@ const VideoPlayer = forwardRef(
 
       if (videoRef.current) {
         if (videoRef.current.paused) {
-          videoRef.current.play().then(() => setIsPlaying(true)).catch((err) => console.log(err));
+          videoRef.current.play().then(() => {
+            setIsPlaying(true);
+            onVideoPlayStateChange?.(true);
+          }).catch((err) => console.log(err));
           setShowPlayPauseIcon("play");
         } else {
           videoRef.current.pause();
           setIsPlaying(false);
+          onVideoPlayStateChange?.(false);
           setShowPlayPauseIcon("pause");
         }
         setTimeout(() => {
@@ -394,10 +398,14 @@ const VideoPlayer = forwardRef(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              videoRef.current?.play().then(() => setIsPlaying(true)).catch((err) => console.log("Auto-play blocked:", err));
+              videoRef.current?.play().then(() => {
+                setIsPlaying(true);
+                onVideoPlayStateChange?.(true);
+              }).catch((err) => console.log("Auto-play blocked:", err));
             } else {
               videoRef.current?.pause();
               setIsPlaying(false);
+              onVideoPlayStateChange?.(false);
             }
           });
         },
@@ -641,7 +649,7 @@ const VideoPlayer = forwardRef(
           <div className="user-buttons-container">
             <div className="user-image">
               <img
-                src={userId ? `/profile-pics/${userId}.png` : defaultUserImage}
+                src={userPhotoURL || `https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png`}
                 onError={(e) => { e.target.src = defaultUserImage; }}
                 className="w-10 h-10 rounded-full border-2 border-white"
                 alt="Perfil"

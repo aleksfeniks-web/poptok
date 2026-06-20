@@ -17,6 +17,7 @@ import { FiCoffee, FiHome, FiShoppingCart } from "react-icons/fi";
 import { BsFillPersonFill } from "react-icons/bs";
 import "./index.css";
 
+
 function App() {
   const [loading, setLoading] = useState(true);
   const [showUploadSection, setShowUploadSection] = useState(false);
@@ -37,6 +38,7 @@ function App() {
   const [activeView, setActiveView] = useState("explore"); // "explore", "feed", "profile"
   const [activeExploreVideoId, setActiveExploreVideoId] = useState(null);
   const [chatFriendId, setChatFriendId] = useState(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
   // ✅ 1. Escuchar monedas del usuario en tiempo real desde Firestore
   useEffect(() => {
@@ -92,9 +94,24 @@ function App() {
 
   // ✅ Simular un tiempo de carga inicial
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 2000);
+    const timer = setTimeout(() => setLoading(false), 2500);
     return () => clearTimeout(timer);
   }, []);
+
+  // ✅ Toggle body scroll class based on active view
+  useEffect(() => {
+    const isScrollable = activeView === "explore" || activeView === "profile" || activeView === "shop";
+    if (isScrollable) {
+      document.body.classList.add("scrollable-view");
+    } else {
+      document.body.classList.remove("scrollable-view");
+    }
+    // Reset video playing state when switching views
+    if (activeView !== "feed") {
+      setIsVideoPlaying(false);
+    }
+    return () => {};
+  }, [activeView]);
 
   // ✅ 2. Manejar autenticación
   useEffect(() => {
@@ -266,13 +283,14 @@ function App() {
 
   if (loading) {
     return (
-      <div className="loading-screen" style={{ width: "100%", height: "100vh", display: "flex", justifyContent: "center", alignItems: "center", background: "#000" }}>
+      <div className="loading-screen">
         <img
-          src="https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/ki.gif"
-          alt="Cargando Poptok..."
+          src="/logopoptok.svg"
+          alt="Poptok"
+          className="loading-logo-img"
           onError={(e) => { e.target.style.display = 'none'; }}
         />
-        <h2 style={{ color: "#FF0050", fontSize: "24px", position: "absolute", textShadow: "0 0 10px #FF0050" }}>Poptok</h2>
+        <h2 className="loading-logo-text">Poptok</h2>
       </div>
     );
   }
@@ -284,7 +302,7 @@ function App() {
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} coins={coins} setCoins={setCoins} />
 
         {/* Top Header */}
-        <div className="top-buttons">
+        <div className={`top-buttons${isVideoPlaying && activeView === "feed" ? " header-video-playing" : ""}`}>
           <h1 className="app-logo">Poptok</h1>
           <div className="header-actions">
             {user ? (
@@ -355,6 +373,7 @@ function App() {
                   }}
                   activeExploreVideoId={activeExploreVideoId}
                   setActiveExploreVideoId={setActiveExploreVideoId}
+                  onVideoPlayStateChange={setIsVideoPlaying}
                 />
               )}
             </>
@@ -425,9 +444,25 @@ function App() {
           <button
             className="profile-button"
             onClick={handleGoToProfile}
-            style={{ color: activeView === "profile" ? "#FF0050" : undefined }}
+            style={{ 
+              color: activeView === "profile" ? "#FF0050" : undefined,
+              padding: user?.photoURL ? "0" : undefined,
+              overflow: user?.photoURL ? "hidden" : undefined,
+              borderRadius: user?.photoURL ? "50%" : undefined,
+              width: user?.photoURL ? "32px" : undefined,
+              height: user?.photoURL ? "32px" : undefined,
+              border: activeView === "profile" && user?.photoURL ? "2px solid #FF0050" : undefined,
+            }}
           >
-            <BsFillPersonFill size={22} />
+            {user?.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt="Perfil"
+                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+              />
+            ) : (
+              <BsFillPersonFill size={22} />
+            )}
           </button>
         </div>
 
