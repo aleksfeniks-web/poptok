@@ -4237,6 +4237,38 @@ canvas {
   }
 }
 
+@keyframes gemFloatSpin {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(180deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(360deg);
+  }
+}
+
+@keyframes gemGlow {
+  0% {
+    filter: drop-shadow(0 0 3px var(--glow-color)) brightness(0.95);
+  }
+  100% {
+    filter: drop-shadow(0 0 14px var(--glow-color)) brightness(1.2);
+  }
+}
+
+.rotating-gem {
+  width: 45px;
+  height: 45px;
+  object-fit: contain !important;
+  border-radius: 0 !important;
+  border: none !important;
+  background: none !important;
+  box-shadow: none !important;
+  animation: gemFloatSpin 6s linear infinite, gemGlow 2s ease-in-out infinite alternate;
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }

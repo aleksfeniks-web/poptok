@@ -525,13 +525,11 @@ const Profile = ({ onSelectVideo }) => {
                 <img
                   src={gem.img}
                   alt={gem.name}
+                  className="rotating-gem"
                   style={{
                     width: "55px",
                     height: "55px",
-                    borderRadius: "50%",
-                    border: `2px solid ${gem.color}`,
-                    boxShadow: `0 0 10px ${gem.color}33`,
-                    objectFit: "cover"
+                    "--glow-color": gem.color
                   }}
                 />
                 <div style={{ fontWeight: "bold", fontSize: "13px", color: gem.color }}>

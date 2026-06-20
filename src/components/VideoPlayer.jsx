@@ -30,6 +30,15 @@ const coinImages = {
   6: coin6
 };
 
+const coinGlowColors = {
+  1: "#ff4a9a", // Pink
+  2: "#ff8224", // Orange
+  3: "#10b981", // Green
+  4: "#8b5cf6", // Purple
+  5: "#3b82f6", // Blue
+  6: "#fbbf24"  // Gold
+};
+
 const VideoPlayer = forwardRef(
   ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload }, ref) => {
     const [hasError, setHasError] = useState(false);
@@ -537,13 +546,9 @@ const VideoPlayer = forwardRef(
               <img
                 src={coinImages[spawnedCoinType] || coinImages[1]}
                 alt={`Coin ${spawnedCoinType}`}
+                className="rotating-gem"
                 style={{
-                  width: "45px",
-                  height: "45px",
-                  borderRadius: "50%",
-                  border: "2px solid rgba(255, 255, 255, 0.7)",
-                  objectFit: "cover",
-                  animation: "float 1.8s ease-in-out infinite, glowPulse 1.5s ease-in-out infinite alternate"
+                  "--glow-color": coinGlowColors[spawnedCoinType] || "#ff4a9a"
                 }}
               />
             </div>
