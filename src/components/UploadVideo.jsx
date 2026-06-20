@@ -12,6 +12,33 @@ const interestOptions = [
   "Lifestyle", "Superhero", "Crypto", "IA", "WoW"
 ];
 
+const CATEGORY_MAP = {
+  "All": "Todos",
+  "Random": "Aleatorio",
+  "Anime & Manga": "Anime y Manga",
+  "Latest News": "Noticias",
+  "Humor": "Humor",
+  "Memes": "Memes",
+  "Gaming": "Videojuegos",
+  "WTF": "Qué Loco",
+  "Relationship & Dating": "Relaciones y Citas",
+  "Motor Vehicles": "Autos y Motos",
+  "Animals & Pets": "Animales y Mascotas",
+  "Science & Tech": "Ciencia y Tecnología",
+  "ASMR": "ASMR",
+  "Sports": "Deportes",
+  "Movies & TV": "Cine y TV",
+  "Food & Drinks": "Comida y Bebida",
+  "Lifestyle": "Estilo de Vida",
+  "Superhero": "Superhéroes",
+  "Crypto": "Cripto",
+  "IA": "Inteligencia Artificial",
+  "WoW": "¡Wow!",
+  "Comic": "Cómics",
+  "Wholesome": "Tierno",
+  "Cat": "Gatos"
+};
+
 // AI text-to-image style presets
 const AI_STYLES = [
   { id: "gradient", label: "🎨 Gradiente", bg: "linear-gradient(135deg,#667eea,#764ba2)", color: "#fff" },
@@ -777,7 +804,7 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
               >
                 <option value="">— Selecciona una categoría —</option>
                 {interestOptions.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
+                  <option key={opt} value={opt}>{CATEGORY_MAP[opt] || opt}</option>
                 ))}
               </select>
             </div>

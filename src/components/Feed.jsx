@@ -374,6 +374,33 @@ const Feed = ({
     }));
   };
 
+  const CATEGORY_MAP = {
+    "All": "Todos",
+    "Random": "Aleatorio",
+    "Anime & Manga": "Anime y Manga",
+    "Latest News": "Noticias",
+    "Humor": "Humor",
+    "Memes": "Memes",
+    "Gaming": "Videojuegos",
+    "WTF": "Qué Loco",
+    "Relationship & Dating": "Relaciones y Citas",
+    "Motor Vehicles": "Autos y Motos",
+    "Animals & Pets": "Animales y Mascotas",
+    "Science & Tech": "Ciencia y Tecnología",
+    "ASMR": "ASMR",
+    "Sports": "Deportes",
+    "Movies & TV": "Cine y TV",
+    "Food & Drinks": "Comida y Bebida",
+    "Lifestyle": "Estilo de Vida",
+    "Superhero": "Superhéroes",
+    "Crypto": "Cripto",
+    "IA": "Inteligencia Artificial",
+    "WoW": "¡Wow!",
+    "Comic": "Cómics",
+    "Wholesome": "Tierno",
+    "Cat": "Gatos"
+  };
+
   const categories = [
     "All", "Random", "Anime & Manga", "Latest News", "Humor", "Memes", "Gaming",
     "WTF", "Relationship & Dating", "Motor Vehicles", "Animals & Pets",
@@ -385,7 +412,12 @@ const Feed = ({
     const matchesSearch = searchQuery.trim() === "" ||
       (v.description && v.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (v.username && v.username.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCategory = selectedCategory === "All" || v.interest === selectedCategory;
+    
+    // En Todos ("All") no cargues los videos de pexels, solo los subidos por usuarios a poptok
+    const matchesCategory = selectedCategory === "All"
+      ? !v.isPexels
+      : v.interest === selectedCategory;
+
     return matchesSearch && matchesCategory;
   });
 
@@ -439,7 +471,7 @@ const Feed = ({
               className={`category-pill ${selectedCategory === cat ? "active" : ""}`}
               onClick={() => setSelectedCategory(cat)}
             >
-              {cat}
+              {CATEGORY_MAP[cat] || cat}
             </button>
           ))}
         </div>

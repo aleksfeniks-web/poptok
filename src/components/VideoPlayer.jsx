@@ -30,6 +30,34 @@ const coinImages = {
   6: coin6
 };
 
+const CATEGORY_MAP = {
+  "All": "Todos",
+  "Random": "Aleatorio",
+  "Anime & Manga": "Anime y Manga",
+  "Latest News": "Noticias",
+  "Humor": "Humor",
+  "Memes": "Memes",
+  "Gaming": "Videojuegos",
+  "WTF": "Qué Loco",
+  "Relationship & Dating": "Relaciones y Citas",
+  "Motor Vehicles": "Autos y Motos",
+  "Animals & Pets": "Animales y Mascotas",
+  "Science & Tech": "Ciencia y Tecnología",
+  "ASMR": "ASMR",
+  "Sports": "Deportes",
+  "Movies & TV": "Cine y TV",
+  "Food & Drinks": "Comida y Bebida",
+  "Lifestyle": "Estilo de Vida",
+  "Superhero": "Superhéroes",
+  "Crypto": "Cripto",
+  "IA": "Inteligencia Artificial",
+  "WoW": "¡Wow!",
+  "Comic": "Cómics",
+  "Wholesome": "Tierno",
+  "Cat": "Gatos"
+};
+
+
 const coinGlowColors = {
   1: "#ff4a9a", // Pink
   2: "#ff8224", // Orange
@@ -687,7 +715,7 @@ const VideoPlayer = forwardRef(
             {interest && (
               <div className="bg-black/60 text-white text-xs px-2 py-0.5 rounded-full flex items-center" style={{ marginTop: "5px", width: "fit-content" }}>
                 {interestIcons[interest] || <FaStar className="text-white" />}
-                <span className="ml-1" style={{ marginLeft: "5px" }}>{interest}</span>
+                <span className="ml-1" style={{ marginLeft: "5px" }}>{CATEGORY_MAP[interest] || interest}</span>
               </div>
             )}
 
