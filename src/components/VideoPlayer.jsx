@@ -576,6 +576,7 @@ const VideoPlayer = forwardRef(
           ) : (
             <video
               ref={videoRef}
+              src={videoUrl}
               className="video-player"
               autoPlay
               playsInline
@@ -584,7 +585,6 @@ const VideoPlayer = forwardRef(
               onTimeUpdate={handleTimeUpdate}
               onError={() => setHasError(true)}
             >
-              <source src={videoUrl} type="video/mp4" />
               Tu navegador no soporta videos.
             </video>
           )}
