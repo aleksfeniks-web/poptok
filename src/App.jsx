@@ -387,9 +387,11 @@ function App() {
                 onClick={handleGoToProfile}
                 title={user.displayName || user.email}
               >
-                {user.photoURL
-                  ? <img src={user.photoURL} alt="avatar" className="header-avatar" />
-                  : <BsFillPersonFill size={20} />}
+                <img 
+                  src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email.split("@")[0] || "U")}&background=ff0050&color=fff&bold=true`} 
+                  alt="avatar" 
+                  className="header-avatar" 
+                />
               </button>
             ) : (
               <button
@@ -522,17 +524,17 @@ function App() {
             onClick={handleGoToProfile}
             style={{ 
               color: activeView === "profile" ? "#FF0050" : undefined,
-              padding: user?.photoURL ? "0" : undefined,
-              overflow: user?.photoURL ? "hidden" : undefined,
-              borderRadius: user?.photoURL ? "50%" : undefined,
-              width: user?.photoURL ? "32px" : undefined,
-              height: user?.photoURL ? "32px" : undefined,
-              border: activeView === "profile" && user?.photoURL ? "2px solid #FF0050" : undefined,
+              padding: user ? "0" : undefined,
+              overflow: user ? "hidden" : undefined,
+              borderRadius: user ? "50%" : undefined,
+              width: user ? "32px" : undefined,
+              height: user ? "32px" : undefined,
+              border: activeView === "profile" && user ? "2px solid #FF0050" : undefined,
             }}
           >
-            {user?.photoURL ? (
+            {user ? (
               <img
-                src={user.photoURL}
+                src={user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email.split("@")[0] || "U")}&background=ff0050&color=fff&bold=true`}
                 alt="Perfil"
                 style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
               />

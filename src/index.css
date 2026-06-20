@@ -63,18 +63,18 @@ body.scrollable-view {
 }
 
 .loading-screen img {
-  width: 400px;
-  height: 700px;
+  width: 40px;
+  height: 40px;
 }
 
 /* Logo de inicio animado */
 .loading-logo-img {
-  width: 80px;
-  height: 80px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
   animation: logoPopIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both,
              logoFloat 3s ease-in-out 0.7s infinite;
-  filter: drop-shadow(0 0 24px rgba(255, 0, 80, 0.7));
+  filter: drop-shadow(0 0 12px rgba(255, 0, 80, 0.7));
 }
 
 .loading-logo-text {

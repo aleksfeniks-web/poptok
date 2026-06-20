@@ -68,7 +68,7 @@ const Sidebar = ({ isOpen, onClose, coins, setCoins }) => {
         {showContent === "profile" && (
           <>
             <div className="profile-section">
-              <img src={user?.photoURL || "https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png"} alt="Usuario" className="profile-image" />
+              <img src={user?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.displayName || user?.email?.split("@")[0] || "Usuario")}&background=ff0050&color=fff&bold=true`} alt="Usuario" className="profile-image" />
               <h3 className="profile-name">{user?.displayName || user?.email || "Usuario"}</h3>
               <div className="coin-count-sidebar" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "5px", margin: "10px 0" }}>
                 <img src={coin6} alt="Gema" className="rotating-gem" 
@@ -179,7 +179,7 @@ const Sidebar = ({ isOpen, onClose, coins, setCoins }) => {
                   <li key={u.id} className="user-item" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #333" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       <img 
-                        src={u.photoURL || "https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png"} 
+                        src={u.profilePic || u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || u.email?.split("@")[0] || "U")}&background=ff0050&color=fff&bold=true`} 
                         alt="avatar" 
                         style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }} 
                       />
@@ -241,7 +241,7 @@ const Sidebar = ({ isOpen, onClose, coins, setCoins }) => {
                   <li key={u.id} className="user-item" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #333" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                       <img 
-                        src={u.photoURL || "https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png"} 
+                        src={u.profilePic || u.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || u.email?.split("@")[0] || "U")}&background=ff0050&color=fff&bold=true`} 
                         alt="avatar" 
                         style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }} 
                       />

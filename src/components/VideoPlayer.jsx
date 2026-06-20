@@ -65,11 +65,12 @@ const VideoPlayer = forwardRef(
     }, [userProfile, riuzaki1234]);
     const [isVertical, setIsVertical] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false);
-    const defaultUserImage = "https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png"; 
+    const defaultUserImage = `https://ui-avatars.com/api/?name=${encodeURIComponent(username || "U")}&background=ff0050&color=fff&bold=true`; 
     const [showDonateButton, setShowDonateButton] = useState(false);
     const [isPlaying, setIsPlaying] = useState(true);
     const [showPlayPauseIcon, setShowPlayPauseIcon] = useState(null); // "play" | "pause" | null
     const [creatorPaypal, setCreatorPaypal] = useState("");
+    const [creatorPhotoURL, setCreatorPhotoURL] = useState("");
     const [downloading, setDownloading] = useState(false);
     const [isPlayingAudio, setIsPlayingAudio] = useState(false);
     const audioRef = useRef(null);
@@ -140,14 +141,16 @@ const VideoPlayer = forwardRef(
       });
     }, [userId]);
 
-    // ✅ Obtener detalles del creador (como el email de PayPal)
+    // ✅ Obtener detalles del creador (como el email de PayPal y foto de perfil)
     useEffect(() => {
       if (!userId) {
         setCreatorPaypal("");
+        setCreatorPhotoURL("");
         return;
       }
       if (userId.startsWith("demo-") || userId.startsWith("mock-")) {
         setCreatorPaypal("");
+        setCreatorPhotoURL("");
         return;
       }
       const fetchCreatorDetails = async () => {
@@ -155,13 +158,17 @@ const VideoPlayer = forwardRef(
           const docRef = doc(db, "users", userId);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
-            setCreatorPaypal(docSnap.data().paypalEmail || "");
+            const data = docSnap.data();
+            setCreatorPaypal(data.paypalEmail || "");
+            setCreatorPhotoURL(data.profilePic || data.photoURL || "");
           } else {
             setCreatorPaypal("");
+            setCreatorPhotoURL("");
           }
         } catch (e) {
-          console.error("Error fetching creator PayPal details:", e);
+          console.error("Error fetching creator details:", e);
           setCreatorPaypal("");
+          setCreatorPhotoURL("");
         }
       };
       fetchCreatorDetails();
@@ -652,7 +659,7 @@ const VideoPlayer = forwardRef(
           <div className="user-buttons-container">
             <div className="user-image">
               <img
-                src={userPhotoURL || `https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/user1.png`}
+                src={creatorPhotoURL || userPhotoURL || defaultUserImage}
                 onError={(e) => { e.target.src = defaultUserImage; }}
                 className="w-10 h-10 rounded-full border-2 border-white"
                 alt="Perfil"
@@ -718,7 +725,7 @@ const VideoPlayer = forwardRef(
               </button>
 
               {/* Botón de Descargar */}
-              <button onClick={handleDownload} className="icon-button" disabled={downloading || allowDownload === false} style={{ opacity: allowDownload === false ? 0.4 : 1 }}>
+              <button onClick={handleDownload} className="icon-button" disabled={downloading || allowDownload === false} style={{ opacity: allowDownload === false ? 0.4 : 1, position: "relative", top: "-12px" }}>
                 <FiDownload className="icon" style={{ animation: downloading ? "bounce 1s infinite alternate" : "none" }} />
               </button>
             </div>

@@ -111,7 +111,7 @@ const Feed = ({
   const [userProfile, setUserProfile] = useState(null);
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const observerRef = useRef(null);
 
   // ✅ Manejo de autenticación del usuario
@@ -223,7 +223,12 @@ const Feed = ({
 
       const videosCollection = collection(db, "videos");
       const q = query(videosCollection, orderBy("createdAt", "desc"), limit(5 * currentPage));
-      const querySnapshot = await getDocs(q);
+      
+      // Timeout de 8 segundos para evitar que la carga se congele por red inestable o bloqueada
+      const querySnapshot = await Promise.race([
+        getDocs(q),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Tiempo de espera agotado")), 8000))
+      ]);
 
       const firestoreData = querySnapshot.docs.map((doc) => ({
         riuzaki1234: doc.id,
@@ -377,7 +382,7 @@ const Feed = ({
     const matchesSearch = searchQuery.trim() === "" ||
       (v.description && v.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (v.username && v.username.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCategory = selectedCategory === "" || selectedCategory === "All" || v.interest === selectedCategory;
+    const matchesCategory = selectedCategory === "All" || v.interest === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -428,8 +433,8 @@ const Feed = ({
           {categories.map((cat) => (
             <button
               key={cat}
-              className={`category-pill ${selectedCategory === cat || (cat === "All" && selectedCategory === "") ? "active" : ""}`}
-              onClick={() => setSelectedCategory(cat === "All" ? "" : cat)}
+              className={`category-pill ${selectedCategory === cat ? "active" : ""}`}
+              onClick={() => setSelectedCategory(cat)}
             >
               {cat}
             </button>
