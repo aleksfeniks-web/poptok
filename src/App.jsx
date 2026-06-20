@@ -48,6 +48,8 @@ function App() {
   });
   const [chatFriendId, setChatFriendId] = useState(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [toastNotification, setToastNotification] = useState(null);
+  const [reactionComment, setReactionComment] = useState(null);
 
   // ✅ 1. Escuchar monedas del usuario en tiempo real desde Firestore
   useEffect(() => {
@@ -200,7 +202,7 @@ function App() {
     };
   }, []);
 
-  // ✅ Verificar mensajes no leídos en tiempo real
+  // ✅ Verificar mensajes no leídos en tiempo real y mostrar notificaciones flotantes
   useEffect(() => {
     if (!uid) return;
 
@@ -210,13 +212,50 @@ function App() {
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
         setUnreadMessages(snapshot.docs.length > 0);
+        
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "added") {
+            const msg = change.doc.data();
+            const msgTime = msg.timestamp?.toDate ? msg.timestamp.toDate().getTime() : new Date(msg.timestamp).getTime();
+            const isRecent = Date.now() - msgTime < 10000; // Recibido en los últimos 10 segundos
+            
+            if (isRecent) {
+              const fetchSenderAndShowToast = async () => {
+                try {
+                  const userRef = doc(db, "users", msg.senderId);
+                  const userSnap = await getDoc(userRef);
+                  const senderName = userSnap.exists()
+                    ? (userSnap.data().name || userSnap.data().email?.split("@")[0] || "Alguien")
+                    : "Alguien";
+                  
+                  setToastNotification({
+                    senderName,
+                    text: msg.text,
+                    senderId: msg.senderId
+                  });
+                } catch (e) {
+                  console.error("Error showing toast:", e);
+                }
+              };
+              fetchSenderAndShowToast();
+            }
+          }
+        });
       });
 
       return () => unsubscribe();
     } catch (error) {
       console.error("Error setting up Firestore messages listener:", error);
     }
-  }, [uid]);
+  }, [uid, showChat, chatFriendId]);
+
+  // Auto-hide top toast notification
+  useEffect(() => {
+    if (toastNotification) {
+      const timer = setTimeout(() => setToastNotification(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastNotification]);
 
   // ✅ Mostrar ventana de selección de autenticación después de 5 minutos si no está autenticado
   useEffect(() => {
@@ -374,6 +413,23 @@ function App() {
   return (
     <Router>
       <div className="app-container">
+        {/* Top Floating Toast Notification */}
+        {toastNotification && (!showChat || chatFriendId !== toastNotification.senderId) && (
+          <div
+            className="top-toast-notification"
+            onClick={() => {
+              setChatFriendId(toastNotification.senderId);
+              setShowChat(true);
+              setToastNotification(null);
+            }}
+          >
+            <div className="toast-icon">💬</div>
+            <div className="toast-body">
+              <span className="toast-sender">@{toastNotification.senderName}</span>
+              <span className="toast-text">{toastNotification.text}</span>
+            </div>
+          </div>
+        )}
         {/* Sidebar */}
         <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} coins={coins} setCoins={setCoins} />
 
@@ -452,6 +508,10 @@ function App() {
                   activeExploreVideoId={activeExploreVideoId}
                   setActiveExploreVideoId={setActiveExploreVideoId}
                   onVideoPlayStateChange={setIsVideoPlaying}
+                  onReactToComment={(cmt) => {
+                    setReactionComment(cmt);
+                    setShowUploadSection(true);
+                  }}
                 />
               )}
             </>
@@ -463,7 +523,12 @@ function App() {
 
         {/* Upload Modal — the component renders its own overlay */}
         {showUploadSection && (
-          <UploadVideo onUploadSuccess={handleUploadSuccess} setPage={setPage} />
+          <UploadVideo 
+            onUploadSuccess={handleUploadSuccess} 
+            setPage={setPage} 
+            reactionComment={reactionComment}
+            clearReaction={() => setReactionComment(null)}
+          />
         )}
 
 

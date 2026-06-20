@@ -11,7 +11,7 @@ import {
   FaGamepad, FaCat, FaCar, FaFlask, FaFilm, FaUtensils, FaLaugh, 
   FaHeart, FaMusic, FaRobot, FaBolt, FaGlobe, FaBitcoin, FaRandom, 
   FaNewspaper, FaFutbol, FaSuperpowers, FaFireAlt, FaStar, FaPaw, FaPaypal,
-  FaPlay, FaPause
+  FaPlay, FaPause, FaInstagram, FaTwitter, FaYoutube, FaExternalLinkAlt
 } from "react-icons/fa";
 
 import coin1 from "../assets/coin_1.svg";
@@ -40,7 +40,7 @@ const coinGlowColors = {
 };
 
 const VideoPlayer = forwardRef(
-  ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange }, ref) => {
+  ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange, onReactToComment, reactionComment, subtitles }, ref) => {
     const [hasError, setHasError] = useState(false);
     const [showCoin, setShowCoin] = useState(false);
     const [spawnedCoinType, setSpawnedCoinType] = useState(1);
@@ -71,8 +71,20 @@ const VideoPlayer = forwardRef(
     const [showPlayPauseIcon, setShowPlayPauseIcon] = useState(null); // "play" | "pause" | null
     const [creatorPaypal, setCreatorPaypal] = useState("");
     const [creatorPhotoURL, setCreatorPhotoURL] = useState("");
+    const [showLinksModal, setShowLinksModal] = useState(false);
+    const [creatorLinks, setCreatorLinks] = useState({ instagram: "", twitter: "", youtube: "", custom: "" });
     const [downloading, setDownloading] = useState(false);
     const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+    
+    // Subtitles state
+    const [activeSubtitle, setActiveSubtitle] = useState("");
+
+    const handleTimeUpdate = () => {
+      if (!videoRef.current || !subtitles) return;
+      const time = videoRef.current.currentTime;
+      const active = subtitles.find(s => time >= s.start && time <= s.end);
+      setActiveSubtitle(active ? active.text : "");
+    };
     const audioRef = useRef(null);
 
     const handlePlayPause = (e) => {
@@ -161,14 +173,17 @@ const VideoPlayer = forwardRef(
             const data = docSnap.data();
             setCreatorPaypal(data.paypalEmail || "");
             setCreatorPhotoURL(data.profilePic || data.photoURL || "");
+            setCreatorLinks(data.socialLinks || { instagram: "", twitter: "", youtube: "", custom: "" });
           } else {
             setCreatorPaypal("");
             setCreatorPhotoURL("");
+            setCreatorLinks({ instagram: "", twitter: "", youtube: "", custom: "" });
           }
         } catch (e) {
           console.error("Error fetching creator details:", e);
           setCreatorPaypal("");
           setCreatorPhotoURL("");
+          setCreatorLinks({ instagram: "", twitter: "", youtube: "", custom: "" });
         }
       };
       fetchCreatorDetails();
@@ -504,6 +519,51 @@ const VideoPlayer = forwardRef(
     return (
       <div className={`video-container ${isVertical ? "vertical" : "horizontal"} ${showComments ? "shrink" : ""}`}>
         <div className="relative w-full h-full" onClick={handlePlayPause}>
+          {reactionComment && (
+            <div className="reaction-comment-sticker" style={{
+              position: "absolute",
+              top: "90px",
+              left: "15px",
+              background: "rgba(255, 255, 255, 0.95)",
+              color: "#000",
+              padding: "10px 14px",
+              borderRadius: "16px",
+              boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
+              maxWidth: "260px",
+              zIndex: 30,
+              fontSize: "13px",
+              fontWeight: "500",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              borderLeft: "5px solid #ff0050",
+              pointerEvents: "none"
+            }}>
+              <span style={{ fontWeight: "700", color: "#ff0050" }}>💬 @{reactionComment.username}</span>
+              <span style={{ color: "#333", lineHeight: "1.4" }}>"{reactionComment.text}"</span>
+            </div>
+          )}
+          {activeSubtitle && (
+            <div className="video-subtitle-overlay" style={{
+              position: "absolute",
+              bottom: "150px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              background: "rgba(0, 0, 0, 0.75)",
+              color: "#fff",
+              padding: "6px 16px",
+              borderRadius: "8px",
+              fontSize: "14px",
+              fontWeight: "bold",
+              zIndex: 25,
+              pointerEvents: "none",
+              textAlign: "center",
+              maxWidth: "80%",
+              boxShadow: "0 4px 10px rgba(0,0,0,0.5)"
+            }}>
+              {activeSubtitle}
+            </div>
+          )}
           {musicUrl && (
             <audio
               ref={audioRef}
@@ -521,6 +581,7 @@ const VideoPlayer = forwardRef(
               playsInline
               muted
               loop
+              onTimeUpdate={handleTimeUpdate}
               onError={() => setHasError(true)}
             >
               <source src={videoUrl} type="video/mp4" />
@@ -577,6 +638,10 @@ const VideoPlayer = forwardRef(
             <Comments
               riuzaki1234={riuzaki1234}
               onClose={() => setShowComments(false)}
+              onReactToComment={(cmtText, cmtUser) => {
+                onReactToComment?.({ text: cmtText, username: cmtUser, parentVideoId: riuzaki1234 });
+                setShowComments(false);
+              }}
               onCommentSubmit={(commentText) => {
                 if (!riuzaki1234) {
                   console.error("❌ Error: riuzaki1234 está indefinido en VideoPlayer.");
@@ -606,7 +671,7 @@ const VideoPlayer = forwardRef(
           )}
 
           {/* Contenedor del nombre de usuario */}
-          <div className="user-name-container">
+          <div className="user-name-container" onClick={() => setShowLinksModal(true)} style={{ cursor: "pointer" }}>
             <h3 className="text-lg font-semibold text-white p-0.5 rounded">
               @{username}
             </h3>
@@ -657,7 +722,7 @@ const VideoPlayer = forwardRef(
 				 
           {/* Contenedor de la imagen de usuario y los botones */}
           <div className="user-buttons-container">
-            <div className="user-image">
+            <div className="user-image" onClick={() => setShowLinksModal(true)} style={{ cursor: "pointer" }}>
               <img
                 src={creatorPhotoURL || userPhotoURL || defaultUserImage}
                 onError={(e) => { e.target.src = defaultUserImage; }}
@@ -730,6 +795,195 @@ const VideoPlayer = forwardRef(
               </button>
             </div>
           </div>
+
+          {/* Linktree-Style Social Links Modal */}
+          {showLinksModal && (
+            <div className="social-links-modal-backdrop" style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+              background: "rgba(0, 0, 0, 0.75)",
+              backdropFilter: "blur(8px)",
+              zIndex: 3000,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px"
+            }} onClick={(e) => { e.stopPropagation(); setShowLinksModal(false); }}>
+              <div className="social-links-card" style={{
+                background: "rgba(20, 20, 20, 0.95)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                borderRadius: "24px",
+                padding: "24px",
+                width: "90%",
+                maxWidth: "320px",
+                textAlign: "center",
+                boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "16px",
+                animation: "scaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both"
+              }} onClick={(e) => e.stopPropagation()}>
+                {/* User Info */}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                  <img
+                    src={creatorPhotoURL || userPhotoURL || defaultUserImage}
+                    onError={(e) => { e.target.src = defaultUserImage; }}
+                    style={{ width: "64px", height: "64px", borderRadius: "50%", border: "2px solid #ff0050", objectFit: "cover" }}
+                    alt="avatar"
+                  />
+                  <h4 style={{ color: "#fff", fontSize: "16px", fontWeight: "bold", margin: 0 }}>@{username}</h4>
+                  <p style={{ color: "#aaa", fontSize: "12px", margin: 0 }}>Enlaces del creador</p>
+                </div>
+
+                {/* Social Buttons */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+                  {creatorLinks.instagram && (
+                    <a
+                      href={creatorLinks.instagram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        background: "linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                        padding: "10px",
+                        borderRadius: "30px",
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        textDecoration: "none",
+                        boxShadow: "0 4px 10px rgba(225, 48, 108, 0.3)"
+                      }}
+                    >
+                      <FaInstagram size={18} /> Instagram
+                    </a>
+                  )}
+
+                  {creatorLinks.twitter && (
+                    <a
+                      href={creatorLinks.twitter}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        background: "#fff",
+                        color: "#000",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                        padding: "10px",
+                        borderRadius: "30px",
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        textDecoration: "none"
+                      }}
+                    >
+                      <FaTwitter size={18} /> X (Twitter)
+                    </a>
+                  )}
+
+                  {creatorLinks.youtube && (
+                    <a
+                      href={creatorLinks.youtube}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        background: "#ff0000",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                        padding: "10px",
+                        borderRadius: "30px",
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        textDecoration: "none",
+                        boxShadow: "0 4px 10px rgba(255, 0, 0, 0.3)"
+                      }}
+                    >
+                      <FaYoutube size={18} /> YouTube
+                    </a>
+                  )}
+
+                  {creatorPaypal && (
+                    <a
+                      href={`https://www.paypal.com/donate?business=${creatorPaypal}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        background: "#0070ba",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                        padding: "10px",
+                        borderRadius: "30px",
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        textDecoration: "none",
+                        boxShadow: "0 4px 10px rgba(0, 112, 186, 0.3)"
+                      }}
+                    >
+                      <FaPaypal size={18} /> Paypal (Donar)
+                    </a>
+                  )}
+
+                  {creatorLinks.custom && (
+                    <a
+                      href={creatorLinks.custom}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        background: "linear-gradient(135deg, #00f2fe, #4facfe)",
+                        color: "#000",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                        padding: "10px",
+                        borderRadius: "30px",
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        textDecoration: "none",
+                        boxShadow: "0 4px 10px rgba(0, 242, 254, 0.3)"
+                      }}
+                    >
+                      <FaExternalLinkAlt size={16} /> Sitio Web
+                    </a>
+                  )}
+
+                  {!creatorLinks.instagram && !creatorLinks.twitter && !creatorLinks.youtube && !creatorPaypal && !creatorLinks.custom && (
+                    <p style={{ color: "#888", fontSize: "13px", margin: "10px 0" }}>Este creador aún no tiene enlaces configurados.</p>
+                  )}
+                </div>
+
+                {/* Close Button */}
+                <button
+                  onClick={() => setShowLinksModal(false)}
+                  style={{
+                    background: "rgba(255, 255, 255, 0.08)",
+                    border: "1px solid rgba(255, 255, 255, 0.15)",
+                    color: "#fff",
+                    borderRadius: "30px",
+                    padding: "8px",
+                    fontSize: "13px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    marginTop: "5px"
+                  }}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

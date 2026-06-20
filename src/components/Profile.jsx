@@ -5,7 +5,7 @@ import { collection, doc, getDoc, getDocs, query, where, updateDoc } from "fireb
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { AiFillHeart, AiOutlineClose } from "react-icons/ai";
 import { BsAward, BsCoin, BsGrid3X3Gap } from "react-icons/bs";
-import { FaUserEdit } from "react-icons/fa";
+import { FaUserEdit, FaInstagram, FaTwitter, FaYoutube, FaPaypal, FaExternalLinkAlt } from "react-icons/fa";
 
 import coin1 from "../assets/coin_1.svg";
 import coin2 from "../assets/coin_2.svg";
@@ -96,6 +96,10 @@ const Profile = ({ onSelectVideo }) => {
   const [followersCount, setFollowersCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
+  const [instagramLink, setInstagramLink] = useState("");
+  const [twitterLink, setTwitterLink] = useState("");
+  const [youtubeLink, setYoutubeLink] = useState("");
+  const [customLink, setCustomLink] = useState("");
   const [coins, setCoins] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const [userVideos, setUserVideos] = useState([]);
@@ -147,6 +151,11 @@ const Profile = ({ onSelectVideo }) => {
         setCoins(data.coins || 0);
         setHighScore(data.highScore || 0);
         setPaypalEmail(data.paypalEmail || "");
+        const social = data.socialLinks || {};
+        setInstagramLink(social.instagram || "");
+        setTwitterLink(social.twitter || "");
+        setYoutubeLink(social.youtube || "");
+        setCustomLink(social.custom || "");
         setFollowersCount(Array.isArray(data.followers) ? data.followers.length : 0);
         setFollowingCount(Array.isArray(data.following) ? data.following.length : 0);
         
@@ -280,7 +289,13 @@ const Profile = ({ onSelectVideo }) => {
       const userRef = doc(db, "users", user.uid);
       await updateDoc(userRef, {
         name: displayName.trim(),
-        paypalEmail: paypalEmail.trim()
+        paypalEmail: paypalEmail.trim(),
+        socialLinks: {
+          instagram: instagramLink.trim(),
+          twitter: twitterLink.trim(),
+          youtube: youtubeLink.trim(),
+          custom: customLink.trim()
+        }
       });
 
       setIsEditing(false);
@@ -396,6 +411,38 @@ const Profile = ({ onSelectVideo }) => {
                 placeholder="correo@paypal.com"
                 maxLength={50}
               />
+              <label className="profile-edit-label" style={{ marginTop: "10px", display: "block" }}>Enlace de Instagram</label>
+              <input
+                type="url"
+                className="profile-edit-input"
+                value={instagramLink}
+                onChange={(e) => setInstagramLink(e.target.value)}
+                placeholder="https://instagram.com/usuario"
+              />
+              <label className="profile-edit-label" style={{ marginTop: "10px", display: "block" }}>Enlace de X / Twitter</label>
+              <input
+                type="url"
+                className="profile-edit-input"
+                value={twitterLink}
+                onChange={(e) => setTwitterLink(e.target.value)}
+                placeholder="https://x.com/usuario"
+              />
+              <label className="profile-edit-label" style={{ marginTop: "10px", display: "block" }}>Enlace de YouTube</label>
+              <input
+                type="url"
+                className="profile-edit-input"
+                value={youtubeLink}
+                onChange={(e) => setYoutubeLink(e.target.value)}
+                placeholder="https://youtube.com/@usuario"
+              />
+              <label className="profile-edit-label" style={{ marginTop: "10px", display: "block" }}>Sitio Web / Linktree</label>
+              <input
+                type="url"
+                className="profile-edit-input"
+                value={customLink}
+                onChange={(e) => setCustomLink(e.target.value)}
+                placeholder="https://miweb.com"
+              />
               <button className="profile-save-button" onClick={handleSaveProfile} style={{ marginTop: "15px" }}>
                 Guardar Cambios
               </button>
@@ -404,7 +451,7 @@ const Profile = ({ onSelectVideo }) => {
                 style={{ background: "#444", marginTop: "5px" }}
                 onClick={() => {
                   setDisplayName(user.displayName || "Creador Poptok");
-                  setPaypalEmail(user.paypalEmail || "");
+                  fetchUserData(user.uid);
                   setIsEditing(false);
                 }}
               >
@@ -421,6 +468,33 @@ const Profile = ({ onSelectVideo }) => {
               />
             </h2>
             <p className="profile-email-sub">{user.email}</p>
+            <div className="profile-social-links" style={{ display: "flex", gap: "14px", justifyContent: "center", marginTop: "10px" }}>
+              {instagramLink && (
+                <a href={instagramLink} target="_blank" rel="noopener noreferrer" style={{ color: "#e1306c", display: "flex", alignItems: "center" }}>
+                  <FaInstagram size={22} />
+                </a>
+              )}
+              {twitterLink && (
+                <a href={twitterLink} target="_blank" rel="noopener noreferrer" style={{ color: "#fff", display: "flex", alignItems: "center" }}>
+                  <FaTwitter size={22} />
+                </a>
+              )}
+              {youtubeLink && (
+                <a href={youtubeLink} target="_blank" rel="noopener noreferrer" style={{ color: "#ff0000", display: "flex", alignItems: "center" }}>
+                  <FaYoutube size={22} />
+                </a>
+              )}
+              {paypalEmail && (
+                <a href={`https://www.paypal.com/donate?business=${paypalEmail}`} target="_blank" rel="noopener noreferrer" style={{ color: "#0070ba", display: "flex", alignItems: "center" }}>
+                  <FaPaypal size={22} />
+                </a>
+              )}
+              {customLink && (
+                <a href={customLink} target="_blank" rel="noopener noreferrer" style={{ color: "#00f2fe", display: "flex", alignItems: "center" }}>
+                  <FaExternalLinkAlt size={20} />
+                </a>
+              )}
+            </div>
             <button
               onClick={handleSignOut}
               className="profile-logout-btn"

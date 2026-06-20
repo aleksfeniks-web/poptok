@@ -101,7 +101,8 @@ const Feed = ({
   onSelectExploreVideo,
   activeExploreVideoId,
   setActiveExploreVideoId,
-  onVideoPlayStateChange
+  onVideoPlayStateChange,
+  onReactToComment
 }) => {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -186,6 +187,8 @@ const Feed = ({
         timestamp: comment.timestamp || new Date().toISOString(),
         userId: comment.userId || currentUser.uid,
         username: comment.username || currentUser.displayName || "Anónimo",
+        likes: comment.likes || [],
+        dislikes: comment.dislikes || [],
       };
 
       // Solo guardar en Firestore si NO es un video de Pexels
@@ -537,6 +540,9 @@ const Feed = ({
               setIsOpen={setIsOpen}
               updateVideoComments={updateVideoComments}
               onVideoPlayStateChange={onVideoPlayStateChange}
+              onReactToComment={onReactToComment}
+              reactionComment={v.reactionComment}
+              subtitles={v.subtitles}
             />
           </div>
         ))

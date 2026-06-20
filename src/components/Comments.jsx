@@ -2,12 +2,13 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { auth, db } from "../firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { FiX, FiSend } from "react-icons/fi";
+import { FaThumbsUp, FaThumbsDown, FaRegThumbsUp, FaRegThumbsDown, FaVideo } from "react-icons/fa";
 import "../index.css";
 
 
-const Comments = ({ riuzaki1234, onClose, onCommentSubmit }) => {
+const Comments = ({ riuzaki1234, onClose, onCommentSubmit, onReactToComment }) => {
   const [comment, setComment] = useState("");
   const [commentsList, setCommentsList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -69,6 +70,8 @@ const Comments = ({ riuzaki1234, onClose, onCommentSubmit }) => {
             timestamp: c.timestamp ? new Date(c.timestamp).toLocaleString("es", { dateStyle: "short", timeStyle: "short" }) : "",
             username: c.username || "Anónimo",
             profilePic: cache[c.userId],
+            likes: Array.isArray(c.likes) ? c.likes : [],
+            dislikes: Array.isArray(c.dislikes) ? c.dislikes : [],
           };
         })
       );
@@ -102,6 +105,8 @@ const Comments = ({ riuzaki1234, onClose, onCommentSubmit }) => {
       timestamp: new Date().toLocaleString("es", { dateStyle: "short", timeStyle: "short" }),
       username: currentUser.displayName,
       profilePic: currentUser.profilePic,
+      likes: [],
+      dislikes: [],
     };
 
     try {
@@ -113,6 +118,70 @@ const Comments = ({ riuzaki1234, onClose, onCommentSubmit }) => {
       console.error("Error al enviar comentario:", e);
     }
   }, [comment, currentUser, onCommentSubmit]);
+
+  const handleLikeComment = async (commentId, type) => {
+    if (!currentUser) {
+      alert("Inicia sesión para interactuar con los comentarios.");
+      return;
+    }
+    const videoRef = doc(db, "videos", riuzaki1234);
+    try {
+      const snap = await getDoc(videoRef);
+      if (snap.exists()) {
+        const comments = snap.data().comments || [];
+        const updatedComments = comments.map(c => {
+          if (c.commentId === commentId) {
+            let likes = Array.isArray(c.likes) ? c.likes : [];
+            let dislikes = Array.isArray(c.dislikes) ? c.dislikes : [];
+            if (type === "like") {
+              if (likes.includes(currentUser.uid)) {
+                likes = likes.filter(uid => uid !== currentUser.uid);
+              } else {
+                likes.push(currentUser.uid);
+                dislikes = dislikes.filter(uid => uid !== currentUser.uid);
+              }
+            } else {
+              if (dislikes.includes(currentUser.uid)) {
+                dislikes = dislikes.filter(uid => uid !== currentUser.uid);
+              } else {
+                dislikes.push(currentUser.uid);
+                likes = likes.filter(uid => uid !== currentUser.uid);
+              }
+            }
+            return { ...c, likes, dislikes };
+          }
+          return c;
+        });
+        await updateDoc(videoRef, { comments: updatedComments });
+        
+        setCommentsList(prev => prev.map(c => {
+          if (c.id === commentId) {
+            let likes = Array.isArray(c.likes) ? c.likes : [];
+            let dislikes = Array.isArray(c.dislikes) ? c.dislikes : [];
+            if (type === "like") {
+              if (likes.includes(currentUser.uid)) {
+                likes = likes.filter(uid => uid !== currentUser.uid);
+              } else {
+                likes.push(currentUser.uid);
+                dislikes = dislikes.filter(uid => uid !== currentUser.uid);
+              }
+            } else {
+              if (dislikes.includes(currentUser.uid)) {
+                dislikes = dislikes.filter(uid => uid !== currentUser.uid);
+              } else {
+                dislikes.push(currentUser.uid);
+                likes = likes.filter(uid => uid !== currentUser.uid);
+              }
+            }
+            return { ...c, likes, dislikes };
+          }
+          return c;
+        }));
+      }
+    } catch (e) {
+      console.error("Error al reaccionar al comentario:", e);
+    }
+  };
 
   // ── Swipe to close ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -185,18 +254,46 @@ const Comments = ({ riuzaki1234, onClose, onCommentSubmit }) => {
             </div>
           )}
 
-          {commentsList.map((c) => (
-            <div key={c.id} className="comment-item">
-              <Avatar src={c.profilePic} name={c.username} />
-              <div className="comment-body">
-                <div className="comment-meta">
-                  <span className="comment-name">{c.username}</span>
-                  <span className="comment-ts">{c.timestamp}</span>
+          {commentsList.map((c) => {
+            const hasLiked = currentUser && c.likes?.includes(currentUser.uid);
+            const hasDisliked = currentUser && c.dislikes?.includes(currentUser.uid);
+            return (
+              <div key={c.id} className="comment-item">
+                <Avatar src={c.profilePic} name={c.username} />
+                <div className="comment-body">
+                  <div className="comment-meta">
+                    <span className="comment-name">{c.username}</span>
+                    <span className="comment-ts">{c.timestamp}</span>
+                  </div>
+                  <p className="comment-text">{c.text}</p>
+                  <div className="comment-actions" style={{ display: "flex", alignItems: "center", gap: "15px", marginTop: "6px" }}>
+                    <button
+                      onClick={() => handleLikeComment(c.id, "like")}
+                      style={{ background: "none", border: "none", color: hasLiked ? "#ff0050" : "#888", display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "11px", padding: 0 }}
+                    >
+                      {hasLiked ? <FaThumbsUp size={12} /> : <FaRegThumbsUp size={12} />}
+                      <span>{c.likes?.length || 0}</span>
+                    </button>
+                    <button
+                      onClick={() => handleLikeComment(c.id, "dislike")}
+                      style={{ background: "none", border: "none", color: hasDisliked ? "#fff" : "#888", display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "11px", padding: 0 }}
+                    >
+                      {hasDisliked ? <FaThumbsDown size={12} /> : <FaRegThumbsDown size={12} />}
+                      <span>{c.dislikes?.length || 0}</span>
+                    </button>
+                    {currentUser && (
+                      <button
+                        onClick={() => onReactToComment?.(c.text, c.username)}
+                        style={{ background: "rgba(255,0,80,0.1)", border: "none", color: "#ff0050", display: "flex", alignItems: "center", gap: "4px", cursor: "pointer", fontSize: "11px", padding: "2px 8px", borderRadius: "10px", fontWeight: "bold" }}
+                      >
+                        <FaVideo size={10} /> Reaccionar
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <p className="comment-text">{c.text}</p>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <div ref={listEndRef} />
         </div>
 

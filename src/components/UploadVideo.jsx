@@ -40,7 +40,7 @@ const MUSIC_TRACKS = [
   { id: "lofi", name: "☕ Relaxing Lofi (Hip Hop)", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" },
 ];
 
-const UploadVideo = ({ onUploadSuccess }) => {
+const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
   const [tab, setTab] = useState("video"); // "video" | "photo" | "text"
   const [videoFile, setVideoFile] = useState(null);
   const [imageFile, setImageFile] = useState(null);
@@ -53,6 +53,26 @@ const UploadVideo = ({ onUploadSuccess }) => {
   const [user, setUser] = useState(null);
   const [dragOver, setDragOver] = useState(false);
 
+  // Timed Subtitles states
+  const [subtitlesList, setSubtitlesList] = useState([]);
+  const [subText, setSubText] = useState("");
+  const [subStart, setSubStart] = useState("");
+  const [subEnd, setSubEnd] = useState("");
+
+  // WebRTC camera recording states
+  const [cameraStream, setCameraStream] = useState(null);
+  const [recording, setRecording] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [selectedSticker, setSelectedSticker] = useState("none"); // "none" | "sunglasses" | "hat" | "crown" | "mustache"
+  const [stickerX, setStickerX] = useState(50);
+  const [stickerY, setStickerY] = useState(40);
+  const [stickerScale, setStickerScale] = useState(1.0);
+  const [recordedChunks, setRecordedChunks] = useState([]);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+
+  const videoElementRef = useRef(null);
+  const recordCanvasRef = useRef(null);
+
   // AI state
   const [showAI, setShowAI] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("none");
@@ -61,6 +81,160 @@ const UploadVideo = ({ onUploadSuccess }) => {
   const [allowDownload, setAllowDownload] = useState(true);
   const [selectedMusic, setSelectedMusic] = useState("none");
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+
+  const handleAddSubtitle = () => {
+    if (!subText.trim() || subStart === "" || subEnd === "") return;
+    const start = parseFloat(subStart);
+    const end = parseFloat(subEnd);
+    if (isNaN(start) || isNaN(end) || start >= end) {
+      alert("El segundo de inicio debe ser menor que el de fin.");
+      return;
+    }
+    setSubtitlesList(prev => [...prev, { text: subText.trim(), start, end }]);
+    setSubText("");
+    setSubStart("");
+    setSubEnd("");
+  };
+
+  const handleRemoveSubtitle = (index) => {
+    setSubtitlesList(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setIsCameraActive(false);
+    setRecording(false);
+  };
+
+  const startCamera = async () => {
+    try {
+      stopCamera();
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 480, height: 640, facingMode: "user" },
+        audio: true
+      });
+      setCameraStream(stream);
+      setIsCameraActive(true);
+      if (videoElementRef.current) {
+        videoElementRef.current.srcObject = stream;
+        videoElementRef.current.play().catch(e => console.log("Video play error:", e));
+      }
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      alert("No se pudo acceder a la cámara o micrófono. Asegúrate de otorgar los permisos necesarios.");
+    }
+  };
+
+  useEffect(() => {
+    if (tab === "record") {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => {
+      stopCamera();
+    };
+  }, [tab]);
+
+  // Real-time canvas drawing loop
+  useEffect(() => {
+    let animId;
+    const canvas = recordCanvasRef.current;
+    const video = videoElementRef.current;
+    if (!canvas || !video || !isCameraActive || tab !== "record") return;
+
+    const ctx = canvas.getContext("2d");
+    
+    const drawFrame = () => {
+      if (video.paused || video.ended) {
+        animId = requestAnimationFrame(drawFrame);
+        return;
+      }
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      if (selectedSticker !== "none") {
+        let stickerEmoji = "";
+        if (selectedSticker === "sunglasses") stickerEmoji = "🕶️";
+        else if (selectedSticker === "hat") stickerEmoji = "🎩";
+        else if (selectedSticker === "crown") stickerEmoji = "👑";
+        else if (selectedSticker === "mustache") stickerEmoji = "👨";
+
+        const x = (stickerX / 100) * canvas.width;
+        const y = (stickerY / 100) * canvas.height;
+        const size = 90 * stickerScale;
+
+        ctx.font = `${size}px -apple-system, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        
+        if (selectedSticker === "mustache") {
+          ctx.fillText("👨", x, y - 20);
+        } else {
+          ctx.fillText(stickerEmoji, x, y);
+        }
+      }
+
+      animId = requestAnimationFrame(drawFrame);
+    };
+
+    canvas.width = 480;
+    canvas.height = 640;
+    
+    video.addEventListener("play", () => {
+      drawFrame();
+    });
+    
+    if (!video.paused) {
+      drawFrame();
+    }
+
+    return () => {
+      cancelAnimationFrame(animId);
+    };
+  }, [isCameraActive, tab, selectedSticker, stickerX, stickerY, stickerScale]);
+
+  const startRecording = () => {
+    const canvas = recordCanvasRef.current;
+    if (!canvas || !cameraStream) return;
+
+    const chunks = [];
+    const canvasStream = canvas.captureStream(30);
+    const audioTracks = cameraStream.getAudioTracks();
+    if (audioTracks.length > 0) {
+      canvasStream.addTrack(audioTracks[0]);
+    }
+
+    const recorder = new MediaRecorder(canvasStream, { mimeType: "video/webm;codecs=vp9,opus" });
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) {
+        chunks.push(e.data);
+      }
+    };
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: "video/mp4" });
+      const previewUrl = URL.createObjectURL(blob);
+      setVideoFile(new File([blob], "recorded-video.mp4", { type: "video/mp4" }));
+      setVideoPreviewUrl(previewUrl);
+      setTab("video");
+      stopCamera();
+    };
+
+    setRecordedChunks(chunks);
+    setMediaRecorder(recorder);
+    recorder.start();
+    setRecording(true);
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && recording) {
+      mediaRecorder.stop();
+      setRecording(false);
+    }
+  };
 
   const fileInputRef = useRef(null);
   const canvasRef = useRef(null);
@@ -246,8 +420,15 @@ const UploadVideo = ({ onUploadSuccess }) => {
         allowDownload: allowDownload,
         musicUrl: musicObj ? (musicObj.url || null) : null,
         musicTitle: musicObj ? (musicObj.name || null) : null,
+        subtitles: subtitlesList,
+        reactionComment: reactionComment ? {
+          text: reactionComment.text,
+          username: reactionComment.username,
+          parentVideoId: reactionComment.parentVideoId
+        } : null,
       });
 
+      if (clearReaction) clearReaction();
       if (onUploadSuccess) onUploadSuccess();
     } catch (err) {
       console.error("Upload error:", err);
@@ -270,13 +451,14 @@ const UploadVideo = ({ onUploadSuccess }) => {
         {/* Header */}
         <div className="upload-modal-header">
           <h2 className="upload-modal-title">Nuevo post</h2>
-          <button className="upload-modal-close" onClick={onUploadSuccess}><FiX size={20} /></button>
+          <button className="upload-modal-close" onClick={() => { if (clearReaction) clearReaction(); onUploadSuccess(); }}><FiX size={20} /></button>
         </div>
 
         {/* Tab selector */}
         <div className="upload-tabs">
           {[
             { id: "video", label: "Video", icon: <FiVideo size={16} /> },
+            { id: "record", label: "Grabar", icon: <FiZap size={16} /> },
             { id: "photo", label: "Foto",  icon: <FiImage size={16} /> },
             { id: "text",  label: "Texto", icon: <FiType size={16} /> },
           ].map(t => (
@@ -291,8 +473,25 @@ const UploadVideo = ({ onUploadSuccess }) => {
         </div>
 
         <div className="upload-modal-body">
+          {/* Reaction mode banner */}
+          {reactionComment && (
+            <div style={{
+              background: "rgba(255, 0, 80, 0.15)",
+              border: "1px solid rgba(255, 0, 80, 0.3)",
+              borderRadius: "12px",
+              padding: "10px 14px",
+              marginBottom: "12px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px"
+            }}>
+              <span style={{ fontSize: "11px", color: "#ff0050", fontWeight: "bold", textTransform: "uppercase" }}>Modo Reacción</span>
+              <span style={{ fontSize: "13px", color: "#fff" }}>Respondiendo a <strong>@{reactionComment.username}</strong>: "{reactionComment.text}"</span>
+            </div>
+          )}
+
           {/* ── Drop zone (video / photo tabs) ────────────── */}
-          {tab !== "text" && (
+          {(tab === "video" || tab === "photo") && (
             <>
               {!videoPreviewUrl && !imagePreviewUrl ? (
                 <div
@@ -357,6 +556,148 @@ const UploadVideo = ({ onUploadSuccess }) => {
                 </div>
               )}
             </>
+          )}
+
+          {/* ── Camera recording tab ───────────────────────── */}
+          {tab === "record" && (
+            <div className="upload-record-section" style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "center" }}>
+              <video
+                ref={videoElementRef}
+                style={{ display: "none" }}
+                muted
+                playsInline
+              />
+
+              <div style={{ position: "relative", width: "100%", maxWidth: "320px", height: "420px", borderRadius: "16px", overflow: "hidden", border: "2px solid #ff0050", boxShadow: "0 0 15px rgba(255,0,80,0.4)" }}>
+                <canvas
+                  ref={recordCanvasRef}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+                {recording && (
+                  <div style={{ position: "absolute", top: "15px", left: "15px", display: "flex", alignItems: "center", gap: "6px", background: "rgba(0,0,0,0.6)", padding: "4px 8px", borderRadius: "10px", color: "#fff", fontSize: "11px", fontWeight: "bold" }}>
+                    <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#ff0000", display: "inline-block", animation: "pulse 1s infinite" }} />
+                    GRABANDO
+                  </div>
+                )}
+              </div>
+
+              <div style={{ width: "100%" }}>
+                <label className="upload-field-label">🎭 Filtro de Cara (Emoji AR)</label>
+                <div style={{ display: "flex", gap: "8px", overflowX: "auto", padding: "4px 0", scrollbarWidth: "none" }}>
+                  {[
+                    { id: "none", label: "Original" },
+                    { id: "sunglasses", label: "🕶️ Gafas Cool" },
+                    { id: "crown", label: "👑 Corona" },
+                    { id: "hat", label: "🎩 Sombrero" },
+                    { id: "mustache", label: "🧔 Bigote" },
+                  ].map(filter => (
+                    <button
+                      key={filter.id}
+                      type="button"
+                      onClick={() => setSelectedSticker(filter.id)}
+                      style={{
+                        background: selectedSticker === filter.id ? "#ff0050" : "#222",
+                        border: "none",
+                        color: "#fff",
+                        borderRadius: "15px",
+                        padding: "6px 12px",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        whiteSpace: "nowrap"
+                      }}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {selectedSticker !== "none" && (
+                <div style={{ width: "100%", background: "rgba(255,255,255,0.03)", padding: "10px", borderRadius: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <span style={{ fontSize: "11px", color: "#aaa", fontWeight: "bold" }}>Ajustar Posición del Filtro</span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#ddd" }}>
+                      <span>Posición Horizontal (X)</span>
+                      <span>{stickerX}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="10"
+                      max="90"
+                      value={stickerX}
+                      onChange={e => setStickerX(parseInt(e.target.value))}
+                      style={{ width: "100%", accentColor: "#ff0050" }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#ddd" }}>
+                      <span>Posición Vertical (Y)</span>
+                      <span>{stickerY}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="10"
+                      max="90"
+                      value={stickerY}
+                      onChange={e => setStickerY(parseInt(e.target.value))}
+                      style={{ width: "100%", accentColor: "#ff0050" }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#ddd" }}>
+                      <span>Escala / Tamaño</span>
+                      <span>{stickerScale.toFixed(1)}x</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="2.5"
+                      step="0.1"
+                      value={stickerScale}
+                      onChange={e => setStickerScale(parseFloat(e.target.value))}
+                      style={{ width: "100%", accentColor: "#ff0050" }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div style={{ marginTop: "10px" }}>
+                {!recording ? (
+                  <button
+                    type="button"
+                    onClick={startRecording}
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                      borderRadius: "50%",
+                      background: "#ff0000",
+                      border: "4px solid #fff",
+                      boxShadow: "0 0 15px rgba(255, 0, 0, 0.6)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={stopRecording}
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                      borderRadius: "12px",
+                      background: "#ff0050",
+                      border: "4px solid #fff",
+                      boxShadow: "0 0 15px rgba(255, 0, 80, 0.6)",
+                      cursor: "pointer",
+                      animation: "pulse 1s infinite alternate"
+                    }}
+                  />
+                )}
+              </div>
+            </div>
           )}
 
           {/* ── Text-as-image tab ─────────────────────────── */}
@@ -488,6 +829,63 @@ const UploadVideo = ({ onUploadSuccess }) => {
                 Permitir que otros usuarios descarguen este video/foto
               </label>
             </div>
+
+            {/* Timed Subtitles Editor (Only for videos) */}
+            {tab === "video" && (videoPreviewUrl || videoFile) && (
+              <div className="upload-subtitles-editor" style={{ marginTop: "15px", borderTop: "1px solid #333", paddingTop: "12px" }}>
+                <label className="upload-field-label">💬 Agregar Subtítulos al Video</label>
+                
+                {/* List of current subtitles */}
+                {subtitlesList.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", margin: "10px 0", maxHeight: "100px", overflowY: "auto", background: "rgba(255,255,255,0.02)", padding: "8px", borderRadius: "8px" }}>
+                    {subtitlesList.map((sub, idx) => (
+                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", background: "rgba(255,255,255,0.05)", padding: "4px 8px", borderRadius: "4px" }}>
+                        <span style={{ color: "#aaa" }}>[{sub.start}s - {sub.end}s] <strong style={{ color: "#fff" }}>{sub.text}</strong></span>
+                        <button type="button" onClick={() => handleRemoveSubtitle(idx)} style={{ background: "none", border: "none", color: "#ff0050", cursor: "pointer", fontSize: "11px", fontWeight: "bold" }}>Eliminar</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Subtitle Form */}
+                <div style={{ display: "flex", gap: "6px", marginTop: "8px", flexDirection: "column" }}>
+                  <input
+                    type="text"
+                    placeholder="Texto del subtítulo (ej. Hola a todos)"
+                    value={subText}
+                    onChange={e => setSubText(e.target.value)}
+                    style={{ background: "#222", border: "1px solid #333", borderRadius: "8px", padding: "8px", color: "#fff", fontSize: "13px", outline: "none" }}
+                  />
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <input
+                      type="number"
+                      placeholder="Inicio (seg)"
+                      value={subStart}
+                      onChange={e => setSubStart(e.target.value)}
+                      style={{ background: "#222", border: "1px solid #333", borderRadius: "8px", padding: "8px", color: "#fff", fontSize: "13px", outline: "none", flex: 1 }}
+                      min="0"
+                      step="0.5"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Fin (seg)"
+                      value={subEnd}
+                      onChange={e => setSubEnd(e.target.value)}
+                      style={{ background: "#222", border: "1px solid #333", borderRadius: "8px", padding: "8px", color: "#fff", fontSize: "13px", outline: "none", flex: 1 }}
+                      min="0"
+                      step="0.5"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddSubtitle}
+                      style={{ background: "#ff0050", border: "none", borderRadius: "8px", color: "#fff", padding: "8px 16px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}
+                    >
+                      Añadir
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ── Upload progress ────────────────────────────── */}
