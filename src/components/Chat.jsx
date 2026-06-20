@@ -5,7 +5,7 @@ import { BsFillPersonFill, BsSend } from "react-icons/bs";
 import { FiCoffee, FiSearch, FiGift } from "react-icons/fi";
 import EmojiPicker from "emoji-picker-react";
 import { auth, db } from "../firebase.js";
-import { collection, addDoc, query, where, orderBy, onSnapshot, updateDoc, doc, getDoc, getDocs } from "firebase/firestore";
+import { collection, addDoc, query, where, orderBy, onSnapshot, updateDoc, doc, getDoc, getDocs, or, and } from "firebase/firestore";
 
 const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessages, initialFriend }) => {
   const [message, setMessage] = useState("");
@@ -80,13 +80,26 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
       const messagesRef = collection(db, "messages");
       const q = query(
         messagesRef,
-        where("receiverId", "in", [user.uid, selectedFriend]),
-        where("senderId", "in", [user.uid, selectedFriend]),
-        orderBy("timestamp", "asc")
+        or(
+          and(
+            where("senderId", "==", user.uid),
+            where("receiverId", "==", selectedFriend)
+          ),
+          and(
+            where("senderId", "==", selectedFriend),
+            where("receiverId", "==", user.uid)
+          )
+        )
       );
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        const loadedMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const loadedMessages = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .sort((a, b) => {
+            const timeA = a.timestamp?.toDate ? a.timestamp.toDate() : (a.timestamp ? new Date(a.timestamp) : new Date(0));
+            const timeB = b.timestamp?.toDate ? b.timestamp.toDate() : (b.timestamp ? new Date(b.timestamp) : new Date(0));
+            return timeA - timeB;
+          });
         setMessages(loadedMessages);
 
         // Check unread messages
@@ -281,9 +294,6 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
               const isSystem = msg.text.startsWith("🎁");
               return (
                 <div key={msg.id} className={`message-wrapper ${isSentByMe ? "sent" : "received"} ${isSystem ? "system" : ""}`}>
-                  {!isSentByMe && (
-                    <Avatar src={selectedFriendData?.profilePic} name={selectedFriendData?.name || selectedFriendData?.email} size={28} />
-                  )}
                   <div className="message-bubble">
                     <p>{msg.text}</p>
                     <span className="message-time">

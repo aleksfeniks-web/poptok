@@ -81,9 +81,9 @@ function App() {
       } else {
         try {
           await setDoc(userRef, {
-            coins: 10,
+            coins: 0,
             coinCounts: {
-              coin_1: 10,
+              coin_1: 0,
               coin_2: 0,
               coin_3: 0,
               coin_4: 0,
@@ -93,7 +93,7 @@ function App() {
             highScore: 0,
             createdAt: new Date().toISOString()
           }, { merge: true });
-          setCoins(10);
+          setCoins(0);
         } catch (error) {
           console.error("Error al inicializar monedas de bienvenida:", error);
         }
