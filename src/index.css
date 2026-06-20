@@ -59,7 +59,7 @@ body.scrollable-view {
   align-items: center;
   justify-content: center;
   background: #000;
-  gap: 24px;
+  gap: 10px;
 }
 
 .loading-screen img {
@@ -69,8 +69,8 @@ body.scrollable-view {
 
 /* Logo de inicio animado */
 .loading-logo-img {
-  width: 160px;
-  height: 160px;
+  width: 80px;
+  height: 80px;
   object-fit: contain;
   animation: logoPopIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both,
              logoFloat 3s ease-in-out 0.7s infinite;
@@ -85,7 +85,7 @@ body.scrollable-view {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: logoTextFadeIn 0.6s ease 0.4s both;
+  animation: logoTextPremium 1s cubic-bezier(0.25, 1, 0.5, 1) 0.3s both;
   text-shadow: none;
 }
 
@@ -100,9 +100,22 @@ body.scrollable-view {
   50%       { transform: translateY(-10px); }
 }
 
-@keyframes logoTextFadeIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes logoTextPremium {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+    letter-spacing: -4px;
+    filter: blur(8px);
+  }
+  60% {
+    transform: scale(1.05);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    letter-spacing: -1px;
+  }
 }
 
 /* Botones en la parte superior */

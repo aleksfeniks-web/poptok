@@ -35,8 +35,17 @@ function App() {
   const [showChat, setShowChat] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(false); 
   const [roomId, setRoomId] = useState(null);
-  const [activeView, setActiveView] = useState("explore"); // "explore", "feed", "profile"
-  const [activeExploreVideoId, setActiveExploreVideoId] = useState(null);
+  const [activeView, setActiveView] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("v") ? "feed" : "explore";
+  }); // "explore", "feed", "profile"
+  const [activeExploreVideoId, setActiveExploreVideoId] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("v") || null;
+  });
+  const [showPrivacyModal, setShowPrivacyModal] = useState(() => {
+    return !localStorage.getItem("poptok_privacy_accepted");
+  });
   const [chatFriendId, setChatFriendId] = useState(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
@@ -655,6 +664,87 @@ function App() {
                   <span onClick={() => setIsSignUp(true)}>Regístrate</span>
                 </p>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Aceptación de Política de Privacidad */}
+        {showPrivacyModal && (
+          <div className="privacy-accept-overlay" style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0, 0, 0, 0.95)",
+            backdropFilter: "blur(10px)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px"
+          }}>
+            <div className="privacy-accept-card" style={{
+              background: "rgba(255, 255, 255, 0.05)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderRadius: "24px",
+              padding: "30px",
+              maxWidth: "400px",
+              width: "100%",
+              textAlign: "center",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
+              display: "flex",
+              flexDirection: "column",
+              gap: "20px"
+            }}>
+              <div style={{ fontSize: "50px" }}>🛡️</div>
+              <h2 style={{ fontSize: "22px", fontWeight: "800", color: "#fff", margin: 0 }}>
+                Política de Privacidad
+              </h2>
+              <p style={{ fontSize: "14px", color: "#ccc", lineHeight: "1.6", margin: 0 }}>
+                Para continuar disfrutando de <strong>Poptok</strong>, por favor lee y acepta nuestra política de privacidad. Respetamos tus datos y protegemos tu información.
+              </p>
+              <div style={{
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                borderRadius: "12px",
+                padding: "15px",
+                maxHeight: "150px",
+                overflowY: "auto",
+                fontSize: "12px",
+                color: "#aaa",
+                textAlign: "left",
+                lineHeight: "1.5"
+              }}>
+                <h4 style={{ color: "#fff", marginTop: 0, marginBottom: "5px" }}>1. Información que recopilamos</h4>
+                <p style={{ marginTop: 0 }}>Recopilamos información de tu perfil como nombre, correo electrónico y estadísticas de uso de gemas para personalizar tu experiencia.</p>
+                <h4 style={{ color: "#fff", marginBottom: "5px" }}>2. Uso de Cámara y Micrófono</h4>
+                <p style={{ marginTop: 0 }}>Los permisos de cámara y micrófono son solicitados únicamente al iniciar transmisiones en vivo o al grabar videos para subir.</p>
+                <h4 style={{ color: "#fff", marginBottom: "5px" }}>3. Protección de Datos</h4>
+                <p style={{ marginTop: 0 }}>Tus datos están protegidos en nuestros servidores de Firebase y no son compartidos con terceros.</p>
+              </div>
+              <button
+                onClick={() => {
+                  localStorage.setItem("poptok_privacy_accepted", "true");
+                  setShowPrivacyModal(false);
+                }}
+                style={{
+                  background: "linear-gradient(135deg, #ff0050, #ff00ff)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "25px",
+                  padding: "12px 24px",
+                  fontSize: "15px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  boxShadow: "0 8px 20px rgba(255, 0, 80, 0.4)",
+                  transition: "all 0.2s"
+                }}
+                onMouseOver={(e) => e.target.style.transform = "scale(1.03)"}
+                onMouseOut={(e) => e.target.style.transform = "scale(1)"}
+              >
+                Aceptar y Continuar
+              </button>
             </div>
           </div>
         )}

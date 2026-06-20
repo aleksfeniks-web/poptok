@@ -215,7 +215,6 @@ class MainActivity : ComponentActivity() {
 
         rootLayout.addView(webView)
         setContentView(rootLayout)
-        requestInitialPermissions()
     }
 
     private fun hasPermission(permission: String) =

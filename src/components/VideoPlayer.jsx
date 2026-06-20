@@ -210,10 +210,11 @@ const VideoPlayer = forwardRef(
     }, [musicUrl, videoUrl]);
 
     const handleShare = async () => {
+      const shareUrl = `${window.location.origin}/?v=${riuzaki1234}`;
       const shareData = {
         title: `Mira este video de @${username} en Poptok`,
         text: description || "¡Mira este increíble contenido en Poptok!",
-        url: videoUrl,
+        url: shareUrl,
       };
 
       if (navigator.share) {
@@ -224,7 +225,7 @@ const VideoPlayer = forwardRef(
         }
       } else {
         try {
-          await navigator.clipboard.writeText(videoUrl);
+          await navigator.clipboard.writeText(shareUrl);
           alert("✅ ¡Enlace del video copiado al portapapeles!");
         } catch (err) {
           console.error("Error al copiar enlace:", err);
