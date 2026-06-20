@@ -1095,42 +1095,42 @@ video {
   padding: 0.5rem; /* 8px */
   border-radius: 0.25rem; /* 4px */
 }
-
-/* Contenedor de la imagen de usuario y los botones (parte derecha) */
 .user-buttons-container {
   position: absolute;
   top: 70%;
-  right: 10px; /* Ajusta la distancia desde el borde derecho */
+  right: 15px; /* Ajusta la distancia desde el borde derecho */
   transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  align-items: bottom; /* Alinea los elementos a la derecha */
-  gap: 0.5rem; /* Espacio entre los elementos */
+  align-items: center; /* Alinea los elementos perfectamente al centro */
+  gap: 1rem; /* Espacio entre la foto de perfil y los botones */
   z-index: 20; /* Asegura que esté por encima de otros elementos */
 }
 
 .user-image {
   position: relative; /* 🔹 Permite que .follow-icon se posicione dentro */
-  display: inline-block;
+  display: flex;
+  justify-content: center;
 }
 
 /* Imagen de usuario */
 .user-image img {
-  width: 35px;
-  height: 35px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  border: 3px solid #ff0050;
+  border: 2px solid #ffffff;
   object-fit: cover;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Sombra suave */
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3); /* Sombra suave */
 }
 
 .follow-icon {
   position: absolute;
-  top: -7px; /* Ajusta para que esté justo arriba */
-  right: 50%;
+  bottom: -8px; /* Ajusta para que esté justo al centro abajo del círculo */
+  left: 50%;
+  transform: translateX(-50%);
   background: white; /* Opcional: fondo para mayor visibilidad */
   border-radius: 50%;
-  padding: 2px;
+  padding: 1px;
   font-size: 15px;
   color: #ff1a6b; /* 🔥 Color llamativo */
   cursor: pointer;
@@ -1139,30 +1139,31 @@ video {
 }
 
 .follow-icon:hover {
-  transform: scale(1.2);
+  transform: translateX(-50%) scale(1.2);
 }
 
 /* Asegura que los números estén debajo de los iconos */
 .interaction-count {
-  font-size: 12px; /* Tamaño adecuado */
-  margin-top: 0.8px; /* Espacio entre el icono y el número */
+  font-size: 11px; /* Tamaño adecuado */
+  margin-top: 2px; /* Espacio entre el icono y el número */
   font-weight: bold;
   color: white;
   text-align: center;
-  display: inline-block; /* Esto fuerza que el número esté debajo del icono */
+  display: block; /* Fuerza a estar debajo */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
 /* Contenedor de botones */
 .buttons-container {
   display: flex;
   flex-direction: column;
-  align-items:center;
-  gap: 0.8rem; /* Espacio entre los botones */
+  align-items: center;
+  gap: 1.1rem; /* Espacio entre los botones */
 }
 
 .buttons-container button {
   color: white;
-  opacity: 0.8;
+  opacity: 0.9;
   transition: opacity 0.3s ease;
 }
 
@@ -1170,22 +1171,18 @@ video {
   opacity: 1;
 }
 
-/* Estilo de los botones de iconos like, comentario y favorito */
-/* Estilo base para los iconos (glassmorphism) */
 .icon-button {
   background: none;
- /* backdrop-filter: blur(10px); */
-  font-size: 30px; 
+  font-size: 32px; 
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  /*width: 35px;*/
-  /*height:35px;*/
-  border:none; /*comentar si error*/
-  flex-direction: column; /*comentar si error*/
+  border: none;
   cursor: pointer;
-  gap:2px;
+  gap: 3px;
+  color: white;
   transition: background 0.3s ease, color 0.3s ease;
- /*  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); Sombra para profundidad */
 }
 
 .icon-button:hover {
@@ -4221,5 +4218,68 @@ canvas {
 .sell-submit-btn:hover {
   background: #e60045;
 }
+
+/* Custom styles for Poptok Gem inventory and purchase store */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes glowPulse {
+  0% {
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.3), inset 0 0 5px rgba(255, 255, 255, 0.1);
+    filter: brightness(1);
+  }
+  100% {
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.7), inset 0 0 8px rgba(255, 255, 255, 0.3);
+    filter: brightness(1.15);
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.secure-spinner {
+  animation: spin 1s linear infinite !important;
+}
+
+.purchase-option {
+  transition: all 0.2s ease-in-out !important;
+}
+
+.purchase-option:hover {
+  background: rgba(255, 215, 0, 0.08) !important;
+  border-color: rgba(255, 215, 0, 0.4) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.05);
+}
+
+.gem-inventory-card {
+  transition: all 0.2s ease-in-out !important;
+}
+
+.gem-inventory-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+.gem-buy-btn {
+  transition: transform 0.15s ease-in-out, filter 0.15s ease-in-out !important;
+}
+
+.gem-buy-btn:hover {
+  transform: scale(1.05) !important;
+  filter: brightness(1.1);
+}
+
+.gem-buy-btn:active {
+  transform: scale(0.95) !important;
+}
+
 
 

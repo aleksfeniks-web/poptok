@@ -9,14 +9,35 @@ export const saveScore = async (uid, score, coinsEarned) => {
     
     const userSnap = await getDoc(userRef);
     if (userSnap.exists()) {
-      const currentCoins = userSnap.data().coins || 0;
+      const data = userSnap.data();
+      const currentCoins = data.coins || 0;
+      const coinCounts = data.coinCounts || {
+        coin_1: currentCoins,
+        coin_2: 0,
+        coin_3: 0,
+        coin_4: 0,
+        coin_5: 0,
+        coin_6: 0
+      };
+      
+      coinCounts.coin_1 = (coinCounts.coin_1 || 0) + coinsEarned;
+
       await updateDoc(userRef, {
         coins: currentCoins + coinsEarned,
-        highScore: Math.max(userSnap.data().highScore || 0, score)
+        coinCounts: coinCounts,
+        highScore: Math.max(data.highScore || 0, score)
       });
     } else {
       await setDoc(userRef, {
         coins: coinsEarned,
+        coinCounts: {
+          coin_1: coinsEarned,
+          coin_2: 0,
+          coin_3: 0,
+          coin_4: 0,
+          coin_5: 0,
+          coin_6: 0
+        },
         highScore: score
       }, { merge: true });
     }

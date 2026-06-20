@@ -14,10 +14,27 @@ import {
   FaPlay, FaPause
 } from "react-icons/fa";
 
+import coin1 from "../assets/coin_1.png";
+import coin2 from "../assets/coin_2.png";
+import coin3 from "../assets/coin_3.png";
+import coin4 from "../assets/coin_4.png";
+import coin5 from "../assets/coin_5.png";
+import coin6 from "../assets/coin_6.png";
+
+const coinImages = {
+  1: coin1,
+  2: coin2,
+  3: coin3,
+  4: coin4,
+  5: coin5,
+  6: coin6
+};
+
 const VideoPlayer = forwardRef(
   ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userId, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload }, ref) => {
     const [hasError, setHasError] = useState(false);
     const [showCoin, setShowCoin] = useState(false);
+    const [spawnedCoinType, setSpawnedCoinType] = useState(1);
     const [coinPosition, setCoinPosition] = useState({ x: 0, y: 0 });
     const [velocity, setVelocity] = useState({ dx: 1, dy: 1 });
     const videoRef = useRef(null);
@@ -245,16 +262,66 @@ const VideoPlayer = forwardRef(
       }
     }, []);
 
-    // Mostrar coin cada cierto tiempo
+    // 1. Acumulador de tiempo de reproducción (segundo a segundo) y lógica RNG para aparecer gemas
     useEffect(() => {
-      const interval = setInterval(() => {
-        setShowCoin(true);
-        setCoinPosition({ x: 100, y: 100 });
-        setVelocity({ dx: 1.5, dy: 1.5 });
-      }, 300000); // 5 minutos
+      let timer;
+      if (isPlaying && !showCoin) {
+        timer = setInterval(() => {
+          // Si la pestaña no está visible, no acumular tiempo
+          if (document.hidden) return;
 
-      return () => clearInterval(interval);
-    }, []);
+          // Cargar y actualizar tiempo acumulado en localStorage
+          const currentWatchTime = Number(localStorage.getItem("poptok_cumulative_watch_time") || 0);
+          const newWatchTime = currentWatchTime + 1;
+          localStorage.setItem("poptok_cumulative_watch_time", newWatchTime);
+
+          // Lógica de desbloqueo de gemas y roll RNG
+          // Coin 1 (Rosa): 0s (prob 0.005)
+          // Coin 2 (Naranja): 2h (7200s) (prob 0.002)
+          // Coin 3 (Verde): 6h (21600s) (prob 0.001)
+          // Coin 4 (Púrpura): 16h (57600s) (prob 0.0005)
+          // Coin 5 (Azul): 40h (144000s) (prob 0.0001)
+          
+          if (newWatchTime >= 144000 && Math.random() < 0.0001) {
+            spawnCoin(5);
+          } else if (newWatchTime >= 57600 && Math.random() < 0.0005) {
+            spawnCoin(4);
+          } else if (newWatchTime >= 21600 && Math.random() < 0.001) {
+            spawnCoin(3);
+          } else if (newWatchTime >= 7200 && Math.random() < 0.002) {
+            spawnCoin(2);
+          } else if (Math.random() < 0.005) {
+            spawnCoin(1);
+          }
+        }, 1000);
+      }
+      return () => {
+        if (timer) clearInterval(timer);
+      };
+    }, [isPlaying, showCoin]);
+
+    // Función auxiliar para spawnear la moneda/gema
+    const spawnCoin = (type) => {
+      setSpawnedCoinType(type);
+      
+      // Posición aleatoria dentro del área visible
+      const maxX = Math.max(50, window.innerWidth - 100);
+      const maxY = Math.max(100, window.innerHeight - 200);
+      setCoinPosition({
+        x: Math.random() * (maxX - 50) + 50,
+        y: Math.random() * (maxY - 100) + 100
+      });
+
+      // Velocidad y dirección aleatorias
+      const dirX = Math.random() < 0.5 ? -1 : 1;
+      const dirY = Math.random() < 0.5 ? -1 : 1;
+      setVelocity({
+        dx: dirX * (Math.random() * 1.5 + 1.2),
+        dy: dirY * (Math.random() * 1.5 + 1.2)
+      });
+
+      setShowCoin(true);
+    };
 
     // Hacer que la coin desaparezca si no se le da click en 30 segundos
     useEffect(() => {
@@ -276,10 +343,12 @@ const VideoPlayer = forwardRef(
           let newX = prev.x + velocity.dx;
           let newY = prev.y + velocity.dy;
 
-          if (newX <= 0 || newX + 40 >= window.innerWidth) {
+          // Rebote horizontal
+          if (newX <= 10 || newX + 50 >= window.innerWidth) {
             setVelocity((v) => ({ ...v, dx: -v.dx }));
           }
-          if (newY <= 0 || newY + 40 >= window.innerHeight) {
+          // Rebote vertical
+          if (newY <= 50 || newY + 50 >= window.innerHeight) {
             setVelocity((v) => ({ ...v, dy: -v.dy }));
           }
 
@@ -293,7 +362,7 @@ const VideoPlayer = forwardRef(
     // Clic en la coin
     const handleCoinClick = () => {
       setShowCoin(false);
-      onInteraction(uid, "coins");
+      onInteraction(uid, "coins", spawnedCoinType);
     };
 
     // Intersection Observer para reproducir videos visibles
@@ -436,8 +505,8 @@ const VideoPlayer = forwardRef(
                 position: "absolute",
                 left: coinPosition.x,
                 top: coinPosition.y,
-                width: "60px",
-                height: "60px",
+                width: "55px",
+                height: "55px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -447,12 +516,15 @@ const VideoPlayer = forwardRef(
               onClick={handleCoinClick}
             >
               <img
-                src="https://mybucketvideos.s3.us-east-2.amazonaws.com/assets/coin.png"
-                alt="Coin"
+                src={coinImages[spawnedCoinType] || coinImages[1]}
+                alt={`Coin ${spawnedCoinType}`}
                 style={{
-                  width: "30px",
-                  height: "30px",
-                  animation: "bounce 0.5s infinite alternate, rotate 2s linear infinite, glow 1s infinite alternate",
+                  width: "45px",
+                  height: "45px",
+                  borderRadius: "50%",
+                  border: "2px solid rgba(255, 255, 255, 0.7)",
+                  objectFit: "cover",
+                  animation: "float 1.8s ease-in-out infinite, glowPulse 1.5s ease-in-out infinite alternate"
                 }}
               />
             </div>
@@ -608,13 +680,11 @@ const VideoPlayer = forwardRef(
               {/* Botón de Compartir */}
               <button onClick={handleShare} className="icon-button">
                 <FiShare2 className="icon" />
-                <span className="interaction-count">Compartir</span>
               </button>
 
               {/* Botón de Descargar */}
               <button onClick={handleDownload} className="icon-button" disabled={downloading || allowDownload === false} style={{ opacity: allowDownload === false ? 0.4 : 1 }}>
                 <FiDownload className="icon" style={{ animation: downloading ? "bounce 1s infinite alternate" : "none" }} />
-                <span className="interaction-count">{downloading ? "Bajar..." : "Bajar"}</span>
               </button>
             </div>
           </div>

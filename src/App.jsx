@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, OAuthProvider, signInWithPopup } from "firebase/auth";
-import { collection, onSnapshot, query, where, doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, onSnapshot, query, where, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "./firebase.js";
 
 import Sidebar from "./components/Sidebar.jsx";
@@ -45,11 +45,38 @@ function App() {
     const userRef = doc(db, "users", uid);
     const unsubscribe = onSnapshot(userRef, async (snapshot) => {
       if (snapshot.exists()) {
-        setCoins(snapshot.data().coins || 0);
+        const data = snapshot.data();
+        setCoins(data.coins || 0);
+        
+        // Si el usuario existe pero no tiene coinCounts, migrar monedas actuales a coin_1
+        if (data.coins !== undefined && !data.coinCounts) {
+          try {
+            await updateDoc(userRef, {
+              coinCounts: {
+                coin_1: data.coins || 0,
+                coin_2: 0,
+                coin_3: 0,
+                coin_4: 0,
+                coin_5: 0,
+                coin_6: 0
+              }
+            });
+          } catch (error) {
+            console.error("Error al migrar monedas del usuario:", error);
+          }
+        }
       } else {
         try {
           await setDoc(userRef, {
             coins: 10,
+            coinCounts: {
+              coin_1: 10,
+              coin_2: 0,
+              coin_3: 0,
+              coin_4: 0,
+              coin_5: 0,
+              coin_6: 0
+            },
             highScore: 0,
             createdAt: new Date().toISOString()
           }, { merge: true });

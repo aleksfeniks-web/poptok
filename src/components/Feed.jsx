@@ -120,15 +120,37 @@ const Feed = ({
     return () => unsubscribe();
   }, []);
 
-  const updateUserCoinsInFirestore = async (uid) => {
+  const updateUserCoinsInFirestore = async (uid, coinType = 1) => {
     try {
       const userRef = doc(db, "users", uid);
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
-        const currentCoins = userSnap.data().coins || 0;
-        await updateDoc(userRef, { coins: currentCoins + 1 });
+        const data = userSnap.data();
+        const currentCoins = data.coins || 0;
+        const coinCounts = data.coinCounts || {
+          coin_1: currentCoins,
+          coin_2: 0,
+          coin_3: 0,
+          coin_4: 0,
+          coin_5: 0,
+          coin_6: 0
+        };
+
+        const key = `coin_${coinType}`;
+        coinCounts[key] = (coinCounts[key] || 0) + 1;
+
+        await updateDoc(userRef, { 
+          coins: currentCoins + 1,
+          coinCounts: coinCounts
+        });
       } else {
-        await setDoc(userRef, { coins: 11 }, { merge: true });
+        const counts = { coin_1: 11, coin_2: 0, coin_3: 0, coin_4: 0, coin_5: 0, coin_6: 0 };
+        const key = `coin_${coinType}`;
+        counts[key] = (counts[key] || 0) + 1;
+        await setDoc(userRef, { 
+          coins: 12,
+          coinCounts: counts
+        }, { merge: true });
       }
     } catch (err) {
       console.error("❌ Error al actualizar monedas:", err);
@@ -276,12 +298,12 @@ const Feed = ({
 
 
   // ✅ Función para manejar interacciones (likes, comentarios, favoritos)
-  const handleInteraction = async (riuzaki1234, type) => {
+  const handleInteraction = async (riuzaki1234, type, extra) => {
     if (!currentUser) return;
 
     const uid = currentUser.uid;
     if (type === "coins") {
-      updateUserCoinsInFirestore(uid);
+      updateUserCoinsInFirestore(uid, extra);
       return;
     }
 
@@ -295,9 +317,26 @@ const Feed = ({
           await updateDoc(videoRef, { likes: increment(1) });
         } else if (type === "favorites") {
           await updateDoc(videoRef, { favorites: increment(1) });
+          // Guardar en la lista de favoritos del usuario
+          const userRef = doc(db, "users", uid);
+          await updateDoc(userRef, {
+            favorites: arrayUnion(riuzaki1234)
+          });
         }
       } catch (err) {
         console.error("❌ Error al actualizar interacciones:", err);
+      }
+    } else {
+      // Guardar video demo en la lista de favoritos del usuario
+      if (type === "favorites") {
+        try {
+          const userRef = doc(db, "users", uid);
+          await updateDoc(userRef, {
+            favorites: arrayUnion(riuzaki1234)
+          });
+        } catch (err) {
+          console.error("❌ Error al guardar video demo en favoritos:", err);
+        }
       }
     }
 
