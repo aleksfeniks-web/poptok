@@ -493,7 +493,7 @@ function App() {
               className={`toggle-button ${activeView === "feed" ? "active" : ""}`}
               onClick={() => setActiveView("feed")}
             >
-              Para Ti
+              Pa' Ti
             </button>
           </div>
         )}

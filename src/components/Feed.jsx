@@ -414,8 +414,10 @@ const Feed = ({
       (v.username && v.username.toLowerCase().includes(searchQuery.toLowerCase()));
     
     // En Todos ("All") no cargues los videos de pexels, solo los subidos por usuarios a poptok
+    // A menos que solo existan videos de demostración (es decir, no hay videos reales subidos aún)
+    const hasRealVideos = videos.some(video => !video.isPexels);
     const matchesCategory = selectedCategory === "All"
-      ? !v.isPexels
+      ? (hasRealVideos ? !v.isPexels : true)
       : v.interest === selectedCategory;
 
     return matchesSearch && matchesCategory;
