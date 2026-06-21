@@ -806,6 +806,8 @@ function App() {
                 <p style={{ marginTop: 0 }}>Los permisos de cámara y micrófono son solicitados únicamente al iniciar transmisiones en vivo o al grabar videos para subir.</p>
                 <h4 style={{ color: "#fff", marginBottom: "5px" }}>3. Protección de Datos</h4>
                 <p style={{ marginTop: 0 }}>Tus datos están protegidos en nuestros servidores de Firebase y no son compartidos con terceros.</p>
+                <h4 style={{ color: "#fff", marginBottom: "5px" }}>4. Tolerancia Cero contra EASI/CSAM</h4>
+                <p style={{ marginTop: 0 }}>Queda estrictamente prohibido cualquier contenido de explotación o abuso sexual infantil (EASI). Cualquier infracción causará la eliminación inmediata de la cuenta y el reporte a las autoridades competentes (NCMEC).</p>
               </div>
               <button
                 onClick={() => {

@@ -37,6 +37,14 @@ const PrivacyPolicy = ({ onBack }) => {
       <h2>4. Derechos de los Usuarios</h2>
       <p>Los usuarios pueden acceder a su información, rectificar datos incorrectos o cancelar su cuenta enviando un correo a <a href="mailto:soporte@poptok.com" style={{ color: "#FF0050" }}>soporte@poptok.com</a>.</p>
 
+      <h2>5. Prevención de la Explotación y el Abuso Sexual Infantil (EASI)</h2>
+      <p>Poptok mantiene una política de <strong>tolerancia cero</strong> frente a la explotación y el abuso sexual infantil (EASI), así como contra el Material de Abuso Sexual Infantil (CSAM). En cumplimiento estricto con las políticas de Google Play (ver <a href="https://support.google.com/googleplay/android-developer/answer/14747720" target="_blank" rel="noopener noreferrer" style={{ color: "#FF0050" }}>Políticas de Google Play</a>):</p>
+      <ul>
+        <li>Queda terminantemente prohibido subir, transmitir, solicitar o compartir cualquier tipo de contenido relacionado con la explotación o el abuso sexual de menores.</li>
+        <li>Implementamos herramientas de moderación proactiva y reporte de usuarios para detectar y eliminar inmediatamente cualquier contenido sospechoso.</li>
+        <li>Cualquier infracción a esta política resultará en la eliminación permanente y definitiva de la cuenta del usuario, el bloqueo de su dispositivo y la denuncia inmediata a las autoridades competentes (incluyendo organizaciones globales como NCMEC).</li>
+      </ul>
+
       <h1 style={{ color: "#FF0050", fontSize: "20px", marginTop: "25px" }}>Términos y Condiciones</h1>
       <p>Al registrarse y usar Poptok, el usuario acepta cumplir con estos términos. Los usuarios son responsables del contenido que suben. Se prohíbe el material ofensivo o ilegal.</p>
     </div>
