@@ -494,8 +494,8 @@ const Feed = ({
               >
                 <div className="rednote-thumbnail-wrapper">
                   <span className="rednote-tag-badge">{v.interest || "Random"}</span>
-                  <video className="rednote-thumbnail" muted preload="metadata">
-                    <source src={v.fileUrl} type="video/mp4" />
+                  <video className="rednote-thumbnail" muted preload="metadata" playsInline>
+                    <source src={`${v.fileUrl}#t=0.1`} type="video/mp4" />
                   </video>
                   <div className="rednote-play-icon">▶</div>
                 </div>

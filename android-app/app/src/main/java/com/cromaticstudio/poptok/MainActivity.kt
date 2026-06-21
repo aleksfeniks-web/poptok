@@ -208,6 +208,10 @@ class MainActivity : ComponentActivity() {
                     webView.visibility = View.VISIBLE
                     window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
                 }
+
+                override fun getDefaultVideoPoster(): android.graphics.Bitmap? {
+                    return android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888)
+                }
             }
 
             loadUrl(POPTOK_URL)
