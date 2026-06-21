@@ -280,6 +280,7 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
   const fileInputRef = useRef(null);
   const canvasRef = useRef(null);
   const previewAudioRef = useRef(null);
+  const previewVideoRef = useRef(null);
 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(setUser);
@@ -290,6 +291,61 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
       }
     };
   }, []);
+
+  // Sync preview video with background music
+  useEffect(() => {
+    const video = previewVideoRef.current;
+    if (!video) return;
+
+    if (selectedMusic === "none") {
+      video.muted = false;
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+      }
+      return;
+    }
+
+    const track = MUSIC_TRACKS.find(t => t.id === selectedMusic);
+    if (!track || !track.url) return;
+
+    let audio = previewAudioRef.current;
+    if (!audio || audio.src !== track.url) {
+      if (audio) audio.pause();
+      audio = new Audio(track.url);
+      audio.loop = true;
+      previewAudioRef.current = audio;
+    }
+
+    const handlePlay = () => {
+      video.muted = true;
+      audio.play().catch(err => console.log("Blocked:", err));
+    };
+
+    const handlePause = () => {
+      audio.pause();
+    };
+
+    const handleVolume = () => {
+      audio.muted = video.muted;
+      audio.volume = video.volume;
+    };
+
+    video.addEventListener("play", handlePlay);
+    video.addEventListener("pause", handlePause);
+    video.addEventListener("volumechange", handleVolume);
+
+    if (!video.paused) {
+      video.muted = true;
+      audio.play().catch(err => console.log(err));
+    }
+
+    return () => {
+      video.removeEventListener("play", handlePlay);
+      video.removeEventListener("pause", handlePause);
+      video.removeEventListener("volumechange", handleVolume);
+      audio.pause();
+    };
+  }, [selectedMusic, videoPreviewUrl]);
 
   const handleSelectMusic = (trackId) => {
     setSelectedMusic(trackId);
@@ -597,11 +653,12 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
                 <div className="upload-preview-wrapper">
                   {tab === "video" && videoPreviewUrl && (
                     <video
+                      ref={previewVideoRef}
                       src={videoPreviewUrl}
                       className="upload-preview-video"
                       style={{ filter: activeFilter?.filter || "" }}
                       controls
-                      muted
+                      muted={selectedMusic !== "none"}
                     />
                   )}
                   {tab === "photo" && imagePreviewUrl && (
@@ -927,63 +984,6 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
                 Permitir que otros usuarios descarguen este video/foto
               </label>
             </div>
-
-            {/* Timed Subtitles Editor (Only for videos) */}
-            {tab === "video" && (videoPreviewUrl || videoFile) && (
-              <div className="upload-subtitles-editor" style={{ marginTop: "15px", borderTop: "1px solid #333", paddingTop: "12px" }}>
-                <label className="upload-field-label">💬 Agregar Subtítulos al Video</label>
-                
-                {/* List of current subtitles */}
-                {subtitlesList.length > 0 && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: "6px", margin: "10px 0", maxHeight: "100px", overflowY: "auto", background: "rgba(255,255,255,0.02)", padding: "8px", borderRadius: "8px" }}>
-                    {subtitlesList.map((sub, idx) => (
-                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", background: "rgba(255,255,255,0.05)", padding: "4px 8px", borderRadius: "4px" }}>
-                        <span style={{ color: "#aaa" }}>[{sub.start}s - {sub.end}s] <strong style={{ color: "#fff" }}>{sub.text}</strong></span>
-                        <button type="button" onClick={() => handleRemoveSubtitle(idx)} style={{ background: "none", border: "none", color: "#ff0050", cursor: "pointer", fontSize: "11px", fontWeight: "bold" }}>Eliminar</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Subtitle Form */}
-                <div style={{ display: "flex", gap: "6px", marginTop: "8px", flexDirection: "column" }}>
-                  <input
-                    type="text"
-                    placeholder="Texto del subtítulo (ej. Hola a todos)"
-                    value={subText}
-                    onChange={e => setSubText(e.target.value)}
-                    style={{ background: "#222", border: "1px solid #333", borderRadius: "8px", padding: "8px", color: "#fff", fontSize: "13px", outline: "none" }}
-                  />
-                  <div style={{ display: "flex", gap: "8px" }}>
-                    <input
-                      type="number"
-                      placeholder="Inicio (seg)"
-                      value={subStart}
-                      onChange={e => setSubStart(e.target.value)}
-                      style={{ background: "#222", border: "1px solid #333", borderRadius: "8px", padding: "8px", color: "#fff", fontSize: "13px", outline: "none", flex: 1 }}
-                      min="0"
-                      step="0.5"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Fin (seg)"
-                      value={subEnd}
-                      onChange={e => setSubEnd(e.target.value)}
-                      style={{ background: "#222", border: "1px solid #333", borderRadius: "8px", padding: "8px", color: "#fff", fontSize: "13px", outline: "none", flex: 1 }}
-                      min="0"
-                      step="0.5"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddSubtitle}
-                      style={{ background: "#ff0050", border: "none", borderRadius: "8px", color: "#fff", padding: "8px 16px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}
-                    >
-                      Añadir
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* ── Upload progress ────────────────────────────── */}

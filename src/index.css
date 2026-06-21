@@ -340,6 +340,8 @@ body.scrollable-view {
 .upload-modal-body {
   flex: 1;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
   padding: 14px 16px 20px;
   display: flex;
   flex-direction: column;
@@ -391,6 +393,18 @@ body.scrollable-view {
   max-height: 280px;
   object-fit: contain;
   display: block;
+}
+
+@media (max-height: 720px) {
+  .upload-preview-wrapper {
+    max-height: 180px;
+  }
+  .upload-preview-video {
+    max-height: 180px;
+  }
+  .upload-preview-img {
+    max-height: 180px;
+  }
 }
 .upload-preview-clear {
   position: absolute;

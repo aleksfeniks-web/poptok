@@ -768,14 +768,6 @@ const VideoPlayer = forwardRef(
             )}
           </div>
 
-          {/* Vinyl CSS Disc */}
-          {musicUrl && (
-            <div className={`music-disc-wrapper ${isPlaying ? "spinning" : ""}`}>
-              <div className="vinyl-disc">
-                <div className="vinyl-center" />
-              </div>
-            </div>
-          )}
 				 
           {/* Contenedor de la imagen de usuario y los botones */}
           <div className="user-buttons-container">
