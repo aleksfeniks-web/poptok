@@ -4512,5 +4512,435 @@ canvas {
   75% { transform: rotate(10deg); }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   PIXABAY MUSIC LIBRARY INTEGRATION
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Trigger Button */
+.poptok-music-select-trigger {
+  width: 100%;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+.poptok-music-select-trigger:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #ff0050;
+  box-shadow: 0 0 10px rgba(255, 0, 80, 0.2);
+}
+.poptok-music-icon-note {
+  animation: pulseMusic 1.5s infinite alternate;
+}
+
+@keyframes pulseMusic {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.15); }
+}
+
+/* Selected Music Card */
+.poptok-music-selected-card {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+.poptok-music-selected-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(to bottom, #ff0050, #ff6b35);
+}
+.poptok-music-selected-cover {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  position: relative;
+}
+.poptok-music-selected-disc-icon {
+  font-size: 18px;
+}
+.poptok-music-selected-disc-icon.spinning {
+  animation: spinDisk 3s linear infinite;
+}
+
+@keyframes spinDisk {
+  100% { transform: rotate(360deg); }
+}
+
+.poptok-music-selected-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.poptok-music-selected-title {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.poptok-music-selected-artist-genre {
+  color: rgba(255,255,255,0.55);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+.poptok-music-selected-genre {
+  color: #ffb199;
+  font-weight: 600;
+}
+
+.poptok-music-selected-actions {
+  display: flex;
+  gap: 6px;
+}
+.poptok-music-selected-play,
+.poptok-music-selected-change,
+.poptok-music-selected-remove {
+  border: none;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.poptok-music-selected-play {
+  background: #333;
+  color: #fff;
+}
+.poptok-music-selected-play.playing {
+  background: #ff0050;
+}
+.poptok-music-selected-change {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.poptok-music-selected-change:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.poptok-music-selected-remove {
+  background: rgba(255, 0, 80, 0.15);
+  color: #ff0050;
+}
+.poptok-music-selected-remove:hover {
+  background: rgba(255, 0, 80, 0.25);
+  color: #fff;
+}
+
+/* Modal Overlay */
+.poptok-music-library-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(15px);
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 20px;
+  overflow: hidden;
+}
+.poptok-music-library-modal {
+  width: 100%;
+  background: #111;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  height: 80%;
+  box-shadow: 0 -10px 30px rgba(0,0,0,0.5);
+  animation: slideUpModal 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpModal {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.poptok-music-library-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.poptok-music-library-title {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+}
+.poptok-music-library-close {
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.poptok-music-library-close:hover {
+  background: rgba(255, 0, 80, 0.3);
+  color: #fff;
+}
+
+/* Search Bar */
+.poptok-music-search-wrapper {
+  position: relative;
+  margin-bottom: 12px;
+}
+.poptok-music-search-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 40px 12px 14px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.poptok-music-search-input:focus {
+  border-color: #ff0050;
+  background: rgba(255, 255, 255, 0.08);
+}
+.poptok-music-search-clear {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  font-size: 12px;
+}
+.poptok-music-search-clear:hover {
+  color: #fff;
+}
+
+/* Genre Chips */
+.poptok-music-genre-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  scrollbar-width: none; /* Hide scrollbar Firefox */
+}
+.poptok-music-genre-chips::-webkit-scrollbar {
+  display: none; /* Hide scrollbar Chrome/Safari */
+}
+.poptok-music-genre-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.poptok-music-genre-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.poptok-music-genre-chip.active {
+  background: #ff0050;
+  border-color: #ff0050;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(255, 0, 80, 0.3);
+}
+
+/* Music List */
+.poptok-music-tracks-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 2px;
+}
+.poptok-music-track-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-radius: 14px;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+.poptok-music-track-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.poptok-music-track-item.selected {
+  background: rgba(255, 0, 80, 0.05);
+  border-color: rgba(255, 0, 80, 0.2);
+}
+.poptok-music-track-cover {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+  position: relative;
+  overflow: hidden;
+}
+.poptok-music-disc-icon {
+  font-size: 16px;
+}
+
+/* Animated Equalizer */
+.poptok-music-equalizer {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 16px;
+}
+.eq-bar {
+  width: 3px;
+  background-color: #fff;
+  border-radius: 2px;
+  display: inline-block;
+}
+.bar1 {
+  height: 8px;
+  animation: bounceBar 0.8s ease-in-out infinite alternate;
+}
+.bar2 {
+  height: 16px;
+  animation: bounceBar 0.5s ease-in-out infinite alternate;
+  animation-delay: 0.15s;
+}
+.bar3 {
+  height: 11px;
+  animation: bounceBar 0.7s ease-in-out infinite alternate;
+  animation-delay: 0.3s;
+}
+
+@keyframes bounceBar {
+  0% { height: 3px; }
+  100% { height: 16px; }
+}
+
+.poptok-music-track-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.poptok-music-track-name {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.poptok-music-track-artist-genre {
+  color: rgba(255,255,255,0.45);
+  font-size: 11px;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.poptok-music-track-genre-badge {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #ffb199;
+}
+
+.poptok-music-track-actions {
+  display: flex;
+  gap: 6px;
+}
+.poptok-music-btn-preview,
+.poptok-music-btn-select {
+  border: none;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.poptok-music-btn-preview {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+.poptok-music-btn-preview:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.poptok-music-btn-preview.playing {
+  background: #ff0050;
+  color: #fff;
+}
+.poptok-music-btn-select {
+  background: #fff;
+  color: #000;
+}
+.poptok-music-btn-select:hover {
+  background: #eaeaea;
+}
+.poptok-music-btn-select.selected {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.35);
+  cursor: not-allowed;
+}
+
+.poptok-music-no-results {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 13px;
+  padding: 40px 10px;
+}
+
+
 
 

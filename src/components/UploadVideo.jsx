@@ -60,12 +60,20 @@ const AI_FILTERS = [
 ];
 
 const MUSIC_TRACKS = [
-  { id: "none", name: "🎵 Sin música de fondo" },
-  { id: "vibes", name: "🌴 Summer Vibes (Electro)", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-  { id: "synth", name: "🎹 Tech Beat (Synthwave)", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
-  { id: "folk", name: "🎸 Acoustic Folk (Guitar)", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
-  { id: "lofi", name: "☕ Relaxing Lofi (Hip Hop)", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" },
+  { id: "none", name: "Sin música de fondo", artist: "Nulo", genre: "None", url: "", coverGradient: "linear-gradient(135deg, #333, #555)" },
+  { id: "lofi-1", name: "Sunset Dream Lofi", artist: "Chill & Lofi", genre: "Lofi", url: "https://cdn.pixabay.com/audio/2021/11/25/audio_91b32e02f9.mp3", coverGradient: "linear-gradient(135deg, #f093fb, #f5576c)" },
+  { id: "acoustic-1", name: "Acoustic Breeze", artist: "Acoustic & Folk", genre: "Acoustic", url: "https://cdn.pixabay.com/audio/2021/11/24/audio_82498b22da.mp3", coverGradient: "linear-gradient(135deg, #a8ff78, #78ffd6)" },
+  { id: "cinematic-1", name: "Melancholic Piano", artist: "Cinematic & Piano", genre: "Cinematic", url: "https://cdn.pixabay.com/audio/2021/11/23/audio_035a943c87.mp3", coverGradient: "linear-gradient(135deg, #4facfe, #00f2fe)" },
+  { id: "pop-1", name: "Summer Pop Upbeat", artist: "Upbeat & Pop", genre: "Pop", url: "https://cdn.pixabay.com/audio/2021/11/13/audio_cb4f1212a9.mp3", coverGradient: "linear-gradient(135deg, #ff0844, #ffb199)" },
+  { id: "synth-1", name: "Future Retro Beat", artist: "Synthwave / Retro", genre: "Electronic", url: "https://cdn.pixabay.com/audio/2021/11/01/audio_00fa5593f3.mp3", coverGradient: "linear-gradient(135deg, #ff007f, #7f00ff)" },
+  { id: "jazz-1", name: "Robot Gypsy Jazz", artist: "John Bartmann", genre: "Jazz", url: "https://cdn.pixabay.com/audio/2020/08/17/audio_613575b827.mp3", coverGradient: "linear-gradient(135deg, #f7971e, #ffd200)" },
+  { id: "rock-1", name: "Indie Rock Energetic", artist: "Indie Rockers", genre: "Rock", url: "https://cdn.pixabay.com/audio/2021/07/27/audio_202082aa0b.mp3", coverGradient: "linear-gradient(135deg, #11998e, #38ef7d)" },
+  { id: "ambient-1", name: "Deep Meditation Ambient", artist: "Mindfulness", genre: "Ambient", url: "https://cdn.pixabay.com/audio/2021/07/22/audio_9584aae297.mp3", coverGradient: "linear-gradient(135deg, #302b63, #24243e)" },
+  { id: "chillhop-1", name: "Coffee Shop Beats", artist: "Chillhop Network", genre: "Lofi", url: "https://cdn.pixabay.com/audio/2020/10/11/audio_746c5a0fb3.mp3", coverGradient: "linear-gradient(135deg, #85d7ff, #a3bded)" },
+  { id: "dance-1", name: "EDM Party Starter", artist: "Dance Club", genre: "Electronic", url: "https://cdn.pixabay.com/audio/2021/12/11/audio_0ad0f9e437.mp3", coverGradient: "linear-gradient(135deg, #00c6ff, #0072ff)" },
+  { id: "lofi-2", name: "Midnight Sleep Lofi", artist: "Lofi Sleeper", genre: "Lofi", url: "https://cdn.pixabay.com/audio/2021/08/08/audio_dc39bde808.mp3", coverGradient: "linear-gradient(135deg, #667eea, #764ba2)" }
 ];
+
 
 const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
   const [tab, setTab] = useState("video"); // "video" | "photo" | "text"
@@ -108,6 +116,12 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
   const [allowDownload, setAllowDownload] = useState(true);
   const [selectedMusic, setSelectedMusic] = useState("none");
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+
+  // Pixabay Music Library state
+  const [showMusicLibrary, setShowMusicLibrary] = useState(false);
+  const [searchMusicQuery, setSearchMusicQuery] = useState("");
+  const [selectedMusicGenre, setSelectedMusicGenre] = useState("Todos");
+  const [previewingMusicId, setPreviewingMusicId] = useState(null);
 
   const handleAddSubtitle = () => {
     if (!subText.trim() || subStart === "" || subEnd === "") return;
@@ -277,34 +291,68 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
     };
   }, []);
 
-  const handleMusicChange = (e) => {
-    const val = e.target.value;
-    setSelectedMusic(val);
+  const handleSelectMusic = (trackId) => {
+    setSelectedMusic(trackId);
+    // Stop preview if we select the track or if we click select
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
       previewAudioRef.current = null;
     }
+    setPreviewingMusicId(null);
+    setIsPlayingPreview(false);
+    setShowMusicLibrary(false);
+  };
+
+  const handleRemoveMusic = () => {
+    setSelectedMusic("none");
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+    setPreviewingMusicId(null);
     setIsPlayingPreview(false);
   };
 
-  const togglePreviewMusic = () => {
-    const track = MUSIC_TRACKS.find(t => t.id === selectedMusic);
+  const togglePreviewMusic = (trackId) => {
+    const targetId = trackId || selectedMusic;
+    const track = MUSIC_TRACKS.find(t => t.id === targetId);
     if (!track || !track.url) return;
 
-    if (isPlayingPreview) {
+    if (previewingMusicId === targetId || (targetId === selectedMusic && isPlayingPreview && previewingMusicId === null)) {
+      // Pause
       if (previewAudioRef.current) {
         previewAudioRef.current.pause();
       }
+      setPreviewingMusicId(null);
       setIsPlayingPreview(false);
     } else {
-      if (!previewAudioRef.current) {
-        previewAudioRef.current = new Audio(track.url);
-        previewAudioRef.current.loop = true;
+      // Play targetId
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
       }
+      previewAudioRef.current = new Audio(track.url);
+      previewAudioRef.current.loop = true;
       previewAudioRef.current.play()
-        .then(() => setIsPlayingPreview(true))
+        .then(() => {
+          setPreviewingMusicId(targetId);
+          if (targetId === selectedMusic) {
+            setIsPlayingPreview(true);
+          } else {
+            setIsPlayingPreview(false);
+          }
+        })
         .catch(err => console.error("Error playing music preview:", err));
     }
+  };
+
+  const handleCloseMusicLibrary = () => {
+    setShowMusicLibrary(false);
+    // Stop preview
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current = null;
+    }
+    setPreviewingMusicId(null);
   };
 
   // ─── File selection ────────────────────────────────────────────────────────
@@ -445,8 +493,8 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
         favorites: 0,
         comments: [],
         allowDownload: allowDownload,
-        musicUrl: musicObj ? (musicObj.url || null) : null,
-        musicTitle: musicObj ? (musicObj.name || null) : null,
+        musicUrl: musicObj && musicObj.id !== "none" ? musicObj.url : null,
+        musicTitle: musicObj && musicObj.id !== "none" ? `${musicObj.name} - ${musicObj.artist}` : null,
         subtitles: subtitlesList,
         reactionComment: reactionComment ? {
           text: reactionComment.text,
@@ -471,6 +519,14 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
                      (tab === "text" && textContent.trim().length > 0);
 
   const activeFilter = AI_FILTERS.find(f => f.id === selectedFilter);
+  const selectedTrackObj = MUSIC_TRACKS.find(t => t.id === selectedMusic);
+  const isSelectedTrackPreviewing = previewingMusicId === selectedMusic || (selectedMusic !== "none" && isPlayingPreview && previewingMusicId === null);
+
+  const handleOverlayClick = (e) => {
+    if (e.target.classList.contains("poptok-music-library-overlay")) {
+      handleCloseMusicLibrary();
+    }
+  };
 
   return (
     <div className="upload-modal-overlay" onClick={(e) => { if (e.target.classList.contains("upload-modal-overlay")) onUploadSuccess?.(); }}>
@@ -811,36 +867,51 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
 
             {/* Music Selector with Preview */}
             <div className="upload-music-wrapper" style={{ marginTop: "12px" }}>
-              <label className="upload-field-label">🎵 Música de fondo gratuita</label>
-              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <select
-                  className="upload-category-select"
-                  value={selectedMusic}
-                  onChange={handleMusicChange}
-                  style={{ flex: 1 }}
+              <label className="upload-field-label">🎵 Música de fondo (Pixabay)</label>
+              {selectedMusic === "none" ? (
+                <button
+                  type="button"
+                  className="poptok-music-select-trigger"
+                  onClick={() => setShowMusicLibrary(true)}
                 >
-                  {MUSIC_TRACKS.map(track => (
-                    <option key={track.id} value={track.id}>{track.name}</option>
-                  ))}
-                </select>
-                {selectedMusic !== "none" && (
-                  <button
-                    type="button"
-                    onClick={togglePreviewMusic}
-                    style={{
-                      background: isPlayingPreview ? "#FF0050" : "#333",
-                      border: "none",
-                      borderRadius: "6px",
-                      color: "#fff",
-                      padding: "8px 12px",
-                      cursor: "pointer",
-                      fontSize: "12px"
-                    }}
-                  >
-                    {isPlayingPreview ? "Pausar" : "Escuchar"}
-                  </button>
-                )}
-              </div>
+                  <span className="poptok-music-icon-note">🎵</span> Elegir Música de Fondo Gratuita
+                </button>
+              ) : (
+                <div className="poptok-music-selected-card">
+                  <div className="poptok-music-selected-cover" style={{ background: selectedTrackObj?.coverGradient || "linear-gradient(135deg, #ff0050, #ff6b35)" }}>
+                    <span className={`poptok-music-selected-disc-icon ${isSelectedTrackPreviewing ? "spinning" : ""}`}>🎵</span>
+                  </div>
+                  <div className="poptok-music-selected-info">
+                    <span className="poptok-music-selected-title">{selectedTrackObj?.name || "Música"}</span>
+                    <span className="poptok-music-selected-artist-genre">
+                      {selectedTrackObj?.artist || "Pixabay"} • <span className="poptok-music-selected-genre">{selectedTrackObj?.genre || "Gratis"}</span>
+                    </span>
+                  </div>
+                  <div className="poptok-music-selected-actions">
+                    <button
+                      type="button"
+                      className={`poptok-music-selected-play ${isSelectedTrackPreviewing ? "playing" : ""}`}
+                      onClick={() => togglePreviewMusic(selectedMusic)}
+                    >
+                      {isSelectedTrackPreviewing ? "Pausar" : "Escuchar"}
+                    </button>
+                    <button
+                      type="button"
+                      className="poptok-music-selected-change"
+                      onClick={() => setShowMusicLibrary(true)}
+                    >
+                      Cambiar
+                    </button>
+                    <button
+                      type="button"
+                      className="poptok-music-selected-remove"
+                      onClick={handleRemoveMusic}
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Allow download option */}
@@ -933,7 +1004,129 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
               {loading ? `Subiendo ${progress}%...` : "Publicar"}
             </button>
           </div>
-        </div>
+        </div> {/* Ends upload-modal-body */}
+
+        {/* ── Pixabay Music Library Modal ────────────────── */}
+        {showMusicLibrary && (
+          <div className="poptok-music-library-overlay" onClick={handleOverlayClick}>
+            <div className="poptok-music-library-modal">
+              <div className="poptok-music-library-header">
+                <h3 className="poptok-music-library-title">🎵 Biblioteca de Música Pixabay</h3>
+                <button
+                  type="button"
+                  className="poptok-music-library-close"
+                  onClick={handleCloseMusicLibrary}
+                >
+                  ✖
+                </button>
+              </div>
+
+              {/* Search Input */}
+              <div className="poptok-music-search-wrapper">
+                <input
+                  type="text"
+                  placeholder="Buscar por título, artista o género..."
+                  className="poptok-music-search-input"
+                  value={searchMusicQuery}
+                  onChange={e => setSearchMusicQuery(e.target.value)}
+                />
+                {searchMusicQuery && (
+                  <button
+                    type="button"
+                    className="poptok-music-search-clear"
+                    onClick={() => setSearchMusicQuery("")}
+                  >
+                    ✖
+                  </button>
+                )}
+              </div>
+
+              {/* Genre Chips */}
+              <div className="poptok-music-genre-chips">
+                {["Todos", "Lofi", "Acoustic", "Cinematic", "Pop", "Electronic", "Jazz", "Ambient", "Rock"].map(genre => (
+                  <button
+                    key={genre}
+                    type="button"
+                    className={`poptok-music-genre-chip ${selectedMusicGenre === genre ? "active" : ""}`}
+                    onClick={() => setSelectedMusicGenre(genre)}
+                  >
+                    {genre === "Todos" ? "🌍 Todos" : genre}
+                  </button>
+                ))}
+              </div>
+
+              {/* Music Tracks List */}
+              <div className="poptok-music-tracks-list">
+                {MUSIC_TRACKS
+                  .filter(t => t.id !== "none") // Skip the "none" track in the modal
+                  .filter(t => {
+                    const query = searchMusicQuery.toLowerCase();
+                    const matchQuery = t.name.toLowerCase().includes(query) ||
+                                       t.artist.toLowerCase().includes(query) ||
+                                       t.genre.toLowerCase().includes(query);
+                    const matchGenre = selectedMusicGenre === "Todos" || t.genre === selectedMusicGenre;
+                    return matchQuery && matchGenre;
+                  })
+                  .map(track => {
+                    const isTrackPreviewing = previewingMusicId === track.id;
+                    const isTrackSelected = selectedMusic === track.id;
+                    return (
+                      <div
+                        key={track.id}
+                        className={`poptok-music-track-item ${isTrackSelected ? "selected" : ""}`}
+                      >
+                        <div className="poptok-music-track-cover" style={{ background: track.coverGradient }}>
+                          {isTrackPreviewing ? (
+                            <div className="poptok-music-equalizer">
+                              <span className="eq-bar bar1"></span>
+                              <span className="eq-bar bar2"></span>
+                              <span className="eq-bar bar3"></span>
+                            </div>
+                          ) : (
+                            <span className="poptok-music-disc-icon">🎵</span>
+                          )}
+                        </div>
+                        <div className="poptok-music-track-details">
+                          <span className="poptok-music-track-name">{track.name}</span>
+                          <span className="poptok-music-track-artist-genre">
+                            {track.artist} • <span className="poptok-music-track-genre-badge">{track.genre}</span>
+                          </span>
+                        </div>
+                        <div className="poptok-music-track-actions">
+                          <button
+                            type="button"
+                            className={`poptok-music-btn-preview ${isTrackPreviewing ? "playing" : ""}`}
+                            onClick={() => togglePreviewMusic(track.id)}
+                          >
+                            {isTrackPreviewing ? "Pausar" : "Escuchar"}
+                          </button>
+                          <button
+                            type="button"
+                            className={`poptok-music-btn-select ${isTrackSelected ? "selected" : ""}`}
+                            onClick={() => handleSelectMusic(track.id)}
+                          >
+                            {isTrackSelected ? "Seleccionado" : "Seleccionar"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                {MUSIC_TRACKS.filter(t => t.id !== "none").filter(t => {
+                  const query = searchMusicQuery.toLowerCase();
+                  const matchQuery = t.name.toLowerCase().includes(query) ||
+                                     t.artist.toLowerCase().includes(query) ||
+                                     t.genre.toLowerCase().includes(query);
+                  const matchGenre = selectedMusicGenre === "Todos" || t.genre === selectedMusicGenre;
+                  return matchQuery && matchGenre;
+                }).length === 0 && (
+                  <div className="poptok-music-no-results">
+                    No se encontraron canciones para tu búsqueda.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
