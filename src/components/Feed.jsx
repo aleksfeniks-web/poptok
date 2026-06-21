@@ -3,7 +3,7 @@ import "../index.css";
 import VideoPlayer from "./VideoPlayer.jsx";
 import { auth, db } from "../firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, doc, updateDoc, getDoc, getDocs, query, orderBy, limit, increment, arrayUnion, setDoc, onSnapshot } from "firebase/firestore";
+import { collection, doc, updateDoc, getDoc, getDocs, query, orderBy, limit, increment, arrayUnion, setDoc, onSnapshot, deleteDoc } from "firebase/firestore";
 import { AiFillHeart } from "react-icons/ai";
 import { FiSearch, FiVideo } from "react-icons/fi";
 
@@ -218,6 +218,20 @@ const Feed = ({
     }
   };
 
+  const handleDeleteVideo = async (videoId) => {
+    if (window.confirm("¿Estás seguro de que deseas eliminar este video permanentemente?")) {
+      try {
+        const videoRef = doc(db, "videos", videoId);
+        await deleteDoc(videoRef);
+        setVideos((prev) => prev.filter((v) => v.riuzaki1234 !== videoId));
+        alert("Video eliminado correctamente.");
+      } catch (err) {
+        console.error("❌ Error al eliminar video:", err);
+        alert("No se pudo eliminar el video.");
+      }
+    }
+  };
+
   // ✅ Función para cargar videos desde Firestore + fallback a demo
   const fetchVideos = async (currentPage) => {
     try {
@@ -250,7 +264,7 @@ const Feed = ({
           const demoInteractions = {};
           PEXELS_DEMO_VIDEOS.forEach(v => {
             demoInteractions[v.riuzaki1234] = {
-              likes: v.likes, comments: 0, favorites: v.favorites, coins: v.coins,
+              likes: v.likes, comments: 0, favorites: v.favorites, coins: v.coins, shares: 0, downloads: 0
             };
           });
           setInteractions(demoInteractions);
@@ -281,6 +295,8 @@ const Feed = ({
               comments: v.comments?.length || 0,
               favorites: v.favorites || 0,
               coins: v.coins || 0,
+              shares: v.shares || 0,
+              downloads: v.downloads || 0,
             };
           }
         });
@@ -293,7 +309,7 @@ const Feed = ({
       setVideos(PEXELS_DEMO_VIDEOS);
       const demoInteractions = {};
       PEXELS_DEMO_VIDEOS.forEach(v => {
-        demoInteractions[v.riuzaki1234] = { likes: v.likes, comments: 0, favorites: v.favorites, coins: v.coins };
+        demoInteractions[v.riuzaki1234] = { likes: v.likes, comments: 0, favorites: v.favorites, coins: v.coins, shares: 0, downloads: 0 };
       });
       setInteractions(demoInteractions);
     } finally {
@@ -324,21 +340,20 @@ const Feed = ({
   }, [loading, hasMore, setPage]);
 
 
-  // ✅ Función para manejar interacciones (likes, comentarios, favoritos)
+  // ✅ Función para manejar interacciones (likes, comentarios, favoritos, compartidos, descargas)
   const handleInteraction = async (riuzaki1234, type, extra) => {
-    if (!currentUser) return;
-
-    const uid = currentUser.uid;
     if (type === "coins") {
-      updateUserCoinsInFirestore(uid, extra);
+      if (!currentUser) return;
+      updateUserCoinsInFirestore(currentUser.uid, extra);
       return;
     }
 
     const video = videos.find(v => v.riuzaki1234 === riuzaki1234);
 
     try {
-      const userRef = doc(db, "users", uid);
       if (type === "likes") {
+        if (!currentUser) return;
+        const userRef = doc(db, "users", currentUser.uid);
         if (userProfile?.likedVideos?.includes(riuzaki1234)) return;
 
         await updateDoc(userRef, {
@@ -350,6 +365,8 @@ const Feed = ({
           await updateDoc(videoRef, { likes: increment(1) });
         }
       } else if (type === "favorites") {
+        if (!currentUser) return;
+        const userRef = doc(db, "users", currentUser.uid);
         if (userProfile?.favorites?.includes(riuzaki1234)) return;
 
         await updateDoc(userRef, {
@@ -359,6 +376,16 @@ const Feed = ({
         if (video && !video.isPexels) {
           const videoRef = doc(db, "videos", riuzaki1234);
           await updateDoc(videoRef, { favorites: increment(1) });
+        }
+      } else if (type === "shares") {
+        if (video && !video.isPexels) {
+          const videoRef = doc(db, "videos", riuzaki1234);
+          await updateDoc(videoRef, { shares: increment(1) });
+        }
+      } else if (type === "downloads") {
+        if (video && !video.isPexels) {
+          const videoRef = doc(db, "videos", riuzaki1234);
+          await updateDoc(videoRef, { downloads: increment(1) });
         }
       }
     } catch (err) {
@@ -409,6 +436,11 @@ const Feed = ({
   ];
 
   const filteredVideos = videos.filter((v) => {
+    // Ocultar videos de usuarios bloqueados
+    if (userProfile?.blockedUsers?.includes(v.userId)) {
+      return false;
+    }
+
     const matchesSearch = searchQuery.trim() === "" ||
       (v.description && v.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (v.username && v.username.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -567,6 +599,8 @@ const Feed = ({
                   comments: [],
                   favorites: v.favorites || 0,
                   coins: v.coins || 0,
+                  shares: v.shares || 0,
+                  downloads: v.downloads || 0,
                 }
               }
               onInteraction={handleInteraction}
@@ -577,6 +611,7 @@ const Feed = ({
               onReactToComment={onReactToComment}
               reactionComment={v.reactionComment}
               subtitles={v.subtitles}
+              onDeleteVideo={handleDeleteVideo}
             />
           </div>
         ))

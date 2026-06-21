@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { auth, db, storage } from "../firebase.js";
 import { onAuthStateChanged, updateProfile, signOut } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, query, where, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where, updateDoc, deleteDoc } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { AiFillHeart, AiOutlineClose } from "react-icons/ai";
 import { BsAward, BsCoin, BsGrid3X3Gap } from "react-icons/bs";
@@ -894,13 +894,47 @@ const Profile = ({ onSelectVideo }) => {
               <AiOutlineClose style={{ fontSize: "20px" }} />
             </button>
 
-            <video
+             <video
               src={selectedVideo.fileUrl}
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
               controls
               autoPlay
               loop
             />
+
+            {user && selectedVideo.userId === user.uid && !selectedVideo.isPexels && (
+              <button
+                style={{
+                  position: "absolute",
+                  bottom: "20px",
+                  right: "20px",
+                  background: "rgba(255, 0, 80, 0.9)",
+                  border: "none",
+                  borderRadius: "12px",
+                  color: "white",
+                  padding: "10px 16px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  zIndex: 10
+                }}
+                onClick={async () => {
+                  if (window.confirm("¿Estás seguro de que deseas eliminar este video permanentemente?")) {
+                    try {
+                      const videoRef = doc(db, "videos", selectedVideo.riuzaki1234);
+                      await deleteDoc(videoRef);
+                      setUserVideos((prev) => prev.filter((v) => v.riuzaki1234 !== selectedVideo.riuzaki1234));
+                      setSelectedVideo(null);
+                      alert("Video eliminado correctamente.");
+                    } catch (err) {
+                      console.error("Error al eliminar video:", err);
+                      alert("No se pudo eliminar el video.");
+                    }
+                  }
+                }}
+              >
+                Eliminar Video
+              </button>
+            )}
           </div>
         </div>
       )}

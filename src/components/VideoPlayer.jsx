@@ -2,11 +2,11 @@ import React, { forwardRef, useState, useEffect, useRef } from "react";
 import { AiOutlineHeart, AiFillHeart, AiOutlineComment } from "react-icons/ai";
 import { BsStar, BsStarFill } from "react-icons/bs";
 import { FaCirclePlus } from "react-icons/fa6";
-import { FiShare2, FiDownload } from "react-icons/fi";
+import { FiShare2, FiDownload, FiTrash2 } from "react-icons/fi";
 import Comments from "./Comments.jsx";
 import { toggleFollow, getFollowingList } from "../utils/follow.js";
 import { db } from "../firebase.js";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { 
   FaGamepad, FaCat, FaCar, FaFlask, FaFilm, FaUtensils, FaLaugh, 
   FaHeart, FaMusic, FaRobot, FaBolt, FaGlobe, FaBitcoin, FaRandom, 
@@ -68,7 +68,7 @@ const coinGlowColors = {
 };
 
 const VideoPlayer = forwardRef(
-  ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange, onReactToComment, reactionComment, subtitles }, ref) => {
+  ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange, onReactToComment, reactionComment, subtitles, onDeleteVideo }, ref) => {
     const [hasError, setHasError] = useState(false);
     const [showCoin, setShowCoin] = useState(false);
     const [spawnedCoinType, setSpawnedCoinType] = useState(1);
@@ -172,6 +172,32 @@ const VideoPlayer = forwardRef(
     const likes = safeInteractions.likes || 0;
     const favorites = safeInteractions.favorites || 0;
     const comments = Array.isArray(safeInteractions.comments) ? safeInteractions.comments.length : (safeInteractions.comments || 0);		  
+    const shares = safeInteractions.shares || 0;
+    const downloads = safeInteractions.downloads || 0;
+    const isUserBlocked = userProfile?.blockedUsers?.includes(userId) || false;
+
+    const handleBlockUnblock = async () => {
+      if (!currentUser || !userId) return;
+
+      const userRef = doc(db, "users", currentUser.uid);
+      try {
+        if (isUserBlocked) {
+          const newBlocked = (userProfile.blockedUsers || []).filter(id => id !== userId);
+          await updateDoc(userRef, { blockedUsers: newBlocked });
+          alert(`Has desbloqueado a @${username}.`);
+        } else {
+          if (window.confirm(`¿Estás seguro de que deseas bloquear a @${username}? No verás sus videos ni mensajes.`)) {
+            const newBlocked = [...(userProfile.blockedUsers || []), userId];
+            await updateDoc(userRef, { blockedUsers: newBlocked });
+            alert(`Has bloqueado a @${username}.`);
+            setShowLinksModal(false);
+          }
+        }
+      } catch (err) {
+        console.error("Error al bloquear/desbloquear usuario:", err);
+        alert("Ocurrió un error al actualizar la lista de bloqueados.");
+      }
+    };
 	  
     // ✅ Detectar si el usuario ya sigue al creador
     useEffect(() => {
@@ -270,6 +296,7 @@ const VideoPlayer = forwardRef(
       if (navigator.share) {
         try {
           await navigator.share(shareData);
+          onInteraction(riuzaki1234, "shares");
         } catch (err) {
           console.log("Error sharing:", err);
         }
@@ -277,6 +304,7 @@ const VideoPlayer = forwardRef(
         try {
           await navigator.clipboard.writeText(shareUrl);
           alert("✅ ¡Enlace del video copiado al portapapeles!");
+          onInteraction(riuzaki1234, "shares");
         } catch (err) {
           console.error("Error al copiar enlace:", err);
           alert("No se pudo copiar el enlace.");
@@ -304,6 +332,7 @@ const VideoPlayer = forwardRef(
         document.body.removeChild(a);
         
         URL.revokeObjectURL(blobUrl);
+        onInteraction(riuzaki1234, "downloads");
       } catch (err) {
         console.error("Error downloading video:", err);
         alert("Error al descargar el video.");
@@ -815,12 +844,21 @@ const VideoPlayer = forwardRef(
               {/* Botón de Compartir */}
               <button onClick={handleShare} className="icon-button">
                 <FiShare2 className="icon" />
+                <span className="interaction-count">{formatNumber(shares)}</span>
               </button>
 
               {/* Botón de Descargar */}
-              <button onClick={handleDownload} className="icon-button" disabled={downloading || allowDownload === false} style={{ opacity: allowDownload === false ? 0.4 : 1, position: "relative", top: "-12px" }}>
+              <button onClick={handleDownload} className="icon-button" disabled={downloading || allowDownload === false} style={{ opacity: allowDownload === false ? 0.4 : 1 }}>
                 <FiDownload className="icon" style={{ animation: downloading ? "bounce 1s infinite alternate" : "none" }} />
+                <span className="interaction-count">{formatNumber(downloads)}</span>
               </button>
+
+              {/* Botón de Eliminar (papelera, solo si es el creador) */}
+              {userId && currentUser && userId === currentUser.uid && onDeleteVideo && (
+                <button onClick={() => onDeleteVideo(riuzaki1234)} className="icon-button" style={{ color: "#ff0050" }}>
+                  <FiTrash2 className="icon" />
+                </button>
+              )}
             </div>
           </div>
 
@@ -989,6 +1027,31 @@ const VideoPlayer = forwardRef(
 
                   {!creatorLinks.instagram && !creatorLinks.twitter && !creatorLinks.youtube && !creatorPaypal && !creatorLinks.custom && (
                     <p style={{ color: "#888", fontSize: "13px", margin: "10px 0" }}>Este creador aún no tiene enlaces configurados.</p>
+                  )}
+
+                  {currentUser && userId && userId !== currentUser.uid && (
+                    <button
+                      onClick={handleBlockUnblock}
+                      style={{
+                        background: isUserBlocked ? "rgba(255, 255, 255, 0.15)" : "#ff0050",
+                        color: "#fff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "10px",
+                        padding: "10px",
+                        borderRadius: "30px",
+                        fontSize: "14px",
+                        fontWeight: "bold",
+                        border: "none",
+                        cursor: "pointer",
+                        width: "100%",
+                        boxShadow: isUserBlocked ? "none" : "0 4px 10px rgba(255, 0, 80, 0.3)",
+                        marginTop: "10px"
+                      }}
+                    >
+                      {isUserBlocked ? "🚫 Desbloquear usuario" : "🚫 Bloquear usuario"}
+                    </button>
                   )}
                 </div>
 

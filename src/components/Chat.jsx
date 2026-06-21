@@ -17,9 +17,21 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
   const [selectedFriendData, setSelectedFriendData] = useState(null);
   const [videos, setVideos] = useState([]);
   const [transferringCoin, setTransferringCoin] = useState(false);
+  const [currentUserProfile, setCurrentUserProfile] = useState(null);
 
   const messagesEndRef = useRef(null);
   const user = auth.currentUser;
+
+  // ─── Fetch current user profile (for blocked users list) ────────────────────
+  useEffect(() => {
+    if (!user) return;
+    const unsubscribe = onSnapshot(doc(db, "users", user.uid), (snap) => {
+      if (snap.exists()) {
+        setCurrentUserProfile(snap.data());
+      }
+    });
+    return () => unsubscribe();
+  }, [user]);
 
   // ─── Fetch friends (users) ────────────────────────────────────────────────
   useEffect(() => {
@@ -29,8 +41,16 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
       try {
         const friendsRef = collection(db, "users");
         const friendsSnapshot = await getDocs(friendsRef);
+        const myBlockedUsers = currentUserProfile?.blockedUsers || [];
         const list = friendsSnapshot.docs
-          .filter(doc => doc.id !== user.uid)
+          .filter(doc => {
+            const data = doc.data();
+            const contactBlockedUsers = data.blockedUsers || [];
+            // Excluir usuario actual, usuarios bloqueados por mí y usuarios que me bloquearon
+            return doc.id !== user.uid && 
+                   !myBlockedUsers.includes(doc.id) && 
+                   !contactBlockedUsers.includes(user.uid);
+          })
           .map(doc => ({ id: doc.id, ...doc.data() }));
         setFriends(list);
       } catch (error) {
@@ -39,7 +59,7 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
     };
 
     fetchFriends();
-  }, [user]);
+  }, [user, currentUserProfile]);
 
   // ─── Fetch videos for sharing ─────────────────────────────────────────────
   useEffect(() => {
