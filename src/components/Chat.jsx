@@ -7,7 +7,7 @@ import EmojiPicker from "emoji-picker-react";
 import { auth, db } from "../firebase.js";
 import { collection, addDoc, query, where, orderBy, onSnapshot, updateDoc, doc, getDoc, getDocs, or, and } from "firebase/firestore";
 
-const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessages, initialFriend }) => {
+const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessages, initialFriend, userStatus }) => {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -160,6 +160,10 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
   const handleSendMessage = useCallback(async (textToSend) => {
     const content = typeof textToSend === "string" ? textToSend : message;
     if (!content.trim() || !user || !selectedFriend) return;
+    if (userStatus === "restricted") {
+      alert("Acceso denegado: Tu cuenta tiene restricciones y no puedes chatear.");
+      return;
+    }
 
     try {
       await addDoc(collection(db, "messages"), {
@@ -182,6 +186,10 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
   // ─── Send Coin Transfer ───────────────────────────────────────────────────
   const handleSendCoin = async () => {
     if (coinBalance <= 0 || !selectedFriend || !user || transferringCoin) return;
+    if (userStatus === "restricted") {
+      alert("Acceso denegado: Tu cuenta tiene restricciones.");
+      return;
+    }
 
     setTransferringCoin(true);
     try {
@@ -327,16 +335,17 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
           </div>
 
           {/* Quick Actions (Coins + Sharing) */}
-          <div className="chat-quick-actions">
+           <div className="chat-quick-actions">
             <button
               onClick={handleSendCoin}
               className="chat-coin-gift-btn"
-              disabled={coinBalance <= 0 || transferringCoin}
+              disabled={coinBalance <= 0 || transferringCoin || userStatus === "restricted"}
             >
               <FiGift size={14} /> Enviar Coin ({coinBalance})
             </button>
             <select
               className="chat-share-video-select"
+              disabled={userStatus === "restricted"}
               onChange={(e) => {
                 if (e.target.value) {
                   handleSendMessage(`¡Mira este video! 🎥 ${e.target.value}`);
@@ -372,11 +381,16 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
               type="text"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Escribe un mensaje..."
+              placeholder={userStatus === "restricted" ? "Tu cuenta está restringida..." : "Escribe un mensaje..."}
               maxLength={400}
-              onKeyDown={(e) => { if (e.key === "Enter") handleSendMessage(); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && userStatus !== "restricted") handleSendMessage(); }}
+              disabled={userStatus === "restricted"}
             />
-            <button className={`chat-send-btn ${message.trim() ? "active" : ""}`} onClick={() => handleSendMessage()} disabled={!message.trim()}>
+            <button 
+              className={`chat-send-btn ${message.trim() && userStatus !== "restricted" ? "active" : ""}`} 
+              onClick={() => handleSendMessage()} 
+              disabled={!message.trim() || userStatus === "restricted"}
+            >
               <BsSend size={16} />
             </button>
           </div>

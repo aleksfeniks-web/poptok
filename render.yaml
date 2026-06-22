@@ -5,6 +5,10 @@ services:
     runtime: static
     buildCommand: npm run build
     staticPublishPath: dist
+    headers:
+      - path: /*
+        name: Cross-Origin-Opener-Policy
+        value: same-origin-allow-popups
     envVars:
       - key: VITE_FIREBASE_API_KEY
         value: "AIzaSyBuGUsI9YoeIpvpfiNl9xbdkwyGSE1i4Yk"

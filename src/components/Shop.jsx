@@ -7,7 +7,7 @@ import { FiPlus, FiX, FiSearch, FiShoppingBag, FiTag } from "react-icons/fi";
 import coin6 from "../assets/coin_6.svg";
 import "../index.css";
 
-const Shop = ({ onContactSeller }) => {
+const Shop = ({ onContactSeller, userStatus }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -18,6 +18,7 @@ const Shop = ({ onContactSeller }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [sellerPhone, setSellerPhone] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -54,7 +55,11 @@ const Shop = ({ onContactSeller }) => {
       alert("Inicia sesión para vender un artículo.");
       return;
     }
-    if (!title.trim() || !description.trim() || !price || !imageFile) {
+    if (userStatus === "restricted") {
+      alert("Acceso denegado: Tu cuenta tiene restricciones y no puedes publicar artículos.");
+      return;
+    }
+    if (!title.trim() || !description.trim() || !price || !sellerPhone.trim() || !imageFile) {
       alert("Por favor completa todos los campos y selecciona una imagen.");
       return;
     }
@@ -87,6 +92,7 @@ const Shop = ({ onContactSeller }) => {
             imageUrl: downloadUrl,
             sellerId: currentUser.uid,
             sellerName: currentUser.displayName || currentUser.email || "Vendedor Anónimo",
+            sellerPhone: sellerPhone.trim(),
             createdAt: new Date().toISOString(),
           });
 
@@ -94,6 +100,7 @@ const Shop = ({ onContactSeller }) => {
           setTitle("");
           setDescription("");
           setPrice("");
+          setSellerPhone("");
           setImageFile(null);
           setImagePreviewUrl(null);
           setUploading(false);
@@ -133,7 +140,13 @@ const Shop = ({ onContactSeller }) => {
         </div>
 
         {currentUser && (
-          <button className="shop-sell-btn" onClick={() => setShowSellModal(true)}>
+          <button className="shop-sell-btn" onClick={() => {
+            if (userStatus === "restricted") {
+              alert("Acceso denegado: Tu cuenta tiene restricciones y no puedes publicar artículos.");
+              return;
+            }
+            setShowSellModal(true);
+          }}>
             <FiPlus size={16} /> Vender un artículo
           </button>
         )}
@@ -164,8 +177,7 @@ const Shop = ({ onContactSeller }) => {
               <div className="shop-card-image-wrapper">
                 <img src={prod.imageUrl} alt={prod.title} className="shop-card-image" />
                 <span className="shop-card-price">
-                  <img src={coin6} alt="Gema" style={{ width: "12px", height: "12px", marginRight: "4px", verticalAlign: "middle", "--glow-color": "#fbbf24", border: "none", borderRadius: "0", background: "none", boxShadow: "none" }} className="rotating-gem" />
-                  {prod.price}
+                  ${prod.price}
                 </span>
               </div>
               <div className="shop-card-info">
@@ -198,8 +210,7 @@ const Shop = ({ onContactSeller }) => {
                 </div>
                 <h2>{selectedProduct.title}</h2>
                 <div className="product-modal-price">
-                  <img src={coin6} alt="Gema" style={{ width: "18px", height: "18px", marginRight: "4px", verticalAlign: "middle", "--glow-color": "#fbbf24", border: "none", borderRadius: "0", background: "none", boxShadow: "none" }} className="rotating-gem" />
-                  <span>{selectedProduct.price} Gemas</span>
+                  <span>${selectedProduct.price}</span>
                 </div>
                 <div className="product-modal-desc">
                   <h4>Descripción</h4>
@@ -211,15 +222,42 @@ const Shop = ({ onContactSeller }) => {
                 </div>
 
                 {currentUser && currentUser.uid !== selectedProduct.sellerId ? (
-                  <button
-                    className="product-modal-contact-btn"
-                    onClick={() => {
-                      onContactSeller(selectedProduct.sellerId);
-                      setSelectedProduct(null);
-                    }}
-                  >
-                    💬 Contactar al Vendedor
-                  </button>
+                  selectedProduct.sellerPhone ? (
+                    <a
+                      href={`https://wa.me/${selectedProduct.sellerPhone.replace(/\+/g, "").replace(/\s/g, "").replace(/-/g, "")}?text=${encodeURIComponent(
+                        `Hola, estoy interesado en tu artículo "${selectedProduct.title}" en Poptok.`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="product-modal-contact-btn whatsapp-btn"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px",
+                        background: "#25D366",
+                        color: "white",
+                        textDecoration: "none",
+                        fontWeight: "bold",
+                        padding: "12px",
+                        borderRadius: "25px",
+                        marginTop: "15px",
+                        boxShadow: "0 4px 15px rgba(37, 211, 102, 0.3)"
+                      }}
+                    >
+                      💬 Contactar Vendedor (WhatsApp)
+                    </a>
+                  ) : (
+                    <button
+                      className="product-modal-contact-btn"
+                      onClick={() => {
+                        onContactSeller(selectedProduct.sellerId);
+                        setSelectedProduct(null);
+                      }}
+                    >
+                      💬 Contactar al Vendedor
+                    </button>
+                  )
                 ) : currentUser && currentUser.uid === selectedProduct.sellerId ? (
                   <p className="product-modal-own-item">Tú eres el vendedor de este artículo</p>
                 ) : (
@@ -291,9 +329,9 @@ const Shop = ({ onContactSeller }) => {
                     required
                   />
 
-                  <label>Precio (en Gemas)</label>
+                  <label>Precio ($)</label>
                   <div className="sell-price-input-wrapper">
-                    <img src={coin6} alt="Gema" className="sell-price-icon rotating-gem" style={{ width: "16px", height: "16px", "--glow-color": "#fbbf24", border: "none", borderRadius: "0", background: "none", boxShadow: "none" }} />
+                    <span className="sell-price-currency-symbol" style={{ color: "#aaa", fontSize: "16px", marginRight: "6px" }}>$</span>
                     <input
                       type="number"
                       placeholder="100"
@@ -302,8 +340,19 @@ const Shop = ({ onContactSeller }) => {
                       min="1"
                       disabled={uploading}
                       required
+                      style={{ paddingLeft: "5px" }}
                     />
                   </div>
+
+                  <label>Teléfono Celular (WhatsApp)</label>
+                  <input
+                    type="tel"
+                    placeholder="Ej. +5215512345678"
+                    value={sellerPhone}
+                    onChange={e => setSellerPhone(e.target.value)}
+                    disabled={uploading}
+                    required
+                  />
                 </div>
               </div>
 

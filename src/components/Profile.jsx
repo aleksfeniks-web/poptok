@@ -344,6 +344,81 @@ const Profile = ({ onSelectVideo }) => {
     }
   };
 
+  const handleExportData = async () => {
+    if (!auth.currentUser) return;
+    try {
+      const userDocRef = doc(db, "users", auth.currentUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      let userData = {};
+      if (userDocSnap.exists()) {
+        userData = userDocSnap.data();
+      }
+
+      const videosQuery = query(collection(db, "videos"), where("userId", "==", auth.currentUser.uid));
+      const videosSnap = await getDocs(videosQuery);
+      const videosData = videosSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      const productsQuery = query(collection(db, "products"), where("sellerId", "==", auth.currentUser.uid));
+      const productsSnap = await getDocs(productsQuery);
+      const productsData = productsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      const fullData = {
+        perfil: {
+          uid: auth.currentUser.uid,
+          nombre: auth.currentUser.displayName,
+          correo: auth.currentUser.email,
+          ...userData
+        },
+        videos: videosData,
+        articulos_tienda: productsData,
+        nota_legal: "Esta exportación de datos personales se entrega en cumplimiento con el derecho de Acceso conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) de México."
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullData, null, 2));
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `mis_datos_poptok_${auth.currentUser.uid}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+      alert("✅ Tus datos personales han sido exportados y descargados correctamente.");
+    } catch (err) {
+      console.error("Error exporting user data:", err);
+      alert("Ocurrió un error al exportar tus datos: " + err.message);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!auth.currentUser) return;
+    const confirmDelete = window.confirm(
+      "⚠️ ¿Estás seguro de que deseas eliminar tu cuenta permanentemente?\n\nDe acuerdo con tu derecho de Cancelación bajo la LFPDPPP, todos tus datos personales, perfil, videos subidos y artículos en venta serán eliminados permanentemente de nuestros servidores activos de inmediato. Esta acción no se puede deshacer."
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const uid = auth.currentUser.uid;
+      
+      const videosQuery = query(collection(db, "videos"), where("userId", "==", uid));
+      const videosSnap = await getDocs(videosQuery);
+      const deleteVideoPromises = videosSnap.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deleteVideoPromises);
+
+      const productsQuery = query(collection(db, "products"), where("sellerId", "==", uid));
+      const productsSnap = await getDocs(productsQuery);
+      const deleteProductPromises = productsSnap.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deleteProductPromises);
+
+      await deleteDoc(doc(db, "users", uid));
+
+      alert("✅ Tu cuenta y todos tus datos personales han sido eliminados de acuerdo con la LFPDPPP. Sesión cerrada.");
+      await signOut(auth);
+      window.location.reload();
+    } catch (err) {
+      console.error("Error deleting user account:", err);
+      alert("Ocurrió un error al eliminar tu cuenta: " + err.message);
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       if (window.PoptokAndroid && typeof window.PoptokAndroid.signOutGoogle === 'function') {
@@ -583,6 +658,63 @@ const Profile = ({ onSelectVideo }) => {
               >
                 🚪 Cerrar Sesión
               </button>
+            </div>
+
+            {/* Sección LFPDPPP / Derechos ARCO */}
+            <div className="arco-section" style={{
+              background: "rgba(255, 255, 255, 0.03)",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: "12px",
+              padding: "12px",
+              marginTop: "15px",
+              width: "100%",
+              maxWidth: "350px",
+              marginLeft: "auto",
+              marginRight: "auto",
+              textAlign: "center"
+            }}>
+              <h4 style={{ margin: "0 0 5px 0", fontSize: "13px", color: "#FF0050", fontWeight: "bold" }}>🛡️ Privacidad y Derechos ARCO</h4>
+              <p style={{ margin: "0 0 10px 0", fontSize: "11px", color: "#aaa", lineHeight: "1.4" }}>
+                Ejerce tus derechos ARCO (LFPDPPP México) para acceder o borrar tus datos.
+              </p>
+              <div style={{ display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
+                <button
+                  onClick={handleExportData}
+                  style={{
+                    background: "rgba(0, 242, 254, 0.12)",
+                    border: "1px solid rgba(0, 242, 254, 0.3)",
+                    color: "#00f2fe",
+                    borderRadius: "12px",
+                    padding: "6px 12px",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    transition: "background 0.2s"
+                  }}
+                  onMouseOver={(e) => e.target.style.background = "rgba(0, 242, 254, 0.25)"}
+                  onMouseOut={(e) => e.target.style.background = "rgba(0, 242, 254, 0.12)"}
+                >
+                  📥 Acceso: Bajar mis Datos
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  style={{
+                    background: "rgba(255, 0, 80, 0.12)",
+                    border: "1px solid rgba(255, 0, 80, 0.3)",
+                    color: "#ff0050",
+                    borderRadius: "12px",
+                    padding: "6px 12px",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    transition: "background 0.2s"
+                  }}
+                  onMouseOver={(e) => e.target.style.background = "rgba(255, 0, 80, 0.25)"}
+                  onMouseOut={(e) => e.target.style.background = "rgba(255, 0, 80, 0.12)"}
+                >
+                  🗑️ Cancelar Cuenta
+                </button>
+              </div>
             </div>
           </>
         )}

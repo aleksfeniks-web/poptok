@@ -68,7 +68,7 @@ const coinGlowColors = {
 };
 
 const VideoPlayer = forwardRef(
-  ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange, onReactToComment, reactionComment, subtitles, onDeleteVideo }, ref) => {
+  ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange, onReactToComment, reactionComment, subtitles, onDeleteVideo, userRole, userStatus }, ref) => {
     const [hasError, setHasError] = useState(false);
     const [showCoin, setShowCoin] = useState(false);
     const [spawnedCoinType, setSpawnedCoinType] = useState(1);
@@ -694,6 +694,7 @@ const VideoPlayer = forwardRef(
           {showComments && (
             <Comments
               riuzaki1234={riuzaki1234}
+              userStatus={userStatus}
               onClose={() => setShowComments(false)}
               onReactToComment={(cmtText, cmtUser) => {
                 onReactToComment?.({ text: cmtText, username: cmtUser, parentVideoId: riuzaki1234 });
@@ -845,8 +846,8 @@ const VideoPlayer = forwardRef(
                 <span className="interaction-count">{formatNumber(downloads)}</span>
               </button>
 
-              {/* Botón de Eliminar (papelera, solo si es el creador) */}
-              {userId && currentUser && userId === currentUser.uid && onDeleteVideo && (
+              {/* Botón de Eliminar (papelera, solo si es el creador o es admin/moderador) */}
+              {userId && currentUser && (userId === currentUser.uid || userRole === "admin" || userRole === "moderator") && onDeleteVideo && (
                 <button onClick={() => onDeleteVideo(riuzaki1234)} className="icon-button" style={{ color: "#ff0050" }}>
                   <FiTrash2 className="icon" />
                 </button>

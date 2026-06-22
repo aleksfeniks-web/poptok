@@ -88,6 +88,8 @@ const PEXELS_DEMO_VIDEOS = [
 
 const Feed = ({
   user,
+  userStatus,
+  userRole,
   coins,
   setCoins,
   showUploadSection,
@@ -589,6 +591,7 @@ const Feed = ({
               currentUser={currentUser}
               userProfile={userProfile}
               userId={v.userId}
+              userStatus={userStatus}
               userPhotoURL={v.userPhotoURL}
               musicUrl={v.musicUrl}
               musicTitle={v.musicTitle}
@@ -612,6 +615,7 @@ const Feed = ({
               reactionComment={v.reactionComment}
               subtitles={v.subtitles}
               onDeleteVideo={handleDeleteVideo}
+              userRole={userRole}
             />
           </div>
         ))

@@ -12,6 +12,7 @@ import LiveCountdown from "./components/LiveCountdown.jsx";
 import LiveStream from "./components/LiveStream.jsx";
 import Profile from "./components/Profile.jsx";
 import Shop from "./components/Shop.jsx";
+import AdminPortal from "./components/AdminPortal.jsx";
 
 import { FiCoffee, FiHome, FiShoppingCart } from "react-icons/fi";
 import { BsFillPersonFill } from "react-icons/bs";
@@ -39,6 +40,8 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     return params.get("v") ? "feed" : "explore";
   }); // "explore", "feed", "profile"
+  const [userRole, setUserRole] = useState("user");
+  const [userStatus, setUserStatus] = useState("active");
   const [activeExploreVideoId, setActiveExploreVideoId] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get("v") || null;
@@ -61,6 +64,18 @@ function App() {
       if (snapshot.exists()) {
         const data = snapshot.data();
         setCoins(data.coins || 0);
+        setUserRole(data.role || "user");
+        setUserStatus(data.status || "active");
+
+        // Self-heal/Auto-assign admin to support account
+        if (currentUser && currentUser.email === "support@poptok.app" && data.role !== "admin") {
+          try {
+            await updateDoc(userRef, { role: "admin" });
+            setUserRole("admin");
+          } catch (e) {
+            console.error("Error setting admin role for support account:", e);
+          }
+        }
 
         // Self-heal: If user document exists but is missing name/email/profilePic, update it in Firestore
         if (currentUser && (!data.name || !data.email || (currentUser.photoURL && data.profilePic !== currentUser.photoURL))) {
@@ -94,6 +109,7 @@ function App() {
         }
       } else {
         try {
+          const isSupport = currentUser?.email === "support@poptok.app";
           await setDoc(userRef, {
             name: currentUser?.displayName || currentUser?.email?.split("@")[0] || "Usuario de Poptok",
             email: currentUser?.email || "",
@@ -108,9 +124,13 @@ function App() {
               coin_6: 0
             },
             highScore: 0,
+            role: isSupport ? "admin" : "user",
+            status: "active",
             createdAt: new Date().toISOString()
           }, { merge: true });
           setCoins(0);
+          setUserRole(isSupport ? "admin" : "user");
+          setUserStatus("active");
         } catch (error) {
           console.error("Error al inicializar monedas de bienvenida:", error);
         }
@@ -188,6 +208,8 @@ function App() {
         setUser(null);
         setUid(null);
         setCoins(0);
+        setUserRole("user");
+        setUserStatus("active");
       }
     });
 
@@ -404,6 +426,10 @@ function App() {
       setShowAuthSelection(true); 
       return;
     }
+    if (userStatus === "restricted") {
+      alert("⚠ Acceso denegado: Tu cuenta tiene restricciones y no puedes subir contenido.");
+      return;
+    }
     setShowUploadSection(true);
   };
 
@@ -423,6 +449,54 @@ function App() {
           onError={(e) => { e.target.style.display = 'none'; }}
         />
         <h2 className="loading-logo-text">Poptok</h2>
+      </div>
+    );
+  }
+
+  if (userStatus === "blocked") {
+    return (
+      <div className="blocked-screen" style={{
+        position: "fixed",
+        inset: 0,
+        background: "#000",
+        color: "#fff",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "20px",
+        textAlign: "center",
+        zIndex: 99999,
+        fontFamily: "system-ui, -apple-system, sans-serif"
+      }}>
+        <div style={{ fontSize: "64px", marginBottom: "20px" }}>🚫</div>
+        <h2 style={{ fontSize: "24px", fontWeight: "800", color: "#FF0050", marginBottom: "10px" }}>Cuenta Suspendida</h2>
+        <p style={{ fontSize: "15px", color: "#ccc", maxWidth: "400px", lineHeight: "1.6", marginBottom: "30px" }}>
+          Tu cuenta ha sido bloqueada temporal o permanentemente por infringir las Normas de la Comunidad y los Aviso de Privacidad de Poptok.
+        </p>
+        <button
+          onClick={async () => {
+            try {
+              await signOut(auth);
+              window.location.reload();
+            } catch (err) {
+              console.error("Error signing out blocked user:", err);
+            }
+          }}
+          style={{
+            background: "linear-gradient(135deg, #ff0050, #ff00ff)",
+            color: "white",
+            border: "none",
+            borderRadius: "25px",
+            padding: "12px 30px",
+            fontSize: "15px",
+            fontWeight: "bold",
+            cursor: "pointer",
+            boxShadow: "0 8px 20px rgba(255, 0, 80, 0.4)"
+          }}
+        >
+          Cerrar Sesión
+        </button>
       </div>
     );
   }
@@ -448,7 +522,14 @@ function App() {
           </div>
         )}
         {/* Sidebar */}
-        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} coins={coins} setCoins={setCoins} />
+        <Sidebar 
+          isOpen={isSidebarOpen} 
+          onClose={() => setIsSidebarOpen(false)} 
+          coins={coins} 
+          setCoins={setCoins} 
+          userRole={userRole} 
+          onOpenAdminPortal={() => setActiveView("admin")} 
+        />
 
         {/* Top Header */}
         <div className={`top-buttons${isVideoPlaying && activeView === "feed" ? " header-video-playing" : ""}`}>
@@ -505,10 +586,14 @@ function App() {
               {activeView === "profile" ? (
                 <Profile />
               ) : activeView === "shop" ? (
-                <Shop onContactSeller={handleContactSeller} />
+                <Shop onContactSeller={handleContactSeller} userStatus={userStatus} />
+              ) : activeView === "admin" ? (
+                <AdminPortal />
               ) : (
                 <Feed
                   user={user}
+                  userStatus={userStatus}
+                  userRole={userRole}
                   coins={coins}
                   setCoins={setCoins}
                   showUploadSection={showUploadSection}
@@ -545,6 +630,7 @@ function App() {
             setPage={setPage} 
             reactionComment={reactionComment}
             clearReaction={() => setReactionComment(null)}
+            userStatus={userStatus}
           />
         )}
 
@@ -558,6 +644,7 @@ function App() {
             unreadMessages={unreadMessages}
             setUnreadMessages={setUnreadMessages}
             initialFriend={chatFriendId}
+            userStatus={userStatus}
           />
         )}
 
@@ -783,10 +870,10 @@ function App() {
             }}>
               <div style={{ fontSize: "50px" }}>🛡️</div>
               <h2 style={{ fontSize: "22px", fontWeight: "800", color: "#fff", margin: 0 }}>
-                Política de Privacidad
+                Aviso de Privacidad (LFPDPPP)
               </h2>
               <p style={{ fontSize: "14px", color: "#ccc", lineHeight: "1.6", margin: 0 }}>
-                Para continuar disfrutando de <strong>Poptok</strong>, por favor lee y acepta nuestra política de privacidad. Respetamos tus datos y protegemos tu información.
+                Para continuar disfrutando de <strong>Poptok</strong>, por favor lee y acepta nuestro Aviso de Privacidad conforme a la <strong>LFPDPPP</strong> de México. Respetamos y protegemos tus datos personales.
               </p>
               <div style={{
                 background: "rgba(255,255,255,0.03)",

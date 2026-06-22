@@ -8,7 +8,7 @@ import Copyright from "./Copyright.jsx";
 import Game from "./Game.jsx";
 import coin6 from "../assets/coin_6.svg";
 
-const Sidebar = ({ isOpen, onClose, coins, setCoins }) => {
+const Sidebar = ({ isOpen, onClose, coins, setCoins, userRole, onOpenAdminPortal }) => {
   const [showContent, setShowContent] = useState("profile"); // "profile", "privacy", "copyright", "explore"
   const [user, setUser] = useState(null);
   const [users, setUsers] = useState([]); // Lista de usuarios en Firestore
@@ -149,6 +149,33 @@ const Sidebar = ({ isOpen, onClose, coins, setCoins }) => {
               >
                 🔍 Buscar Amigos
               </button>
+
+              {userRole && (userRole === "admin" || userRole === "moderator") && (
+                <button
+                  onClick={() => {
+                    handleClose();
+                    onOpenAdminPortal();
+                  }}
+                  className="sidebar-button"
+                  style={{
+                    width: "100%",
+                    background: "linear-gradient(45deg, #f39c12, #d35400)",
+                    border: "none",
+                    color: "white",
+                    padding: "10px",
+                    borderRadius: "20px",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    marginTop: "10px"
+                  }}
+                >
+                  🛡️ Panel de Moderación
+                </button>
+              )}
             </div>
 
             <div className="sidebar-links" style={{ marginTop: "auto", padding: "20px 0" }}>

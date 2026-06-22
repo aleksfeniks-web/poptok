@@ -8,7 +8,7 @@ import { FaThumbsUp, FaThumbsDown, FaRegThumbsUp, FaRegThumbsDown, FaVideo } fro
 import "../index.css";
 
 
-const Comments = ({ riuzaki1234, onClose, onCommentSubmit, onReactToComment }) => {
+const Comments = ({ riuzaki1234, onClose, onCommentSubmit, onReactToComment, userStatus }) => {
   const [comment, setComment] = useState("");
   const [commentsList, setCommentsList] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -98,6 +98,10 @@ const Comments = ({ riuzaki1234, onClose, onCommentSubmit, onReactToComment }) =
     e?.preventDefault();
     if (!comment.trim()) return;
     if (!currentUser) { alert("Inicia sesión para comentar."); return; }
+    if (userStatus === "restricted") {
+      alert("Acceso denegado: Tu cuenta tiene restricciones y no puedes comentar.");
+      return;
+    }
 
     const newComment = {
       id: Date.now().toString(),
@@ -307,10 +311,11 @@ const Comments = ({ riuzaki1234, onClose, onCommentSubmit, onReactToComment }) =
                   ref={inputRef}
                   className="comments-input"
                   type="text"
-                  placeholder="Añade un comentario..."
+                  placeholder={userStatus === "restricted" ? "Tu cuenta está restringida..." : "Añade un comentario..."}
                   value={comment}
                   onChange={e => setComment(e.target.value)}
                   maxLength={200}
+                  disabled={userStatus === "restricted"}
                 />
                 <button
                   type="submit"

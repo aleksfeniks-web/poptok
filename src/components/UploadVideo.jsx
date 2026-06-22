@@ -75,7 +75,7 @@ const MUSIC_TRACKS = [
 ];
 
 
-const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
+const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStatus }) => {
   const [tab, setTab] = useState("video"); // "video" | "photo" | "text"
   const [videoFile, setVideoFile] = useState(null);
   const [imageFile, setImageFile] = useState(null);
@@ -501,6 +501,10 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction }) => {
   // ─── Upload ────────────────────────────────────────────────────────────────
   const handleUpload = async () => {
     if (!user) { alert("Debes iniciar sesión para publicar."); return; }
+    if (userStatus === "restricted") {
+      alert("Acceso denegado: Tu cuenta tiene restricciones y no puedes subir videos.");
+      return;
+    }
 
     let fileBlob = null;
     let fileType = "";
