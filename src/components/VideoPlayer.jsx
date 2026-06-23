@@ -11,7 +11,8 @@ import {
   FaGamepad, FaCat, FaCar, FaFlask, FaFilm, FaUtensils, FaLaugh, 
   FaHeart, FaMusic, FaRobot, FaBolt, FaGlobe, FaBitcoin, FaRandom, 
   FaNewspaper, FaFutbol, FaSuperpowers, FaFireAlt, FaStar, FaPaw, FaPaypal,
-  FaPlay, FaPause, FaInstagram, FaTwitter, FaYoutube, FaExternalLinkAlt
+  FaPlay, FaPause, FaInstagram, FaTwitter, FaYoutube, FaExternalLinkAlt,
+  FaUserPlus, FaUserCheck, FaCommentDots, FaStore
 } from "react-icons/fa";
 
 import coin1 from "../assets/coin_1.svg";
@@ -378,6 +379,20 @@ const VideoPlayer = forwardRef(
       if (updated !== undefined) {
         setIsFollowing(updated);
       }
+    };
+
+    const handleOpenChatEvent = () => {
+      setShowLinksModal(false);
+      window.dispatchEvent(new CustomEvent("poptok-open-chat", {
+        detail: { friendId: userId }
+      }));
+    };
+
+    const handleViewShopEvent = () => {
+      setShowLinksModal(false);
+      window.dispatchEvent(new CustomEvent("poptok-view-shop", {
+        detail: { sellerId: userId }
+      }));
     };
 
     // Detectar si el video o la imagen es vertical u horizontal
@@ -968,6 +983,80 @@ const VideoPlayer = forwardRef(
 
                 {/* Social Buttons */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
+                  {currentUser && userId && userId !== currentUser.uid && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%", borderBottom: "1px solid rgba(255, 255, 255, 0.1)", paddingBottom: "15px", marginBottom: "5px" }}>
+                      {/* Botón Seguir */}
+                      <button
+                        onClick={handleFollow}
+                        style={{
+                          background: isFollowing ? "rgba(255, 255, 255, 0.15)" : "#ff0050",
+                          color: "#fff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "10px",
+                          padding: "10px",
+                          borderRadius: "30px",
+                          fontSize: "14px",
+                          fontWeight: "bold",
+                          border: "none",
+                          cursor: "pointer",
+                          width: "100%",
+                          boxShadow: isFollowing ? "none" : "0 4px 10px rgba(255, 0, 80, 0.3)"
+                        }}
+                      >
+                        {isFollowing ? <FaUserCheck size={16} /> : <FaUserPlus size={16} />}
+                        {isFollowing ? "Siguiendo" : "Seguir"}
+                      </button>
+
+                      {/* Botón Enviar Mensaje */}
+                      <button
+                        onClick={handleOpenChatEvent}
+                        style={{
+                          background: "linear-gradient(135deg, #00f2fe, #4facfe)",
+                          color: "#000",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "10px",
+                          padding: "10px",
+                          borderRadius: "30px",
+                          fontSize: "14px",
+                          fontWeight: "bold",
+                          border: "none",
+                          cursor: "pointer",
+                          width: "100%",
+                          boxShadow: "0 4px 10px rgba(0, 242, 254, 0.3)"
+                        }}
+                      >
+                        <FaCommentDots size={16} /> Enviar Mensaje
+                      </button>
+
+                      {/* Botón Ver Tienda */}
+                      <button
+                        onClick={handleViewShopEvent}
+                        style={{
+                          background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
+                          color: "#000",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "10px",
+                          padding: "10px",
+                          borderRadius: "30px",
+                          fontSize: "14px",
+                          fontWeight: "bold",
+                          border: "none",
+                          cursor: "pointer",
+                          width: "100%",
+                          boxShadow: "0 4px 10px rgba(251, 191, 36, 0.3)"
+                        }}
+                      >
+                        <FaStore size={16} /> Ver Tienda
+                      </button>
+                    </div>
+                  )}
+
                   {creatorLinks.instagram && (
                     <a
                       href={creatorLinks.instagram}

@@ -7,7 +7,7 @@ import { FiPlus, FiX, FiSearch, FiShoppingBag, FiTag } from "react-icons/fi";
 import coin6 from "../assets/coin_6.svg";
 import "../index.css";
 
-const Shop = ({ onContactSeller, userStatus }) => {
+const Shop = ({ onContactSeller, userStatus, initialSellerIdFilter, onClearSellerFilter }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -115,10 +115,15 @@ const Shop = ({ onContactSeller, userStatus }) => {
     }
   };
 
-  const filteredProducts = products.filter(p =>
-    p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => {
+    if (initialSellerIdFilter && p.sellerId !== initialSellerIdFilter) {
+      return false;
+    }
+    return (
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
   return (
     <div className="shop-container">
@@ -152,6 +157,52 @@ const Shop = ({ onContactSeller, userStatus }) => {
         )}
       </div>
 
+      {initialSellerIdFilter && (
+        <div className="shop-filter-banner" style={{
+          background: "rgba(255, 0, 80, 0.08)",
+          border: "1px solid rgba(255, 0, 80, 0.2)",
+          borderRadius: "15px",
+          padding: "12px 18px",
+          marginBottom: "20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          boxSizing: "border-box",
+          gap: "10px",
+          flexWrap: "wrap"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "20px" }}>🛍️</span>
+            <div>
+              <p style={{ margin: 0, fontWeight: "bold", color: "#fff", fontSize: "14px" }}>
+                Artículos en venta de: @{filteredProducts.length > 0 ? filteredProducts[0].sellerName.split("@")[0] : "este usuario"}
+              </p>
+              <p style={{ margin: 0, color: "#aaa", fontSize: "12px" }}>
+                Mostrando {filteredProducts.length} {filteredProducts.length === 1 ? "artículo" : "artículos"}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClearSellerFilter}
+            style={{
+              background: "#FF0050",
+              color: "#fff",
+              border: "none",
+              borderRadius: "20px",
+              padding: "6px 14px",
+              fontSize: "12px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              marginLeft: "auto",
+              boxShadow: "0 2px 8px rgba(255, 0, 80, 0.3)"
+            }}
+          >
+            Ver toda la tienda
+          </button>
+        </div>
+      )}
+
       {/* ─── Products Grid ──────────────────────────────────────────────────── */}
       {loading ? (
         <div className="shop-loading">
@@ -160,10 +211,16 @@ const Shop = ({ onContactSeller, userStatus }) => {
       ) : filteredProducts.length === 0 ? (
         <div className="shop-empty">
           <p>🛍️ No hay artículos en venta en este momento.</p>
-          {currentUser && (
-            <button className="shop-sell-btn-large" onClick={() => setShowSellModal(true)}>
-              ¡Publica tu primer artículo hoy!
+          {initialSellerIdFilter ? (
+            <button className="shop-sell-btn-large" onClick={onClearSellerFilter} style={{ marginTop: "15px" }}>
+              Ver toda la tienda
             </button>
+          ) : (
+            currentUser && (
+              <button className="shop-sell-btn-large" onClick={() => setShowSellModal(true)}>
+                ¡Publica tu primer artículo hoy!
+              </button>
+            )
           )}
         </div>
       ) : (

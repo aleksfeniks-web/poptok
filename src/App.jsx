@@ -53,6 +53,7 @@ function App() {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [toastNotification, setToastNotification] = useState(null);
   const [reactionComment, setReactionComment] = useState(null);
+  const [shopSellerFilter, setShopSellerFilter] = useState(null);
 
   // ✅ 1. Escuchar monedas del usuario en tiempo real desde Firestore
   useEffect(() => {
@@ -239,6 +240,36 @@ function App() {
       delete window.__poptokAndroidGoogleError;
     };
   }, []);
+
+  // ✅ Escuchar eventos personalizados de chat y tienda de VideoPlayer
+  useEffect(() => {
+    const handleOpenChatEvent = (e) => {
+      const { friendId } = e.detail;
+      if (!user) {
+        alert("⚠ Debes iniciar sesión para chatear.");
+        setShowAuthSelection(true);
+        return;
+      }
+      setChatFriendId(friendId);
+      setShowChat(true);
+    };
+
+    const handleViewShopEvent = (e) => {
+      const { sellerId } = e.detail;
+      setShopSellerFilter(sellerId);
+      setActiveView("shop");
+      setShowUploadSection(false);
+      setShowChat(false);
+    };
+
+    window.addEventListener("poptok-open-chat", handleOpenChatEvent);
+    window.addEventListener("poptok-view-shop", handleViewShopEvent);
+
+    return () => {
+      window.removeEventListener("poptok-open-chat", handleOpenChatEvent);
+      window.removeEventListener("poptok-view-shop", handleViewShopEvent);
+    };
+  }, [user]);
 
   // ✅ Verificar mensajes no leídos en tiempo real y mostrar notificaciones flotantes
   useEffect(() => {
@@ -581,7 +612,7 @@ function App() {
               {activeView === "profile" ? (
                 <Profile />
               ) : activeView === "shop" ? (
-                <Shop onContactSeller={handleContactSeller} userStatus={userStatus} />
+                 <Shop onContactSeller={handleContactSeller} userStatus={userStatus} initialSellerIdFilter={shopSellerFilter} onClearSellerFilter={() => setShopSellerFilter(null)} />
               ) : activeView === "admin" ? (
                 <AdminPortal />
               ) : (
@@ -658,6 +689,7 @@ function App() {
           <button
             className="shop-button"
             onClick={() => {
+              setShopSellerFilter(null);
               setActiveView("shop");
               setShowUploadSection(false);
               setShowChat(false);
