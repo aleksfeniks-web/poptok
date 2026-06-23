@@ -5,7 +5,7 @@ import { collection, doc, getDoc, getDocs, query, where, updateDoc, deleteDoc } 
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { AiFillHeart, AiOutlineClose } from "react-icons/ai";
 import { BsAward, BsCoin, BsGrid3X3Gap } from "react-icons/bs";
-import { FaUserEdit, FaInstagram, FaTwitter, FaYoutube, FaPaypal, FaExternalLinkAlt } from "react-icons/fa";
+import { FaUserEdit, FaInstagram, FaTwitter, FaYoutube, FaPaypal, FaExternalLinkAlt, FaPen, FaSignOutAlt, FaShieldAlt, FaDownload, FaTrashAlt, FaUsers, FaUserCheck } from "react-icons/fa";
 
 import coin1 from "../assets/coin_1.svg";
 import coin2 from "../assets/coin_2.svg";
@@ -604,115 +604,29 @@ const Profile = ({ onSelectVideo }) => {
                 </a>
               )}
             </div>
-            <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "12px" }}>
-              <button
-                onClick={() => setIsEditing(true)}
-                style={{
-                  background: "rgba(255, 255, 255, 0.08)",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                  color: "#fff",
-                  borderRadius: "15px",
-                  padding: "6px 14px",
-                  fontSize: "12px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "5px"
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.16)";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)";
-                }}
-              >
-                ✏️ Editar Perfil
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center", marginTop: "15px" }}>
+              <button onClick={() => setIsEditing(true)} className="profile-action-btn">
+                <FaPen size={12} /> Editar Perfil
               </button>
-              <button
-                onClick={handleSignOut}
-                className="profile-logout-btn"
-                style={{
-                  background: "rgba(255, 0, 80, 0.12)",
-                  border: "1px solid rgba(255, 0, 80, 0.4)",
-                  color: "#ff0050",
-                  borderRadius: "15px",
-                  padding: "6px 14px",
-                  fontSize: "12px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  transition: "all 0.2s",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "5px"
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = "rgba(255, 0, 80, 0.25)";
-                  e.currentTarget.style.border = "1px solid #ff0050";
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = "rgba(255, 0, 80, 0.12)";
-                  e.currentTarget.style.border = "1px solid rgba(255, 0, 80, 0.4)";
-                }}
-              >
-                🚪 Cerrar Sesión
+              <button onClick={handleSignOut} className="profile-action-btn logout">
+                <FaSignOutAlt size={12} /> Cerrar Sesión
               </button>
             </div>
 
             {/* Sección LFPDPPP / Derechos ARCO */}
-            <div className="arco-section" style={{
-              background: "rgba(255, 255, 255, 0.03)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              borderRadius: "12px",
-              padding: "12px",
-              marginTop: "15px",
-              width: "100%",
-              maxWidth: "350px",
-              marginLeft: "auto",
-              marginRight: "auto",
-              textAlign: "center"
-            }}>
-              <h4 style={{ margin: "0 0 5px 0", fontSize: "13px", color: "#FF0050", fontWeight: "bold" }}>🛡️ Privacidad y Derechos ARCO</h4>
-              <p style={{ margin: "0 0 10px 0", fontSize: "11px", color: "#aaa", lineHeight: "1.4" }}>
+            <div className="arco-section">
+              <h4 className="arco-title">
+                <FaShieldAlt size={14} style={{ color: "#00f2fe" }} /> Privacidad y Derechos ARCO
+              </h4>
+              <p className="arco-desc">
                 Ejerce tus derechos ARCO (LFPDPPP México) para acceder o borrar tus datos.
               </p>
-              <div style={{ display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
-                <button
-                  onClick={handleExportData}
-                  style={{
-                    background: "rgba(0, 242, 254, 0.12)",
-                    border: "1px solid rgba(0, 242, 254, 0.3)",
-                    color: "#00f2fe",
-                    borderRadius: "12px",
-                    padding: "6px 12px",
-                    fontSize: "11px",
-                    fontWeight: "bold",
-                    cursor: "pointer",
-                    transition: "background 0.2s"
-                  }}
-                  onMouseOver={(e) => e.target.style.background = "rgba(0, 242, 254, 0.25)"}
-                  onMouseOut={(e) => e.target.style.background = "rgba(0, 242, 254, 0.12)"}
-                >
-                  📥 Acceso: Bajar mis Datos
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "center", width: "100%" }}>
+                <button onClick={handleExportData} className="arco-btn">
+                  <FaDownload size={12} /> Acceso: Bajar mis Datos
                 </button>
-                <button
-                  onClick={handleDeleteAccount}
-                  style={{
-                    background: "rgba(255, 0, 80, 0.12)",
-                    border: "1px solid rgba(255, 0, 80, 0.3)",
-                    color: "#ff0050",
-                    borderRadius: "12px",
-                    padding: "6px 12px",
-                    fontSize: "11px",
-                    fontWeight: "bold",
-                    cursor: "pointer",
-                    transition: "background 0.2s"
-                  }}
-                  onMouseOver={(e) => e.target.style.background = "rgba(255, 0, 80, 0.25)"}
-                  onMouseOut={(e) => e.target.style.background = "rgba(255, 0, 80, 0.12)"}
-                >
-                  🗑️ Cancelar Cuenta
+                <button onClick={handleDeleteAccount} className="arco-btn delete">
+                  <FaTrashAlt size={12} /> Cancelar Cuenta
                 </button>
               </div>
             </div>
@@ -721,68 +635,46 @@ const Profile = ({ onSelectVideo }) => {
 
         {/* Fila de Estadísticas */}
         <div className="profile-stats-row">
-          <div className="profile-stat-item" onClick={() => { setPurchaseSuccess(false); setShowPurchaseModal(true); }} style={{ cursor: "pointer" }}>
-            <span className="profile-stat-val coins" style={{ display: "inline-flex", alignItems: "center", gap: "4px", fontSize: "15px" }}>
-              <img src={coin6} alt="Gema" style={{ width: "15px", height: "15px", "--glow-color": "#fbbf24", border: "none", borderRadius: "0", background: "none", boxShadow: "none" }} className="rotating-gem" /> {coins}
-            </span>
-            <span className="profile-stat-lbl" style={{ fontSize: "10px" }}>Gemas</span>
+          <div className="profile-stat-card gemas" onClick={() => { setPurchaseSuccess(false); setShowPurchaseModal(true); }}>
+            <div className="profile-stat-icon">💎</div>
+            <span className="profile-stat-label">Gemas</span>
+            <span className="profile-stat-value">{coins}</span>
           </div>
-          <div className="profile-stat-item" onClick={() => openFollowModal("followers")} style={{ cursor: "pointer" }}>
-            <span className="profile-stat-val" style={{ color: "#ff0080" }}>
-              {followersCount}
-            </span>
-            <span className="profile-stat-lbl">Seguidores</span>
+          <div className="profile-stat-card seguidores" onClick={() => openFollowModal("followers")}>
+            <div className="profile-stat-icon">
+              <FaUsers size={22} />
+            </div>
+            <span className="profile-stat-label">Seguidores</span>
+            <span className="profile-stat-value">{followersCount}</span>
           </div>
-          <div className="profile-stat-item" onClick={() => openFollowModal("following")} style={{ cursor: "pointer" }}>
-            <span className="profile-stat-val" style={{ color: "#00ff80" }}>
-              {followingCount}
-            </span>
-            <span className="profile-stat-lbl">Seguidos</span>
+          <div className="profile-stat-card seguidos" onClick={() => openFollowModal("following")}>
+            <div className="profile-stat-icon">
+              <FaUserCheck size={20} />
+            </div>
+            <span className="profile-stat-label">Seguidos</span>
+            <span className="profile-stat-value">{followingCount}</span>
           </div>
-          <div className="profile-stat-item" onClick={scrollToVideos} style={{ cursor: "pointer" }}>
-            <span className="profile-stat-val" style={{ color: "#00ffff" }}>
-              <BsGrid3X3Gap style={{ verticalAlign: "middle" }} /> {userVideos.length}
-            </span>
-            <span className="profile-stat-lbl">Videos</span>
+          <div className="profile-stat-card videos" onClick={scrollToVideos}>
+            <div className="profile-stat-icon">
+              <BsGrid3X3Gap size={18} />
+            </div>
+            <span className="profile-stat-label">Videos</span>
+            <span className="profile-stat-value">{userVideos.length}</span>
           </div>
         </div>
       </div>
 
-      {/* Control de Testing de Tiempo de Reproducción */}
-      <div style={{
-        marginTop: "15px",
-        background: "rgba(255, 255, 255, 0.03)",
-        border: "1px solid rgba(255, 255, 255, 0.08)",
-        borderRadius: "12px",
-        padding: "12px 18px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        fontSize: "13px",
-        color: "#aaa"
-      }}>
-        <div>
-          ⏱️ Tiempo de reproducción acumulado: <strong style={{ color: "#00ffff" }}>{(devWatchTime / 3600).toFixed(2)} horas</strong> ({devWatchTime} segundos)
+      {/* Control de Testing de Tiempo de Reproducción: solo visible para el admin support@poptok.app */}
+      {user.email?.toLowerCase() === "support@poptok.app" && (
+        <div className="profile-sim-bar">
+          <div>
+            ⏱️ Tiempo de reproducción acumulado: <strong style={{ color: "#00ffff" }}>{(devWatchTime / 3600).toFixed(2)} horas</strong> ({devWatchTime} segundos)
+          </div>
+          <button onClick={handleSimulateWatchTime} className="profile-sim-btn">
+            ⚙️ Simular +10 Horas
+          </button>
         </div>
-        <button
-          onClick={handleSimulateWatchTime}
-          style={{
-            background: "rgba(255, 255, 255, 0.1)",
-            border: "1px solid rgba(255, 255, 255, 0.2)",
-            borderRadius: "15px",
-            padding: "5px 12px",
-            color: "white",
-            fontWeight: "bold",
-            cursor: "pointer",
-            fontSize: "11px",
-            transition: "background 0.2s"
-          }}
-          onMouseOver={(e) => e.target.style.background = "rgba(255,255,255,0.18)"}
-          onMouseOut={(e) => e.target.style.background = "rgba(255,255,255,0.1)"}
-        >
-          ⚙️ Simular +10 Horas
-        </button>
-      </div>
+      )}
 
       {/* Sección de Inventario de Gemas */}
       <div className="profile-gems-section" style={{
