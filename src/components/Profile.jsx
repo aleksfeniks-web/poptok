@@ -937,9 +937,13 @@ const Profile = ({ onSelectVideo }) => {
                 className="profile-video-card"
                 onClick={() => setSelectedVideo(video)}
               >
-                <video className="profile-video-thumbnail" muted preload="metadata">
-                  <source src={video.fileUrl} type="video/mp4" />
-                </video>
+                {video.fileType === "image" ? (
+                  <img className="profile-video-thumbnail" src={video.fileUrl} alt="thumbnail" style={{ objectFit: "cover" }} />
+                ) : (
+                  <video className="profile-video-thumbnail" muted preload="metadata">
+                    <source src={video.fileUrl} type="video/mp4" />
+                  </video>
+                )}
                 <div className="profile-video-likes-badge">
                   <AiFillHeart /> {video.likes || 0}
                 </div>
@@ -960,9 +964,13 @@ const Profile = ({ onSelectVideo }) => {
                 className="profile-video-card"
                 onClick={() => setSelectedVideo(video)}
               >
-                <video className="profile-video-thumbnail" muted preload="metadata">
-                  <source src={video.fileUrl} type="video/mp4" />
-                </video>
+                {video.fileType === "image" ? (
+                  <img className="profile-video-thumbnail" src={video.fileUrl} alt="thumbnail" style={{ objectFit: "cover" }} />
+                ) : (
+                  <video className="profile-video-thumbnail" muted preload="metadata">
+                    <source src={video.fileUrl} type="video/mp4" />
+                  </video>
+                )}
                 <div className="profile-video-likes-badge">
                   <AiFillHeart style={{ color: "#ff0050" }} /> {video.likes || 0}
                 </div>
@@ -1026,13 +1034,21 @@ const Profile = ({ onSelectVideo }) => {
               <AiOutlineClose style={{ fontSize: "20px" }} />
             </button>
 
-             <video
-              src={selectedVideo.fileUrl}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              controls
-              autoPlay
-              loop
-            />
+             {selectedVideo.fileType === "image" ? (
+               <img
+                 src={selectedVideo.fileUrl}
+                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                 alt="Post content"
+               />
+             ) : (
+               <video
+                 src={selectedVideo.fileUrl}
+                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                 controls
+                 autoPlay
+                 loop
+               />
+             )}
 
             {user && selectedVideo.userId === user.uid && !selectedVideo.isPexels && (
               <button

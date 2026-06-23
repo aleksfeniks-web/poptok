@@ -68,13 +68,15 @@ const coinGlowColors = {
 };
 
 const VideoPlayer = forwardRef(
-  ({ videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange, onReactToComment, reactionComment, subtitles, onDeleteVideo, userRole, userStatus }, ref) => {
+  ({ fileType, videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange, onReactToComment, reactionComment, subtitles, onDeleteVideo, userRole, userStatus }, ref) => {
     const [hasError, setHasError] = useState(false);
     const [showCoin, setShowCoin] = useState(false);
     const [spawnedCoinType, setSpawnedCoinType] = useState(1);
     const [coinPosition, setCoinPosition] = useState({ x: 0, y: 0 });
     const [velocity, setVelocity] = useState({ dx: 1, dy: 1 });
     const videoRef = useRef(null);
+    const containerRef = useRef(null);
+    const [isMuted, setIsMuted] = useState(() => !window.isPoptokUnmuted);
     const [hasLiked, setHasLiked] = useState(false);
     const [hasFavorited, setHasFavorited] = useState(false);
     const [floatingHearts, setFloatingHearts] = useState([]);
@@ -126,22 +128,42 @@ const VideoPlayer = forwardRef(
         return;
       }
 
-      if (videoRef.current) {
-        if (videoRef.current.paused) {
-          videoRef.current.play().then(() => {
-            setIsPlaying(true);
-            onVideoPlayStateChange?.(true);
-          }).catch((err) => console.log(err));
-          setShowPlayPauseIcon("play");
-        } else {
-          videoRef.current.pause();
-          setIsPlaying(false);
-          onVideoPlayStateChange?.(false);
-          setShowPlayPauseIcon("pause");
+      if (fileType === "image") {
+        if (audioRef.current && musicUrl) {
+          if (isPlaying) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+            onVideoPlayStateChange?.(false);
+            setShowPlayPauseIcon("pause");
+          } else {
+            audioRef.current.play().then(() => {
+              setIsPlaying(true);
+              onVideoPlayStateChange?.(true);
+            }).catch((err) => console.log("Audio play blocked:", err));
+            setShowPlayPauseIcon("play");
+          }
+          setTimeout(() => {
+            setShowPlayPauseIcon(null);
+          }, 500);
         }
-        setTimeout(() => {
-          setShowPlayPauseIcon(null);
-        }, 500);
+      } else {
+        if (videoRef.current) {
+          if (videoRef.current.paused) {
+            videoRef.current.play().then(() => {
+              setIsPlaying(true);
+              onVideoPlayStateChange?.(true);
+            }).catch((err) => console.log(err));
+            setShowPlayPauseIcon("play");
+          } else {
+            videoRef.current.pause();
+            setIsPlaying(false);
+            onVideoPlayStateChange?.(false);
+            setShowPlayPauseIcon("pause");
+          }
+          setTimeout(() => {
+            setShowPlayPauseIcon(null);
+          }, 500);
+        }
       }
     };
 
@@ -245,6 +267,14 @@ const VideoPlayer = forwardRef(
 
     // ✅ Sincronizar música de fondo con el video
     useEffect(() => {
+      if (fileType === "image") {
+        return () => {
+          if (audioRef.current) {
+            audioRef.current.pause();
+            setIsPlayingAudio(false);
+          }
+        };
+      }
       const video = videoRef.current;
       const audio = audioRef.current;
       if (!video || !audio || !musicUrl) return;
@@ -283,7 +313,7 @@ const VideoPlayer = forwardRef(
         audio.pause();
         setIsPlayingAudio(false);
       };
-    }, [musicUrl, videoUrl]);
+    }, [fileType, musicUrl, videoUrl]);
 
     const handleShare = async () => {
       const shareUrl = `${window.location.origin}/?v=${riuzaki1234}`;
@@ -350,21 +380,29 @@ const VideoPlayer = forwardRef(
       }
     };
 
-    // Detectar si el video es vertical u horizontal
+    // Detectar si el video o la imagen es vertical u horizontal
     useEffect(() => {
-      const videoElement = videoRef.current;
-      if (videoElement) {
-        const handleLoadedMetadata = () => {
-          const { videoWidth, videoHeight } = videoElement;
-          setIsVertical(videoWidth < videoHeight);
+      if (fileType === "image") {
+        const img = new Image();
+        img.src = videoUrl;
+        img.onload = () => {
+          setIsVertical(img.width < img.height);
         };
+      } else {
+        const videoElement = videoRef.current;
+        if (videoElement) {
+          const handleLoadedMetadata = () => {
+            const { videoWidth, videoHeight } = videoElement;
+            setIsVertical(videoWidth < videoHeight);
+          };
 
-        videoElement.addEventListener("loadedmetadata", handleLoadedMetadata);
-        return () => {
-          videoElement.removeEventListener("loadedmetadata", handleLoadedMetadata);
-        };
+          videoElement.addEventListener("loadedmetadata", handleLoadedMetadata);
+          return () => {
+            videoElement.removeEventListener("loadedmetadata", handleLoadedMetadata);
+          };
+        }
       }
-    }, []);
+    }, [fileType, videoUrl]);
 
     // 1. Acumulador de tiempo de reproducción (segundo a segundo) y lógica RNG para aparecer gemas
     useEffect(() => {
@@ -469,40 +507,64 @@ const VideoPlayer = forwardRef(
       onInteraction(uid, "coins", spawnedCoinType);
     };
 
-    // Intersection Observer para reproducir videos visibles
+    // Intersection Observer para reproducir videos o música visibles
     useEffect(() => {
-      const videoElement = videoRef.current;
-      if (!videoElement) return;
+      const observerElement = containerRef.current;
+      if (!observerElement) return;
 
       const observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              videoRef.current?.play().then(() => {
+              if (fileType === "image") {
                 setIsPlaying(true);
                 onVideoPlayStateChange?.(true);
-              }).catch((err) => console.log("Auto-play blocked:", err));
+                if (audioRef.current && musicUrl) {
+                  audioRef.current.play()
+                    .then(() => setIsPlayingAudio(true))
+                    .catch((err) => console.log("Audio play blocked:", err));
+                }
+              } else {
+                videoRef.current?.play().then(() => {
+                  setIsPlaying(true);
+                  onVideoPlayStateChange?.(true);
+                }).catch((err) => console.log("Auto-play blocked:", err));
+              }
             } else {
-              videoRef.current?.pause();
-              setIsPlaying(false);
-              onVideoPlayStateChange?.(false);
+              if (fileType === "image") {
+                setIsPlaying(false);
+                onVideoPlayStateChange?.(false);
+                if (audioRef.current) {
+                  audioRef.current.pause();
+                  setIsPlayingAudio(false);
+                }
+              } else {
+                videoRef.current?.pause();
+                setIsPlaying(false);
+                onVideoPlayStateChange?.(false);
+              }
             }
           });
         },
         { threshold: 0.5 }
       );
 
-      observer.observe(videoElement);
+      observer.observe(observerElement);
 
       return () => {
-        observer.unobserve(videoElement);
+        observer.unobserve(observerElement);
       };
-    }, []);
+    }, [fileType, musicUrl]);
 
     // Habilitar el sonido después de la interacción del usuario
     const enableSound = () => {
+      window.isPoptokUnmuted = true;
+      setIsMuted(false);
       if (videoRef.current) {
         videoRef.current.muted = false;
+      }
+      if (audioRef.current) {
+        audioRef.current.muted = false;
       }
     };
 
@@ -574,7 +636,7 @@ const VideoPlayer = forwardRef(
     };
 
     return (
-      <div className={`video-container ${isVertical ? "vertical" : "horizontal"} ${showComments ? "shrink" : ""}`}>
+      <div ref={containerRef} className={`video-container ${isVertical ? "vertical" : "horizontal"} ${showComments ? "shrink" : ""}`}>
         <div className="relative w-full h-full" onClick={handlePlayPause}>
           {reactionComment && (
             <div className="reaction-comment-sticker" style={{
@@ -625,10 +687,18 @@ const VideoPlayer = forwardRef(
             <audio
               ref={audioRef}
               src={musicUrl}
+              muted={isMuted}
               loop
             />
           )}
-          {hasError ? (
+          {fileType === "image" ? (
+            <img
+              src={videoUrl}
+              className="video-player"
+              style={{ objectFit: "contain", backgroundColor: "#000" }}
+              alt="Post content"
+            />
+          ) : hasError ? (
             <p style={{ textAlign: "center", color: "gray", marginTop: "50%" }}>No se pudo cargar el video.</p>
           ) : (
             <video
@@ -637,7 +707,7 @@ const VideoPlayer = forwardRef(
               className="video-player"
               autoPlay
               playsInline
-              muted
+              muted={isMuted}
               loop
               onTimeUpdate={handleTimeUpdate}
               onError={() => setHasError(true)}

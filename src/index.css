@@ -2685,7 +2685,7 @@ canvas {
 /* Layout Toggle Bar - Selector de Modo */
 .layout-toggle-bar {
   position: fixed;
-  top: 56px; /* sits right below the header */
+  top: 8px; /* sits in the header */
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -2696,7 +2696,7 @@ canvas {
   backdrop-filter: blur(14px);
   border-radius: 30px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  z-index: 90;
+  z-index: 105; /* higher than the header (z-index 100) */
   width: auto;
   min-width: 200px;
 }
@@ -2761,7 +2761,7 @@ canvas {
 .explore-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 110px 15px 90px 15px; /* 56px header + ~44px toggle + breathing room */
+  padding: 76px 15px 90px 15px; /* 56px header + breathing room */
   min-height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;

@@ -583,6 +583,7 @@ const Feed = ({
         displayVideos.map((v) => (
           <div key={v.riuzaki1234} className="video-item">
             <VideoPlayer
+              fileType={v.fileType || "video"}
               videoUrl={v.fileUrl}
               username={v.username}
               description={v.description}
