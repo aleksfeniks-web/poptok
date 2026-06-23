@@ -23,11 +23,20 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import com.android.billingclient.api.BillingClient
+import com.android.billingclient.api.BillingClientStateListener
+import com.android.billingclient.api.BillingFlowParams
+import com.android.billingclient.api.BillingResult
+import com.android.billingclient.api.ConsumeParams
+import com.android.billingclient.api.Purchase
+import com.android.billingclient.api.PurchasesUpdatedListener
+import com.android.billingclient.api.QueryProductDetailsParams
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var webView: WebView
     private var filePathCallback: ValueCallback<Array<Uri>>? = null
+    private lateinit var billingClient: BillingClient
 
     // URL de producción de Poptok
     private val POPTOK_URL = "https://poptok-app.onrender.com"
@@ -87,6 +96,13 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Google Play Billing Client
+        billingClient = BillingClient.newBuilder(this)
+            .setListener(purchasesUpdatedListener)
+            .enablePendingPurchases()
+            .build()
+        startBillingConnection()
 
         // Ajustar WebView para que no se oculte tras las barras de estado o navegación del sistema
         WindowCompat.setDecorFitsSystemWindows(window, true)
@@ -149,6 +165,28 @@ class MainActivity : ComponentActivity() {
 
                 @JavascriptInterface
                 fun isAndroid(): Boolean = true
+
+                @JavascriptInterface
+                fun buyGems(amount: Int) {
+                    runOnUiThread {
+                        if (!billingClient.isReady) {
+                            billingClient.startConnection(object : BillingClientStateListener {
+                                override fun onBillingSetupFinished(res: BillingResult) {
+                                    if (res.responseCode == BillingClient.BillingResponseCode.OK) {
+                                        launchBillingFlowForProduct(amount)
+                                    } else {
+                                        notifyPurchaseError("Google Play no está listo: ${res.responseCode}")
+                                    }
+                                }
+                                override fun onBillingServiceDisconnected() {
+                                    notifyPurchaseError("Conexión con Google Play perdida")
+                                }
+                            })
+                        } else {
+                            launchBillingFlowForProduct(amount)
+                        }
+                    }
+                }
             }, "PoptokAndroid")
 
             webViewClient = object : WebViewClient() {
@@ -237,6 +275,121 @@ class MainActivity : ComponentActivity() {
             }
         }
         if (needed.isNotEmpty()) permissionsLauncher.launch(needed.toTypedArray())
+    }
+
+    // Google Play Billing listener
+    private val purchasesUpdatedListener = PurchasesUpdatedListener { billingResult, purchases ->
+        if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
+            for (purchase in purchases) {
+                handlePurchase(purchase)
+            }
+        } else if (billingResult.responseCode == BillingClient.BillingResponseCode.USER_CANCELED) {
+            notifyPurchaseError("Compra cancelada por el usuario")
+        } else {
+            notifyPurchaseError("Error de Google Play: ${billingResult.responseCode}")
+        }
+    }
+
+    private fun startBillingConnection() {
+        billingClient.startConnection(object : BillingClientStateListener {
+            override fun onBillingSetupFinished(billingResult: BillingResult) {
+                // Conexión establecida con éxito
+            }
+            override fun onBillingServiceDisconnected() {
+                // Reintentar conexión en la próxima compra
+            }
+        })
+    }
+
+    private fun launchBillingFlowForProduct(amount: Int) {
+        val productId = when (amount) {
+            10 -> "gems_10"
+            50 -> "gems_50"
+            100 -> "gems_100"
+            else -> {
+                notifyPurchaseError("Cantidad de gemas inválida")
+                return
+            }
+        }
+
+        val productList = listOf(
+            QueryProductDetailsParams.Product.newBuilder()
+                .setProductId(productId)
+                .setProductType(BillingClient.ProductType.INAPP)
+                .build()
+        )
+
+        val params = QueryProductDetailsParams.newBuilder()
+            .setProductList(productList)
+            .build()
+
+        billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList.isNotEmpty()) {
+                val productDetails = productDetailsList[0]
+                val billingFlowParams = BillingFlowParams.newBuilder()
+                    .setProductDetailsParamsList(listOf(
+                        BillingFlowParams.ProductDetailsParams.newBuilder()
+                            .setProductDetails(productDetails)
+                            .build()
+                    ))
+                    .build()
+
+                val result = billingClient.launchBillingFlow(this, billingFlowParams)
+                if (result.responseCode != BillingClient.BillingResponseCode.OK) {
+                    notifyPurchaseError("Error al iniciar flujo de compra: ${result.responseCode}")
+                }
+            } else {
+                notifyPurchaseError("Producto no encontrado en Google Play")
+            }
+        }
+    }
+
+    private fun handlePurchase(purchase: Purchase) {
+        if (purchase.purchaseState == Purchase.PurchaseState.PURCHASED) {
+            // Consumir el producto para poder volverlo a comprar
+            val consumeParams = ConsumeParams.newBuilder()
+                .setPurchaseToken(purchase.purchaseToken)
+                .build()
+
+            billingClient.consumeAsync(consumeParams) { billingResult, _ ->
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    val productId = purchase.products.firstOrNull() ?: ""
+                    val amount = when (productId) {
+                        "gems_10" -> 10
+                        "gems_50" -> 50
+                        "gems_100" -> 100
+                        else -> 0
+                    }
+                    notifyPurchaseSuccess(amount, purchase.orderId ?: "")
+                } else {
+                    notifyPurchaseError("Error al consumir la compra de Google Play")
+                }
+            }
+        }
+    }
+
+    private fun notifyPurchaseSuccess(amount: Int, orderId: String) {
+        runOnUiThread {
+            webView.evaluateJavascript("""
+                (function() {
+                    if (typeof window.__poptokAndroidPurchaseSuccess === 'function') {
+                        window.__poptokAndroidPurchaseSuccess($amount, '$orderId');
+                    }
+                })();
+            """.trimIndent(), null)
+        }
+    }
+
+    private fun notifyPurchaseError(error: String) {
+        runOnUiThread {
+            webView.evaluateJavascript("""
+                (function() {
+                    if (typeof window.__poptokAndroidPurchaseError === 'function') {
+                        window.__poptokAndroidPurchaseError('$error');
+                    }
+                })();
+            """.trimIndent(), null)
+        }
     }
 
     @Deprecated("Deprecated in Java")

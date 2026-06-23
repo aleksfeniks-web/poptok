@@ -180,6 +180,56 @@ const Profile = ({ onSelectVideo }) => {
     return () => unsubscribe();
   }, []);
 
+  // ✅ Registrar escuchas para compras nativas de Google Play en Android
+  useEffect(() => {
+    window.__poptokAndroidPurchaseSuccess = async (amount, orderId) => {
+      if (!user) return;
+      setIsPurchasing(true);
+      try {
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          const currentCoins = data.coins || 0;
+          const currentCounts = data.coinCounts || {
+            coin_1: currentCoins,
+            coin_2: 0,
+            coin_3: 0,
+            coin_4: 0,
+            coin_5: 0,
+            coin_6: 0
+          };
+
+          currentCounts.coin_6 = (currentCounts.coin_6 || 0) + amount;
+
+          await updateDoc(userRef, {
+            coins: currentCoins + amount,
+            coinCounts: currentCounts
+          });
+
+          setPurchasedAmount(amount);
+          setPurchaseSuccess(true);
+          await fetchUserData(user.uid);
+        }
+      } catch (error) {
+        console.error("Error al procesar compra de Google Play en Firestore:", error);
+        alert("Pago exitoso en Google Play, pero falló la acreditación en Firestore. Contacta a soporte.");
+      } finally {
+        setIsPurchasing(false);
+      }
+    };
+
+    window.__poptokAndroidPurchaseError = (errorMsg) => {
+      setIsPurchasing(false);
+      alert("Error en la compra con Google Play: " + errorMsg);
+    };
+
+    return () => {
+      delete window.__poptokAndroidPurchaseSuccess;
+      delete window.__poptokAndroidPurchaseError;
+    };
+  }, [user]);
+
   const fetchUserData = async (uid) => {
     try {
       const userRef = doc(db, "users", uid);
@@ -246,6 +296,20 @@ const Profile = ({ onSelectVideo }) => {
   const handleBuyGems = async (amount) => {
     if (!user) return;
     setIsPurchasing(true);
+
+    // Si estamos dentro del WebView de la app de Android, llamar al método nativo de Google Play Billing
+    if (window.PoptokAndroid && typeof window.PoptokAndroid.buyGems === "function") {
+      try {
+        window.PoptokAndroid.buyGems(amount);
+      } catch (err) {
+        console.error("Error al llamar Google Play Billing nativo:", err);
+        setIsPurchasing(false);
+        alert("Error al iniciar Google Play Billing.");
+      }
+      return;
+    }
+
+    // Simulación / Fallback en Web normal
     try {
       await new Promise((resolve) => setTimeout(resolve, 1500)); // Simular pasarela segura
       const userRef = doc(db, "users", user.uid);
@@ -1056,9 +1120,9 @@ const Profile = ({ onSelectVideo }) => {
               <>
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
                   {[
-                    { amount: 10, price: "$0.99 USD" },
-                    { amount: 50, price: "$3.99 USD", label: "Ahorra 20%" },
-                    { amount: 100, price: "$6.99 USD", label: "Mejor Valor" }
+                    { amount: 10, priceMXN: "$19.00 MXN", priceUSD: "$0.99 USD" },
+                    { amount: 50, priceMXN: "$79.00 MXN", priceUSD: "$3.99 USD", label: "Ahorra 20%" },
+                    { amount: 100, priceMXN: "$139.00 MXN", priceUSD: "$6.99 USD", label: "Mejor Valor" }
                   ].map((option) => (
                     <div
                       key={option.amount}
@@ -1083,7 +1147,10 @@ const Profile = ({ onSelectVideo }) => {
                           {option.label && <span style={{ fontSize: "9px", color: "#FFD700", background: "rgba(255,215,0,0.08)", padding: "1px 5px", borderRadius: "6px", display: "inline-block", marginTop: "2px" }}>{option.label}</span>}
                         </div>
                       </div>
-                      <div style={{ fontWeight: "bold", color: "#FFD700" }}>{option.price}</div>
+                      <div style={{ fontWeight: "bold", color: "#FFD700", textAlign: "right" }}>
+                        <div>{option.priceMXN}</div>
+                        <div style={{ fontSize: "11px", color: "#aaa", marginTop: "1px" }}>{option.priceUSD}</div>
+                      </div>
                     </div>
                   ))}
                 </div>
