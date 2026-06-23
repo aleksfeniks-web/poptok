@@ -988,22 +988,7 @@ const VideoPlayer = forwardRef(
                       {/* Botón Seguir */}
                       <button
                         onClick={handleFollow}
-                        style={{
-                          background: isFollowing ? "rgba(255, 255, 255, 0.15)" : "#ff0050",
-                          color: "#fff",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "10px",
-                          padding: "10px",
-                          borderRadius: "30px",
-                          fontSize: "14px",
-                          fontWeight: "bold",
-                          border: "none",
-                          cursor: "pointer",
-                          width: "100%",
-                          boxShadow: isFollowing ? "none" : "0 4px 10px rgba(255, 0, 80, 0.3)"
-                        }}
+                        className={isFollowing ? "other-user-action-btn following" : "other-user-action-btn follow"}
                       >
                         {isFollowing ? <FaUserCheck size={16} /> : <FaUserPlus size={16} />}
                         {isFollowing ? "Siguiendo" : "Seguir"}
@@ -1012,22 +997,7 @@ const VideoPlayer = forwardRef(
                       {/* Botón Enviar Mensaje */}
                       <button
                         onClick={handleOpenChatEvent}
-                        style={{
-                          background: "linear-gradient(135deg, #00f2fe, #4facfe)",
-                          color: "#000",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "10px",
-                          padding: "10px",
-                          borderRadius: "30px",
-                          fontSize: "14px",
-                          fontWeight: "bold",
-                          border: "none",
-                          cursor: "pointer",
-                          width: "100%",
-                          boxShadow: "0 4px 10px rgba(0, 242, 254, 0.3)"
-                        }}
+                        className="other-user-action-btn message"
                       >
                         <FaCommentDots size={16} /> Enviar Mensaje
                       </button>
@@ -1035,22 +1005,7 @@ const VideoPlayer = forwardRef(
                       {/* Botón Ver Tienda */}
                       <button
                         onClick={handleViewShopEvent}
-                        style={{
-                          background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
-                          color: "#000",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "10px",
-                          padding: "10px",
-                          borderRadius: "30px",
-                          fontSize: "14px",
-                          fontWeight: "bold",
-                          border: "none",
-                          cursor: "pointer",
-                          width: "100%",
-                          boxShadow: "0 4px 10px rgba(251, 191, 36, 0.3)"
-                        }}
+                        className="other-user-action-btn store"
                       >
                         <FaStore size={16} /> Ver Tienda
                       </button>
@@ -1183,23 +1138,8 @@ const VideoPlayer = forwardRef(
                   {currentUser && userId && userId !== currentUser.uid && (
                     <button
                       onClick={handleBlockUnblock}
-                      style={{
-                        background: isUserBlocked ? "rgba(255, 255, 255, 0.15)" : "#ff0050",
-                        color: "#fff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "10px",
-                        padding: "10px",
-                        borderRadius: "30px",
-                        fontSize: "14px",
-                        fontWeight: "bold",
-                        border: "none",
-                        cursor: "pointer",
-                        width: "100%",
-                        boxShadow: isUserBlocked ? "none" : "0 4px 10px rgba(255, 0, 80, 0.3)",
-                        marginTop: "10px"
-                      }}
+                      className={isUserBlocked ? "other-user-action-btn blocked" : "other-user-action-btn block"}
+                      style={{ marginTop: "10px" }}
                     >
                       {isUserBlocked ? "🚫 Desbloquear usuario" : "🚫 Bloquear usuario"}
                     </button>

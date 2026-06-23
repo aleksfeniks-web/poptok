@@ -5162,6 +5162,87 @@ canvas {
   padding: 40px 10px;
 }
 
+/* Other User Action Buttons in links modal */
+.other-user-action-btn {
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: bold;
+  border: 1.5px solid;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.other-user-action-btn.follow {
+  border-color: #ff0050;
+  color: #fff;
+}
+.other-user-action-btn.follow:hover {
+  background: rgba(255, 0, 80, 0.1);
+  box-shadow: 0 0 15px rgba(255, 0, 80, 0.4);
+  transform: translateY(-1px);
+}
+
+.other-user-action-btn.following {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.other-user-action-btn.following:hover {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.other-user-action-btn.message {
+  border-color: #00f2fe;
+  color: #fff;
+}
+.other-user-action-btn.message:hover {
+  background: rgba(0, 242, 254, 0.1);
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+  transform: translateY(-1px);
+}
+
+.other-user-action-btn.store {
+  border-color: #fbbf24;
+  color: #fff;
+}
+.other-user-action-btn.store:hover {
+  background: rgba(251, 191, 36, 0.1);
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+  transform: translateY(-1px);
+}
+
+.other-user-action-btn.block {
+  border-color: #ff0050;
+  color: #ff0050;
+}
+.other-user-action-btn.block:hover {
+  background: rgba(255, 0, 80, 0.1);
+  box-shadow: 0 0 15px rgba(255, 0, 80, 0.4);
+  transform: translateY(-1px);
+}
+
+.other-user-action-btn.blocked {
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.other-user-action-btn.blocked:hover {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
 
 
 
