@@ -12,7 +12,7 @@ import {
   FaHeart, FaMusic, FaRobot, FaBolt, FaGlobe, FaBitcoin, FaRandom, 
   FaNewspaper, FaFutbol, FaSuperpowers, FaFireAlt, FaStar, FaPaw, FaPaypal,
   FaPlay, FaPause, FaInstagram, FaTwitter, FaYoutube, FaExternalLinkAlt,
-  FaUserPlus, FaUserCheck, FaCommentDots, FaStore
+  FaUserPlus, FaUserCheck, FaCommentDots, FaStore, FaShoppingBag
 } from "react-icons/fa";
 
 import coin1 from "../assets/coin_1.svg";
@@ -984,30 +984,36 @@ const VideoPlayer = forwardRef(
                 {/* Social Buttons */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%" }}>
                   {currentUser && userId && userId !== currentUser.uid && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "100%", borderBottom: "1px solid rgba(255, 255, 255, 0.1)", paddingBottom: "15px", marginBottom: "5px" }}>
+                    <div className="other-user-action-row">
                       {/* Botón Seguir */}
                       <button
                         onClick={handleFollow}
-                        className={isFollowing ? "other-user-action-btn following" : "other-user-action-btn follow"}
+                        className={isFollowing ? "other-user-action-btn following" : "other-user-action-btn"}
                       >
-                        {isFollowing ? <FaUserCheck size={16} /> : <FaUserPlus size={16} />}
+                        {isFollowing ? (
+                          <FaUserCheck size={14} style={{ color: "#888" }} />
+                        ) : (
+                          <FaUserPlus size={14} style={{ color: "#00f2fe" }} />
+                        )}
                         {isFollowing ? "Siguiendo" : "Seguir"}
                       </button>
 
                       {/* Botón Enviar Mensaje */}
                       <button
                         onClick={handleOpenChatEvent}
-                        className="other-user-action-btn message"
+                        className="other-user-action-btn"
                       >
-                        <FaCommentDots size={16} /> Enviar Mensaje
+                        <FaCommentDots size={14} style={{ color: "#00f2fe" }} />
+                        Enviar Mensaje
                       </button>
 
                       {/* Botón Ver Tienda */}
                       <button
                         onClick={handleViewShopEvent}
-                        className="other-user-action-btn store"
+                        className="other-user-action-btn"
                       >
-                        <FaStore size={16} /> Ver Tienda
+                        <FaShoppingBag size={14} style={{ color: "#ff0050" }} />
+                        Ver Tienda
                       </button>
                     </div>
                   )}
@@ -1138,8 +1144,7 @@ const VideoPlayer = forwardRef(
                   {currentUser && userId && userId !== currentUser.uid && (
                     <button
                       onClick={handleBlockUnblock}
-                      className={isUserBlocked ? "other-user-action-btn blocked" : "other-user-action-btn block"}
-                      style={{ marginTop: "10px" }}
+                      className={isUserBlocked ? "other-user-block-btn blocked" : "other-user-block-btn"}
                     >
                       {isUserBlocked ? "🚫 Desbloquear usuario" : "🚫 Bloquear usuario"}
                     </button>

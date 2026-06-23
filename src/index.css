@@ -5162,82 +5162,88 @@ canvas {
   padding: 40px 10px;
 }
 
-/* Other User Action Buttons in links modal */
+/* Other User Action Buttons in links modal (Horizontal Row) */
+.other-user-action-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  width: 100%;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 15px;
+  margin-bottom: 5px;
+  box-sizing: border-box;
+}
+
+/* Horizontal action buttons with gradient border */
 .other-user-action-btn {
-  background: rgba(0, 0, 0, 0.4);
+  background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), linear-gradient(90deg, #00f2fe, #ff0050);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+  border: 1.5px solid transparent;
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: 6px;
+  padding: 8px 6px;
   border-radius: 30px;
-  font-size: 14px;
+  font-size: 11px;
   font-weight: bold;
-  border: 1.5px solid;
   cursor: pointer;
-  width: 100%;
+  flex: 1;
   transition: all 0.3s ease;
+  white-space: nowrap;
   box-sizing: border-box;
 }
 
-.other-user-action-btn.follow {
-  border-color: #ff0050;
-  color: #fff;
-}
-.other-user-action-btn.follow:hover {
-  background: rgba(255, 0, 80, 0.1);
-  box-shadow: 0 0 15px rgba(255, 0, 80, 0.4);
+.other-user-action-btn:hover {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05)), linear-gradient(90deg, #00f2fe, #ff0050);
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.25), 0 0 10px rgba(255, 0, 80, 0.25);
   transform: translateY(-1px);
 }
 
 .other-user-action-btn.following {
-  border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.08)), linear-gradient(90deg, #888, #444);
 }
 .other-user-action-btn.following:hover {
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+  background-image: linear-gradient(rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.12)), linear-gradient(90deg, #888, #444);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.15);
   transform: translateY(-1px);
 }
 
-.other-user-action-btn.message {
-  border-color: #00f2fe;
-  color: #fff;
-}
-.other-user-action-btn.message:hover {
-  background: rgba(0, 242, 254, 0.1);
-  box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
-  transform: translateY(-1px);
-}
-
-.other-user-action-btn.store {
-  border-color: #fbbf24;
-  color: #fff;
-}
-.other-user-action-btn.store:hover {
-  background: rgba(251, 191, 36, 0.1);
-  box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
-  transform: translateY(-1px);
-}
-
-.other-user-action-btn.block {
-  border-color: #ff0050;
+/* Secondary block/unblock buttons (full width) */
+.other-user-block-btn {
+  background: rgba(0, 0, 0, 0.4);
   color: #ff0050;
+  border: 1.5px solid #ff0050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+  margin-top: 10px;
 }
-.other-user-action-btn.block:hover {
+
+.other-user-block-btn:hover {
   background: rgba(255, 0, 80, 0.1);
   box-shadow: 0 0 15px rgba(255, 0, 80, 0.4);
   transform: translateY(-1px);
 }
 
-.other-user-action-btn.blocked {
+.other-user-block-btn.blocked {
+  color: #fff;
   border-color: rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.1);
-  color: #fff;
 }
-.other-user-action-btn.blocked:hover {
+
+.other-user-block-btn.blocked:hover {
   background: rgba(255, 255, 255, 0.15);
   box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
