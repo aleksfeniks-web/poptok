@@ -255,7 +255,6 @@ const Feed = ({
         comments: Array.isArray(doc.data().comments) ? doc.data().comments : [],
       }));
 
-      console.log("✅ Videos recibidos desde Firestore:", firestoreData);
 
       // If Firestore is empty → use demo videos, no more pages
       if (firestoreData.length === 0) {

@@ -792,7 +792,6 @@ const VideoPlayer = forwardRef(
                   username: currentUser.displayName || "Anónimo",
                 };
 
-                console.log(`📩 Enviando comentario: ${JSON.stringify(newComment)}`);
                 updateVideoComments(riuzaki1234, newComment, currentUser);
               }}
             />

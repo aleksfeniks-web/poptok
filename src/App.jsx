@@ -222,7 +222,6 @@ function App() {
       try {
         const credential = GoogleAuthProvider.credential(idToken);
         const result = await signInWithCredential(auth, credential);
-        console.log("Usuario autenticado en Android vía Google:", result.user);
         setShowAuthSelection(false);
       } catch (error) {
         console.error("Error al autenticar con credencial de Google nativa:", error);
@@ -367,7 +366,6 @@ function App() {
     e.preventDefault();
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("Usuario autenticado:", userCredential.user);
       setShowAuthSelection(false); 
     } catch (error) {
       console.error("Error de autenticación:", error.message);
@@ -381,7 +379,6 @@ function App() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: username });
-      console.log("Usuario registrado:", userCredential.user);
       setShowAuthSelection(false); 
     } catch (error) {
       console.error("Error de registro:", error.message);
@@ -399,7 +396,6 @@ function App() {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
-      console.log("Usuario autenticado con Google:", result.user);
       setShowAuthSelection(false); 
     } catch (error) {
       console.error("Error en Google Sign-In:", error.message);
@@ -412,7 +408,6 @@ function App() {
     try {
       const provider = new OAuthProvider('apple.com');
       const result = await signInWithPopup(auth, provider);
-      console.log("Usuario autenticado con Apple:", result.user);
       setShowAuthSelection(false); 
     } catch (error) {
       console.error("Error en Apple Sign-In:", error.message);
