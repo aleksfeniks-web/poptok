@@ -1088,13 +1088,6 @@ function App() {
                 </button>
               )}
 
-              {/* Sign up / Login toggle when showing selection */}
-              {showAuthSelection && !isSignUp && (
-                <p className="auth-switch-link" style={{ marginTop: "12px" }}>
-                  ¿No tienes cuenta?{" "}
-                  <span onClick={() => setIsSignUp(true)}>Regístrate</span>
-                </p>
-              )}
             </div>
           </div>
         )}
