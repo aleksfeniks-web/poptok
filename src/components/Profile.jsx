@@ -5,7 +5,7 @@ import { collection, doc, getDoc, getDocs, query, where, updateDoc, deleteDoc } 
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { AiFillHeart, AiOutlineClose } from "react-icons/ai";
 import { BsAward, BsCoin, BsGrid3X3Gap } from "react-icons/bs";
-import { FaUserEdit, FaInstagram, FaTwitter, FaYoutube, FaPaypal, FaExternalLinkAlt, FaPen, FaSignOutAlt, FaShieldAlt, FaDownload, FaTrashAlt, FaUsers, FaUserCheck } from "react-icons/fa";
+import { FaUserEdit, FaInstagram, FaTwitter, FaYoutube, FaPaypal, FaExternalLinkAlt, FaPen, FaSignOutAlt, FaShieldAlt, FaDownload, FaTrashAlt, FaUsers, FaUserCheck, FaLeaf } from "react-icons/fa";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
@@ -185,6 +185,26 @@ const StripeDepositForm = ({ amount, onCancel, onSuccess, businessName, taxId, u
             }
           }} />
         </div>
+      </div>
+
+      {/* Ecology / Carbon removal contribution message */}
+      <div style={{
+        display: "flex",
+        gap: "12px",
+        alignItems: "flex-start",
+        background: "rgba(46, 204, 113, 0.08)",
+        border: "1px solid rgba(46, 204, 113, 0.2)",
+        borderRadius: "10px",
+        padding: "12px 15px",
+        margin: "15px 0",
+        color: "#2ecc71",
+        lineHeight: "1.4",
+        textAlign: "left"
+      }}>
+        <FaLeaf size={22} style={{ flexShrink: 0, marginTop: "2px" }} />
+        <span style={{ fontSize: "11px", color: "#e0e0e0" }}>
+          Cada dólar que aportes servirá para financiar tecnologías de eliminación de dióxido de carbono de nueva generación.
+        </span>
       </div>
 
       {errorMessage && (
