@@ -530,6 +530,10 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
         createdAt: new Date().toISOString()
       });
 
+      // Close the upload modal
+      if (onUploadSuccess) {
+        onUploadSuccess();
+      }
       // Redirect to countdown
       navigate(`/countdown/${roomId}`);
     } catch (err) {

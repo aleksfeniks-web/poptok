@@ -360,6 +360,14 @@ function App() {
               hostId: live.hostId
             });
           }
+        } else if (change.type === "removed") {
+          const live = change.doc.data();
+          setLiveToastNotification((prev) => {
+            if (prev && prev.roomId === live.roomId) {
+              return null;
+            }
+            return prev;
+          });
         }
       });
     }, (error) => {

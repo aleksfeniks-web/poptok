@@ -81,6 +81,11 @@ const LiveStream = () => {
   const streamRef = useRef(null);
   const commentsEndRef = useRef(null);
   const prevLikesRef = useRef(0);
+  const isHostRef = useRef(false);
+
+  useEffect(() => {
+    isHostRef.current = isHost;
+  }, [isHost]);
 
   // Escuchar autenticación
   useEffect(() => {
@@ -108,6 +113,42 @@ const LiveStream = () => {
     return () => unsubscribe();
   }, [currentUser]);
 
+  // Reset states when roomId changes
+  useEffect(() => {
+    setLiveData(null);
+    setIsHost(false);
+    setViewers(0);
+    setComments([]);
+    setFloatingHearts([]);
+    setHasCamera(false);
+    setStreamActive(true);
+    setShowGiftsModal(false);
+    setShowProductsModal(false);
+    setGiftAnimation(null);
+  }, [roomId]);
+
+  // Redirección automática al finalizar el directo
+  const handleAutoRedirect = async () => {
+    alert("El En Vivo ha finalizado. Buscando otra transmisión activa...");
+    try {
+      const q = query(collection(db, "lives"), where("status", "==", "active"));
+      const snap = await getDocs(q);
+      const otherLives = snap.docs
+        .map(d => d.data())
+        .filter(l => l.roomId !== roomId);
+
+      if (otherLives.length > 0) {
+        const nextRoomId = otherLives[0].roomId;
+        navigate(`/live/${nextRoomId}`);
+      } else {
+        navigate("/");
+      }
+    } catch (err) {
+      console.error("Error al buscar otras transmisiones:", err);
+      navigate("/");
+    }
+  };
+
   // Escuchar datos de la transmisión
   useEffect(() => {
     if (!roomId) return;
@@ -116,11 +157,19 @@ const LiveStream = () => {
     const unsubscribe = onSnapshot(liveRef, (snap) => {
       if (!snap.exists()) {
         setStreamActive(false);
+        // Si somos el espectador, redirigir automáticamente
+        if (currentUser && !isHostRef.current) {
+          handleAutoRedirect();
+        }
         return;
       }
       const data = snap.data();
       if (data.status === "ended") {
         setStreamActive(false);
+        // Si somos el espectador, redirigir automáticamente
+        if (currentUser && data.hostId !== currentUser.uid) {
+          handleAutoRedirect();
+        }
         return;
       }
       setLiveData(data);
@@ -500,13 +549,17 @@ const LiveStream = () => {
     <div style={{
       width: "100vw",
       height: "100vh",
-      background: "black",
       position: "fixed",
       top: 0,
       left: 0,
       overflow: "hidden",
       fontFamily: "system-ui, -apple-system, sans-serif",
-      zIndex: 1000
+      zIndex: 1000,
+      boxSizing: "border-box",
+      border: "3.5px solid transparent",
+      borderRadius: "20px",
+      background: "linear-gradient(black, black) padding-box, linear-gradient(135deg, #00f2fe 0%, #ff007f 50%, #9d00ff 100%) border-box",
+      boxShadow: "inset 0 0 20px rgba(0, 242, 254, 0.2)"
     }}>
       {/* Video stream viewport */}
       {isHost ? (
@@ -632,80 +685,84 @@ const LiveStream = () => {
         zIndex: 10
       }}>
         {/* Live Badge & Host profile */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{
-            background: "#FF0050",
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {/* 🔴 Live badge style matching reference image */}
+          <div style={{
+            background: "rgba(255, 0, 80, 0.15)",
+            border: "1.5px solid #FF0050",
             color: "white",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            fontSize: "12px",
+            padding: "6px 12px",
+            borderRadius: "8px",
+            fontSize: "14px",
             fontWeight: "bold",
-            letterSpacing: "1px",
-            animation: "pulse 1s infinite alternate"
-          }}>
-            🔴 LIVE
-          </span>
-          <span style={{
-            background: "rgba(0,0,0,0.6)",
-            color: "white",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            fontSize: "12px",
+            letterSpacing: "0.5px",
             display: "flex",
             alignItems: "center",
-            gap: "5px"
+            gap: "6px",
+            boxShadow: "0 0 10px rgba(255, 0, 80, 0.3)"
           }}>
-            <FiUsers size={12} /> {viewers}
-          </span>
-          <span style={{
-            background: "rgba(0,0,0,0.6)",
-            color: "#FFD700",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            fontSize: "12px",
-            fontWeight: "bold"
+            <span style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              background: "#FF0050",
+              display: "inline-block",
+              boxShadow: "0 0 8px #FF0050"
+            }} />
+            Live
+          </div>
+
+          {/* 👥 Followers count styling matching reference image */}
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "2px 8px"
           }}>
-            ❤️ {liveData?.likes || 0}
-          </span>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              color: "#00f2fe",
+              fontSize: "15px",
+              fontWeight: "bold",
+              textShadow: "0 0 8px rgba(0, 242, 254, 0.4)"
+            }}>
+              <FiUsers size={16} style={{ color: "#00f2fe" }} /> {viewers}
+            </div>
+            <span style={{
+              fontSize: "9px",
+              color: "#a0e9ff",
+              fontWeight: "600",
+              marginTop: "1px",
+              textTransform: "uppercase",
+              letterSpacing: "0.5px"
+            }}>
+              Seguidores Viendo
+            </span>
+          </div>
         </div>
 
         {/* Action button: End live or Exit */}
         {isHost ? (
-          <div style={{ display: "flex", gap: "8px" }}>
-            {hasCamera && (
-              <button
-                onClick={() => setFacingMode(prev => prev === "user" ? "environment" : "user")}
-                style={{
-                  background: "rgba(0,0,0,0.7)",
-                  color: "#ff00ff",
-                  border: "1px solid rgba(255,0,255,0.3)",
-                  borderRadius: "20px",
-                  padding: "8px 16px",
-                  fontSize: "12px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px"
-                }}
-              >
-                🔄 Voltear
-              </button>
-            )}
+          <div style={{ display: "flex", gap: "10px" }}>
             <button
               onClick={openPinProductModal}
               style={{
-                background: "rgba(0,0,0,0.7)",
+                background: "rgba(0, 242, 254, 0.1)",
                 color: "#00f2fe",
-                border: "1px solid rgba(0,242,254,0.3)",
-                borderRadius: "20px",
+                border: "1.5px solid #00f2fe",
+                borderRadius: "8px",
                 padding: "8px 16px",
-                fontSize: "12px",
+                fontSize: "13px",
                 fontWeight: "bold",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                gap: "5px"
+                gap: "6px",
+                boxShadow: "0 0 10px rgba(0, 242, 254, 0.2)",
+                transition: "all 0.2s"
               }}
             >
               🛍️ Promocionar
@@ -713,32 +770,37 @@ const LiveStream = () => {
             <button
               onClick={handleEndLive}
               style={{
-                background: "#FF0050",
+                background: "rgba(255, 0, 80, 0.15)",
                 color: "white",
-                border: "none",
-                borderRadius: "20px",
+                border: "1.5px solid #FF0050",
+                borderRadius: "8px",
                 padding: "8px 16px",
-                fontSize: "12px",
+                fontSize: "13px",
                 fontWeight: "bold",
                 cursor: "pointer",
-                boxShadow: "0 0 10px rgba(255,0,80,0.5)"
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                boxShadow: "0 0 10px rgba(255, 0, 80, 0.2)",
+                transition: "all 0.2s"
               }}
             >
-              Finalizar
+              🛑 Finalizar
             </button>
           </div>
         ) : (
           <button
             onClick={() => navigate("/")}
             style={{
-              background: "rgba(0,0,0,0.6)",
+              background: "rgba(255, 255, 255, 0.1)",
               color: "white",
               border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: "20px",
+              borderRadius: "8px",
               padding: "8px 16px",
-              fontSize: "12px",
+              fontSize: "13px",
               fontWeight: "bold",
-              cursor: "pointer"
+              cursor: "pointer",
+              transition: "all 0.2s"
             }}
           >
             Salir
@@ -966,6 +1028,137 @@ const LiveStream = () => {
         </div>
       </div>
 
+      {/* Right Side Floating Actions Column */}
+      <div style={{
+        position: "absolute",
+        top: "50%",
+        right: "15px",
+        transform: "translateY(-50%)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "20px",
+        zIndex: 30
+      }}>
+        {/* Heart/Like Button & Count */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+          <button
+            onClick={isHost ? null : handleLike}
+            style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "50%",
+              background: "rgba(0, 0, 0, 0.65)",
+              border: "2px solid #FF0050",
+              boxShadow: "0 0 12px rgba(255,0,80,0.4)",
+              color: "#FF0050",
+              fontSize: "22px",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              cursor: isHost ? "default" : "pointer",
+              transition: "transform 0.1s"
+            }}
+            title={isHost ? "Me Gusta recibidos" : "Dar Me Gusta"}
+            onMouseDown={(e) => { if (!isHost) e.currentTarget.style.transform = "scale(0.85)"; }}
+            onMouseUp={(e) => { if (!isHost) e.currentTarget.style.transform = "scale(1)"; }}
+            onMouseLeave={(e) => { if (!isHost) e.currentTarget.style.transform = "scale(1)"; }}
+          >
+            <AiFillHeart />
+          </button>
+          <span style={{
+            color: "white",
+            fontSize: "12px",
+            fontWeight: "bold",
+            background: "rgba(0,0,0,0.6)",
+            padding: "2px 8px",
+            borderRadius: "10px",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            textAlign: "center"
+          }}>
+            {liveData?.likes || 0}
+          </span>
+        </div>
+
+        {/* Gift Gem trigger (Viewer Only) */}
+        {!isHost && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+            <button
+              onClick={() => setShowGiftsModal(true)}
+              style={{
+                width: "48px",
+                height: "48px",
+                borderRadius: "50%",
+                background: "rgba(0, 0, 0, 0.65)",
+                border: "2px solid #9d00ff",
+                boxShadow: "0 0 12px rgba(157,0,255,0.4)",
+                color: "white",
+                fontSize: "22px",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                cursor: "pointer"
+              }}
+              title="Regalar Gemas"
+            >
+              💎
+            </button>
+            <span style={{
+              color: "white",
+              fontSize: "11px",
+              fontWeight: "bold",
+              background: "rgba(0,0,0,0.6)",
+              padding: "2px 8px",
+              borderRadius: "10px",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              textAlign: "center"
+            }}>
+              Regalar
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Voltear Cámara Button (Bottom Center - Host Only) */}
+      {isHost && hasCamera && (
+        <div style={{
+          position: "absolute",
+          bottom: "85px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 30,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "6px",
+          cursor: "pointer"
+        }} onClick={() => setFacingMode(prev => prev === "user" ? "environment" : "user")}>
+          <div style={{
+            width: "50px",
+            height: "50px",
+            borderRadius: "50%",
+            background: "rgba(0, 0, 0, 0.6)",
+            border: "2px solid #ff00ff",
+            boxShadow: "0 0 12px rgba(255, 0, 255, 0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            color: "white",
+            fontSize: "20px"
+          }}>
+            📷
+          </div>
+          <span style={{
+            color: "#fff",
+            fontSize: "11px",
+            fontWeight: "bold",
+            textShadow: "0 1px 3px rgba(0,0,0,0.8)"
+          }}>
+            Voltear cámara
+          </span>
+        </div>
+      )}
+
       {/* Input bar and action panels (Bottom) */}
       <div style={{
         position: "absolute",
@@ -981,8 +1174,7 @@ const LiveStream = () => {
         <form onSubmit={handleSendComment} style={{
           display: "flex",
           gap: "8px",
-          flex: 1,
-          marginRight: "12px"
+          flex: 1
         }}>
           <input
             type="text"
@@ -1013,55 +1205,6 @@ const LiveStream = () => {
             Enviar
           </button>
         </form>
-
-        {/* Interaction HUD: Heart and Gems (Viewer Only) */}
-        {!isHost && (
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            {/* Gift Gem trigger */}
-            <button
-              onClick={() => setShowGiftsModal(true)}
-              style={{
-                width: "42px",
-                height: "42px",
-                borderRadius: "50%",
-                background: "linear-gradient(135deg, #ff0050, #7f00ff)",
-                border: "none",
-                color: "white",
-                fontSize: "20px",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                cursor: "pointer",
-                boxShadow: "0 0 12px rgba(127,0,255,0.6)"
-              }}
-              title="Regalar Gemas"
-            >
-              💎
-            </button>
-
-            {/* Like trigger */}
-            <button
-              onClick={handleLike}
-              style={{
-                width: "42px",
-                height: "42px",
-                borderRadius: "50%",
-                background: "#FF0050",
-                border: "none",
-                color: "white",
-                fontSize: "20px",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                cursor: "pointer",
-                boxShadow: "0 0 12px rgba(255,0,80,0.6)"
-              }}
-              title="Dar Me Gusta"
-            >
-              ❤️
-            </button>
-          </div>
-        )}
       </div>
 
       {/* MODAL: REGALAR GEMAS */}
