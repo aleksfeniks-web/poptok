@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { auth, db, storage } from "../firebase.js";
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { collection, addDoc, doc, setDoc } from "firebase/firestore";
@@ -76,6 +77,7 @@ const MUSIC_TRACKS = [
 
 
 const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStatus }) => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState("video"); // "video" | "photo" | "text" | "live"
   const [liveTitle, setLiveTitle] = useState("");
   const [videoFile, setVideoFile] = useState(null);
@@ -529,7 +531,7 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
       });
 
       // Redirect to countdown
-      window.location.href = `/countdown/${roomId}`;
+      navigate(`/countdown/${roomId}`);
     } catch (err) {
       console.error("Error starting live stream:", err);
       alert("Error al iniciar la transmisión: " + err.message);

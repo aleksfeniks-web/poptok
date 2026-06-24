@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import "../index.css";
 import VideoPlayer from "./VideoPlayer.jsx";
 import { auth, db } from "../firebase.js";
@@ -106,6 +107,7 @@ const Feed = ({
   onVideoPlayStateChange,
   onReactToComment
 }) => {
+  const navigate = useNavigate();
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -633,7 +635,7 @@ const Feed = ({
             {activeLives.map((live) => (
               <div
                 key={live.roomId}
-                onClick={() => window.location.href = `/live/${live.roomId}`}
+                onClick={() => navigate(`/live/${live.roomId}`)}
                 style={{
                   display: "flex",
                   flexDirection: "column",
@@ -831,7 +833,7 @@ const Feed = ({
 
                   {/* Botón de acción para unirse */}
                   <button
-                    onClick={() => window.location.href = `/live/${v.riuzaki1234}`}
+                    onClick={() => navigate(`/live/${v.riuzaki1234}`)}
                     style={{
                       background: "linear-gradient(135deg, #ff0050, #ff00ff)",
                       color: "white",

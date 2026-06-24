@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { Route, Routes, useNavigate } from "react-router-dom";
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithCredential } from "firebase/auth";
 import { collection, onSnapshot, query, where, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "./firebase.js";
@@ -20,6 +20,7 @@ import "./index.css";
 
 
 function App() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [showUploadSection, setShowUploadSection] = useState(false);
   const [coins, setCoins] = useState(0);
@@ -395,7 +396,7 @@ function App() {
     }
     const newRoomId = Math.random().toString(36).substring(7); 
     setRoomId(newRoomId);
-    window.location.href = `/countdown/${newRoomId}`;
+    navigate(`/countdown/${newRoomId}`);
   };
 
   const handleOpenChat = () => {
@@ -578,8 +579,7 @@ function App() {
   }
 
   return (
-    <Router>
-      <div className="app-container">
+    <div className="app-container">
         {/* Top Floating Toast Notification */}
         {toastNotification && (!showChat || chatFriendId !== toastNotification.senderId) && (
           <div
@@ -603,7 +603,7 @@ function App() {
           <div
             className="top-toast-notification"
             onClick={() => {
-              window.location.href = `/live/${liveToastNotification.roomId}`;
+              navigate(`/live/${liveToastNotification.roomId}`);
               setLiveToastNotification(null);
             }}
             style={{
@@ -1025,7 +1025,6 @@ function App() {
           </div>
         )}
       </div>
-    </Router>
   );
 }
 
