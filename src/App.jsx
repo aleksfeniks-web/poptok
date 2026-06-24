@@ -52,6 +52,8 @@ function App() {
   const [chatFriendId, setChatFriendId] = useState(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [toastNotification, setToastNotification] = useState(null);
+  const [liveToastNotification, setLiveToastNotification] = useState(null);
+  const [following, setFollowing] = useState([]);
   const [reactionComment, setReactionComment] = useState(null);
   const [shopSellerFilter, setShopSellerFilter] = useState(null);
 
@@ -67,6 +69,7 @@ function App() {
         setCoins(data.coins || 0);
         setUserRole(data.role || "user");
         setUserStatus(data.status || "active");
+        setFollowing(data.following || []);
 
         // Self-heal/Auto-assign admin to support account
         if (currentUser && currentUser.email === "support@poptok.app" && data.role !== "admin") {
@@ -326,6 +329,53 @@ function App() {
     }
   }, [toastNotification]);
 
+  // ✅ Escuchar transmisiones en vivo de creadores seguidos para notificar en burbuja
+  useEffect(() => {
+    if (!uid || following.length === 0) return;
+
+    const livesCollection = collection(db, "lives");
+    const q = query(livesCollection, where("status", "==", "active"));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added") {
+          const live = change.doc.data();
+          
+          // Evitar notificarse a uno mismo
+          if (live.hostId === uid) return;
+          
+          // Verificar si seguimos al host
+          const isFollowing = following.includes(live.hostId);
+          if (!isFollowing) return;
+
+          // Verificar si es muy reciente (creado en los últimos 30 segundos)
+          const liveTime = live.createdAt ? new Date(live.createdAt).getTime() : Date.now();
+          const isRecent = Date.now() - liveTime < 30000;
+
+          if (isRecent) {
+            setLiveToastNotification({
+              roomId: live.roomId,
+              hostName: live.hostName,
+              hostId: live.hostId
+            });
+          }
+        }
+      });
+    }, (error) => {
+      console.error("Error en el escucha de lives para notificaciones:", error);
+    });
+
+    return () => unsubscribe();
+  }, [uid, following]);
+
+  // Auto-hide top live toast notification
+  useEffect(() => {
+    if (liveToastNotification) {
+      const timer = setTimeout(() => setLiveToastNotification(null), 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [liveToastNotification]);
+
   // ✅ Mostrar ventana de selección de autenticación después de 5 minutos si no está autenticado
   useEffect(() => {
     if (!user) {
@@ -544,6 +594,32 @@ function App() {
             <div className="toast-body">
               <span className="toast-sender">@{toastNotification.senderName}</span>
               <span className="toast-text">{toastNotification.text}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Live Notification for followers */}
+        {liveToastNotification && (
+          <div
+            className="top-toast-notification"
+            onClick={() => {
+              window.location.href = `/live/${liveToastNotification.roomId}`;
+              setLiveToastNotification(null);
+            }}
+            style={{
+              background: "linear-gradient(135deg, #ff0050, #9d00ff)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+              borderLeft: "5px solid #ff0050",
+              boxShadow: "0 4px 15px rgba(255, 0, 80, 0.4)",
+              cursor: "pointer",
+              top: toastNotification ? "160px" : "70px",
+              zIndex: 20000
+            }}
+          >
+            <div className="toast-icon" style={{ animation: "pulse 1s infinite alternate" }}>🔴</div>
+            <div className="toast-body">
+              <span className="toast-sender" style={{ color: "#fff", fontWeight: "bold" }}>@{liveToastNotification.hostName}</span>
+              <span className="toast-text" style={{ color: "#eee" }}>¡Ha iniciado un En Vivo! Toca para unirte.</span>
             </div>
           </div>
         )}

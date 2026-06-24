@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { auth, db, storage } from "../firebase.js";
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, doc, setDoc } from "firebase/firestore";
 import { v4 as uuidv4 } from "uuid";
 import { FiVideo, FiImage, FiType, FiUploadCloud, FiX, FiZap, FiCheck } from "react-icons/fi";
 
@@ -76,7 +76,8 @@ const MUSIC_TRACKS = [
 
 
 const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStatus }) => {
-  const [tab, setTab] = useState("video"); // "video" | "photo" | "text"
+  const [tab, setTab] = useState("video"); // "video" | "photo" | "text" | "live"
+  const [liveTitle, setLiveTitle] = useState("");
   const [videoFile, setVideoFile] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
@@ -498,6 +499,45 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
       canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.92);
     });
 
+  const handleStartLive = async () => {
+    if (!user) {
+      alert("Debes iniciar sesión para comenzar una transmisión.");
+      return;
+    }
+    if (userStatus === "restricted") {
+      alert("Acceso denegado: Tu cuenta tiene restricciones y no puedes transmitir.");
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const roomId = Math.random().toString(36).substring(7);
+      // Create live document in Firestore
+      const liveRef = doc(db, "lives", roomId);
+      await setDoc(liveRef, {
+        roomId,
+        hostId: user.uid,
+        hostName: user.displayName || user.email.split("@")[0] || "Creador Poptok",
+        hostPhoto: user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.email.split("@")[0] || "U")}&background=ff0050&color=fff&bold=true`,
+        title: liveTitle.trim() || "¡Transmisión en Vivo! 🔴",
+        category: selectedInterest || "Random",
+        status: "active",
+        viewersCount: Math.floor(Math.random() * 15) + 5, // initial mock viewers count
+        likes: 0,
+        pinnedProduct: null,
+        createdAt: new Date().toISOString()
+      });
+
+      // Redirect to countdown
+      window.location.href = `/countdown/${roomId}`;
+    } catch (err) {
+      console.error("Error starting live stream:", err);
+      alert("Error al iniciar la transmisión: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ─── Upload ────────────────────────────────────────────────────────────────
   const handleUpload = async () => {
     if (!user) { alert("Debes iniciar sesión para publicar."); return; }
@@ -604,6 +644,7 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
             { id: "record", label: "Grabar", icon: <FiZap size={16} /> },
             { id: "photo", label: "Foto",  icon: <FiImage size={16} /> },
             { id: "text",  label: "Texto", icon: <FiType size={16} /> },
+            { id: "live",  label: "En Vivo", icon: <span style={{ color: "#ff0050" }}>🔴</span> },
           ].map(t => (
             <button
               key={t.id}
@@ -899,115 +940,168 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
           )}
 
           {/* ── Common fields ──────────────────────────────── */}
-          <div className="upload-fields">
-            {tab !== "text" && (
-              <textarea
-                className="upload-description"
-                placeholder="Describe tu contenido, agrega hashtags... #trending"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                maxLength={300}
-                rows={2}
-              />
-            )}
+          {tab !== "live" && (
+            <>
+              <div className="upload-fields">
+                {tab !== "text" && (
+                  <textarea
+                    className="upload-description"
+                    placeholder="Describe tu contenido, agrega hashtags... #trending"
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    maxLength={300}
+                    rows={2}
+                  />
+                )}
 
-            {/* Category */}
-            <div className="upload-category-wrapper">
-              <label className="upload-field-label">Categoría</label>
-              <select
-                className="upload-category-select"
-                value={selectedInterest}
-                onChange={e => setSelectedInterest(e.target.value)}
-              >
-                <option value="">— Selecciona una categoría —</option>
-                {interestOptions.map(opt => (
-                  <option key={opt} value={opt}>{CATEGORY_MAP[opt] || opt}</option>
-                ))}
-              </select>
-            </div>
+                {/* Category */}
+                <div className="upload-category-wrapper">
+                  <label className="upload-field-label">Categoría</label>
+                  <select
+                    className="upload-category-select"
+                    value={selectedInterest}
+                    onChange={e => setSelectedInterest(e.target.value)}
+                  >
+                    <option value="">— Selecciona una categoría —</option>
+                    {interestOptions.map(opt => (
+                      <option key={opt} value={opt}>{CATEGORY_MAP[opt] || opt}</option>
+                    ))}
+                  </select>
+                </div>
 
-            {/* Music Selector with Preview */}
-            <div className="upload-music-wrapper" style={{ marginTop: "12px" }}>
-              <label className="upload-field-label">🎵 Música de fondo (Pixabay)</label>
-              {selectedMusic === "none" ? (
-                <button
-                  type="button"
-                  className="poptok-music-select-trigger"
-                  onClick={() => setShowMusicLibrary(true)}
-                >
-                  <span className="poptok-music-icon-note">🎵</span> Elegir Música de Fondo Gratuita
-                </button>
-              ) : (
-                <div className="poptok-music-selected-card">
-                  <div className="poptok-music-selected-cover" style={{ background: selectedTrackObj?.coverGradient || "linear-gradient(135deg, #ff0050, #ff6b35)" }}>
-                    <span className={`poptok-music-selected-disc-icon ${isSelectedTrackPreviewing ? "spinning" : ""}`}>🎵</span>
-                  </div>
-                  <div className="poptok-music-selected-info">
-                    <span className="poptok-music-selected-title">{selectedTrackObj?.name || "Música"}</span>
-                    <span className="poptok-music-selected-artist-genre">
-                      {selectedTrackObj?.artist || "Pixabay"} • <span className="poptok-music-selected-genre">{selectedTrackObj?.genre || "Gratis"}</span>
-                    </span>
-                  </div>
-                  <div className="poptok-music-selected-actions">
+                {/* Music Selector with Preview */}
+                <div className="upload-music-wrapper" style={{ marginTop: "12px" }}>
+                  <label className="upload-field-label">🎵 Música de fondo (Pixabay)</label>
+                  {selectedMusic === "none" ? (
                     <button
                       type="button"
-                      className={`poptok-music-selected-play ${isSelectedTrackPreviewing ? "playing" : ""}`}
-                      onClick={() => togglePreviewMusic(selectedMusic)}
-                    >
-                      {isSelectedTrackPreviewing ? "Pausar" : "Escuchar"}
-                    </button>
-                    <button
-                      type="button"
-                      className="poptok-music-selected-change"
+                      className="poptok-music-select-trigger"
                       onClick={() => setShowMusicLibrary(true)}
                     >
-                      Cambiar
+                      <span className="poptok-music-icon-note">🎵</span> Elegir Música de Fondo Gratuita
                     </button>
-                    <button
-                      type="button"
-                      className="poptok-music-selected-remove"
-                      onClick={handleRemoveMusic}
-                    >
-                      Quitar
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="poptok-music-selected-card">
+                      <div className="poptok-music-selected-cover" style={{ background: selectedTrackObj?.coverGradient || "linear-gradient(135deg, #ff0050, #ff6b35)" }}>
+                        <span className={`poptok-music-selected-disc-icon ${isSelectedTrackPreviewing ? "spinning" : ""}`}>🎵</span>
+                      </div>
+                      <div className="poptok-music-selected-info">
+                        <span className="poptok-music-selected-title">{selectedTrackObj?.name || "Música"}</span>
+                        <span className="poptok-music-selected-artist-genre">
+                          {selectedTrackObj?.artist || "Pixabay"} • <span className="poptok-music-selected-genre">{selectedTrackObj?.genre || "Gratis"}</span>
+                        </span>
+                      </div>
+                      <div className="poptok-music-selected-actions">
+                        <button
+                          type="button"
+                          className={`poptok-music-selected-play ${isSelectedTrackPreviewing ? "playing" : ""}`}
+                          onClick={() => togglePreviewMusic(selectedMusic)}
+                        >
+                          {isSelectedTrackPreviewing ? "Pausar" : "Escuchar"}
+                        </button>
+                        <button
+                          type="button"
+                          className="poptok-music-selected-change"
+                          onClick={() => setShowMusicLibrary(true)}
+                        >
+                          Cambiar
+                        </button>
+                        <button
+                          type="button"
+                          className="poptok-music-selected-remove"
+                          onClick={handleRemoveMusic}
+                        >
+                          Quitar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Allow download option */}
+                <div className="upload-download-toggle-wrapper" style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <input
+                    type="checkbox"
+                    id="allowDownload"
+                    checked={allowDownload}
+                    onChange={e => setAllowDownload(e.target.checked)}
+                    style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                  />
+                  <label htmlFor="allowDownload" style={{ color: "#fff", fontSize: "14px", cursor: "pointer" }}>
+                    Permitir que otros usuarios descarguen este video/foto
+                  </label>
+                </div>
+              </div>
+
+              {/* ── Upload progress ────────────────────────────── */}
+              {loading && (
+                <div className="upload-progress-bar-wrapper">
+                  <div className="upload-progress-bar" style={{ width: `${progress}%` }} />
+                  <span className="upload-progress-label">{progress}%</span>
                 </div>
               )}
-            </div>
 
-            {/* Allow download option */}
-            <div className="upload-download-toggle-wrapper" style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <input
-                type="checkbox"
-                id="allowDownload"
-                checked={allowDownload}
-                onChange={e => setAllowDownload(e.target.checked)}
-                style={{ width: "16px", height: "16px", cursor: "pointer" }}
-              />
-              <label htmlFor="allowDownload" style={{ color: "#fff", fontSize: "14px", cursor: "pointer" }}>
-                Permitir que otros usuarios descarguen este video/foto
-              </label>
-            </div>
-          </div>
-
-          {/* ── Upload progress ────────────────────────────── */}
-          {loading && (
-            <div className="upload-progress-bar-wrapper">
-              <div className="upload-progress-bar" style={{ width: `${progress}%` }} />
-              <span className="upload-progress-label">{progress}%</span>
-            </div>
+              {/* ── Action buttons ─────────────────────────────── */}
+              <div className="upload-actions">
+                <button
+                  className="upload-publish-btn"
+                  onClick={handleUpload}
+                  disabled={loading || !hasContent}
+                >
+                  {loading ? `Subiendo ${progress}%...` : "Publicar"}
+                </button>
+              </div>
+            </>
           )}
 
-          {/* ── Action buttons ─────────────────────────────── */}
-          <div className="upload-actions">
-            <button
-              className="upload-publish-btn"
-              onClick={handleUpload}
-              disabled={loading || !hasContent}
-            >
-              {loading ? `Subiendo ${progress}%...` : "Publicar"}
-            </button>
-          </div>
+          {/* ── Live Stream creation form ─────────────────── */}
+          {tab === "live" && (
+            <div className="upload-live-section" style={{ display: "flex", flexDirection: "column", gap: "15px", padding: "10px 0" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label className="upload-field-label">Título del Live</label>
+                <input
+                  type="text"
+                  className="upload-text-input"
+                  placeholder="Ej. ¡Platicando con seguidores! 🔴"
+                  value={liveTitle}
+                  onChange={e => setLiveTitle(e.target.value)}
+                  maxLength={60}
+                  style={{ width: "100%", background: "#111", border: "1px solid #333", color: "#fff", padding: "10px 14px", borderRadius: "10px", fontSize: "14px" }}
+                />
+              </div>
+              
+              <div className="upload-category-wrapper" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <label className="upload-field-label">Categoría / Temática</label>
+                <select
+                  className="upload-category-select"
+                  value={selectedInterest}
+                  onChange={e => setSelectedInterest(e.target.value)}
+                  style={{ width: "100%", background: "#111", border: "1px solid #333", color: "#fff", padding: "10px 14px", borderRadius: "10px", fontSize: "14px" }}
+                >
+                  <option value="">— Selecciona una categoría —</option>
+                  {interestOptions.map(opt => (
+                    <option key={opt} value={opt}>{CATEGORY_MAP[opt] || opt}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ background: "rgba(255, 0, 80, 0.05)", border: "1px solid rgba(255, 0, 80, 0.15)", borderRadius: "12px", padding: "12px", display: "flex", gap: "10px", alignItems: "center", marginTop: "10px" }}>
+                <span style={{ fontSize: "20px" }}>🎥</span>
+                <p style={{ margin: 0, fontSize: "12px", color: "#aaa", lineHeight: "1.4" }}>
+                  Al iniciar la transmisión, utilizaremos tu cámara y micrófono. Tus seguidores recibirán una notificación para unirse a tu Live.
+                </p>
+              </div>
+
+              <button
+                className="upload-publish-btn"
+                onClick={handleStartLive}
+                disabled={loading}
+                style={{ marginTop: "20px", display: "flex", justifyContent: "center", alignItems: "center", gap: "8px" }}
+              >
+                {loading ? "Preparando..." : "🔴 Iniciar Transmisión en Vivo"}
+              </button>
+            </div>
+          )}
         </div> {/* Ends upload-modal-body */}
 
         {/* ── Pixabay Music Library Modal ────────────────── */}

@@ -3,7 +3,7 @@ import "../index.css";
 import VideoPlayer from "./VideoPlayer.jsx";
 import { auth, db } from "../firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, doc, updateDoc, getDoc, getDocs, query, orderBy, limit, increment, arrayUnion, setDoc, onSnapshot, deleteDoc } from "firebase/firestore";
+import { collection, doc, updateDoc, getDoc, getDocs, query, orderBy, limit, increment, arrayUnion, setDoc, onSnapshot, deleteDoc, where } from "firebase/firestore";
 import { AiFillHeart } from "react-icons/ai";
 import { FiSearch, FiVideo } from "react-icons/fi";
 
@@ -115,7 +115,20 @@ const Feed = ({
   const [hasMore, setHasMore] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [activeLives, setActiveLives] = useState([]);
   const observerRef = useRef(null);
+
+  // ✅ Escuchar transmisiones en vivo activas en tiempo real
+  useEffect(() => {
+    const q = query(collection(db, "lives"), where("status", "==", "active"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setActiveLives(list);
+    }, (err) => {
+      console.error("Error al escuchar transmisiones activas:", err);
+    });
+    return () => unsubscribe();
+  }, []);
 
   // ✅ Manejo de autenticación del usuario
   useEffect(() => {
@@ -456,12 +469,44 @@ const Feed = ({
     return matchesSearch && matchesCategory;
   });
 
-  const displayVideos = activeExploreVideoId
+  const liveItems = layout === "feed" ? activeLives
+    .filter(live => {
+      const matchesSearch = searchQuery.trim() === "" ||
+        (live.title && live.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (live.hostName && live.hostName.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesCategory = selectedCategory === "All" || live.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .map(live => ({
+      riuzaki1234: live.roomId,
+      isLive: true,
+      username: live.hostName,
+      userPhotoURL: live.hostPhoto,
+      description: live.title,
+      interest: live.category,
+      userId: live.hostId,
+      likes: live.likes || 0,
+      viewers: live.viewersCount || 0,
+      pinnedProduct: live.pinnedProduct || null
+    })) : [];
+
+  const baseVideos = activeExploreVideoId
     ? [
         ...filteredVideos.filter(v => v.riuzaki1234 === activeExploreVideoId),
         ...filteredVideos.filter(v => v.riuzaki1234 !== activeExploreVideoId)
       ]
     : filteredVideos;
+
+  const displayVideos = activeExploreVideoId
+    ? [
+        ...baseVideos.slice(0, 1),
+        ...liveItems,
+        ...baseVideos.slice(1)
+      ]
+    : [
+        ...liveItems,
+        ...baseVideos
+      ];
 
   // ─── Empty state component ─────────────────────────────────────────────────
   const EmptyState = ({ message = "¡Sé el primero en subir un video!" }) => (
@@ -565,61 +610,300 @@ const Feed = ({
 
   // ─── FEED MODE (Snap-scroll vertical) ─────────────────────────────────────
   return (
-    <div className="feed-container snap-mode">
-      {loading && page === 1 ? (
-        <div className="feed-snap-loading">
-          <LoadingState />
-        </div>
-      ) : error && displayVideos.length === 0 ? (
-        <div className="feed-snap-loading">
-          <EmptyState message="Error al conectar. Por favor revisa tu conexión." />
-        </div>
-      ) : displayVideos.length === 0 ? (
-        <div className="feed-snap-loading">
-          <EmptyState />
-        </div>
-      ) : (
-        displayVideos.map((v) => (
-          <div key={v.riuzaki1234} className="video-item">
-            <VideoPlayer
-              fileType={v.fileType || "video"}
-              videoUrl={v.fileUrl}
-              username={v.username}
-              description={v.description}
-              interest={v.interest}
-              riuzaki1234={v.riuzaki1234}
-              currentUser={currentUser}
-              userProfile={userProfile}
-              userId={v.userId}
-              userStatus={userStatus}
-              userPhotoURL={v.userPhotoURL}
-              musicUrl={v.musicUrl}
-              musicTitle={v.musicTitle}
-              allowDownload={v.allowDownload}
-              interactions={
-                interactions[v.riuzaki1234] || {
-                  likes: v.likes || 0,
-                  comments: [],
-                  favorites: v.favorites || 0,
-                  coins: v.coins || 0,
-                  shares: v.shares || 0,
-                  downloads: v.downloads || 0,
-                }
-              }
-              onInteraction={handleInteraction}
-              isOpen={isOpen}
-              setIsOpen={setIsOpen}
-              updateVideoComments={updateVideoComments}
-              onVideoPlayStateChange={onVideoPlayStateChange}
-              onReactToComment={onReactToComment}
-              reactionComment={v.reactionComment}
-              subtitles={v.subtitles}
-              onDeleteVideo={handleDeleteVideo}
-              userRole={userRole}
-            />
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      {/* Active Lives Horizontal Bar */}
+      {layout === "feed" && activeLives.length > 0 && (
+        <div style={{
+          position: "absolute",
+          top: "0px",
+          left: "0",
+          right: "0",
+          height: "85px",
+          zIndex: 100,
+          display: "flex",
+          gap: "15px",
+          padding: "10px 20px",
+          overflowX: "auto",
+          scrollbarWidth: "none",
+          background: "linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%)",
+          alignItems: "center",
+          borderBottom: "1px solid rgba(255,255,255,0.05)"
+        }} className="active-lives-bar-container">
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            {activeLives.map((live) => (
+              <div
+                key={live.roomId}
+                onClick={() => window.location.href = `/live/${live.roomId}`}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  flexShrink: 0
+                }}
+              >
+                <div style={{
+                  position: "relative",
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "50%",
+                  padding: "2px",
+                  background: "linear-gradient(45deg, #ff0050, #ff00ff)",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  boxShadow: "0 0 12px rgba(255, 0, 80, 0.6)",
+                  animation: "pulse-ring 2s infinite"
+                }}>
+                  <img
+                    src={live.hostPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(live.hostName)}&background=ff0050&color=fff&bold=true`}
+                    alt={live.hostName}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: "2px solid #000"
+                    }}
+                  />
+                  <span style={{
+                    position: "absolute",
+                    bottom: "-4px",
+                    background: "#FF0050",
+                    color: "white",
+                    fontSize: "8px",
+                    fontWeight: "extrabold",
+                    padding: "1px 4px",
+                    borderRadius: "4px",
+                    letterSpacing: "0.5px"
+                  }}>
+                    LIVE
+                  </span>
+                </div>
+                <span style={{
+                  fontSize: "9px",
+                  color: "#eee",
+                  marginTop: "6px",
+                  maxWidth: "55px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  textShadow: "0 1px 2px rgba(0,0,0,0.8)"
+                }}>
+                  @{live.hostName}
+                </span>
+              </div>
+            ))}
           </div>
-        ))
+
+          <style>{`
+            .active-lives-bar-container::-webkit-scrollbar {
+              display: none;
+            }
+            @keyframes pulse-ring {
+              0% { box-shadow: 0 0 0 0px rgba(255, 0, 80, 0.6); }
+              70% { box-shadow: 0 0 0 6px rgba(255, 0, 80, 0); }
+              100% { box-shadow: 0 0 0 0px rgba(255, 0, 80, 0); }
+            }
+          `}</style>
+        </div>
       )}
+
+      <div className="feed-container snap-mode">
+        {loading && page === 1 ? (
+          <div className="feed-snap-loading">
+            <LoadingState />
+          </div>
+        ) : error && displayVideos.length === 0 ? (
+          <div className="feed-snap-loading">
+            <EmptyState message="Error al conectar. Por favor revisa tu conexión." />
+          </div>
+        ) : displayVideos.length === 0 ? (
+          <div className="feed-snap-loading">
+            <EmptyState />
+          </div>
+        ) : (
+          displayVideos.map((v) => {
+            if (v.isLive) {
+              return (
+                <div key={v.riuzaki1234} className="video-item" style={{
+                  position: "relative",
+                  width: "100%",
+                  height: "100%",
+                  background: "radial-gradient(circle, #2a081a 0%, #000000 100%)",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  color: "white"
+                }}>
+                  {/* HUD superior del live en feed */}
+                  <div style={{
+                    position: "absolute",
+                    top: "100px",
+                    left: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    zIndex: 5
+                  }}>
+                    <span style={{
+                      background: "#FF0050",
+                      color: "white",
+                      padding: "4px 8px",
+                      borderRadius: "4px",
+                      fontSize: "12px",
+                      fontWeight: "bold",
+                      letterSpacing: "1px"
+                    }}>
+                      🔴 EN VIVO
+                    </span>
+                    <span style={{
+                      background: "rgba(0,0,0,0.6)",
+                      color: "white",
+                      padding: "4px 8px",
+                      borderRadius: "4px",
+                      fontSize: "12px"
+                    }}>
+                      👥 {v.viewers} espectando
+                    </span>
+                  </div>
+
+                  {/* Avatar pulsante del creador */}
+                  <div style={{
+                    position: "relative",
+                    width: "110px",
+                    height: "110px",
+                    marginBottom: "18px"
+                  }}>
+                    <div style={{
+                      position: "absolute",
+                      inset: "-6px",
+                      borderRadius: "50%",
+                      border: "3px solid #ff0050",
+                      animation: "ping-glow 2s infinite ease-out"
+                    }} />
+                    <img
+                      src={v.userPhotoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(v.username)}&background=ff0050&color=fff&bold=true`}
+                      alt={v.username}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        border: "3px solid #000",
+                        boxShadow: "0 0 20px rgba(255, 0, 80, 0.4)"
+                      }}
+                    />
+                  </div>
+
+                  {/* Info del Live */}
+                  <h3 style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "6px", textShadow: "0 2px 4px rgba(0,0,0,0.8)" }}>
+                    @{v.username}
+                  </h3>
+                  <p style={{
+                    fontSize: "14px",
+                    color: "#ddd",
+                    textAlign: "center",
+                    maxWidth: "80%",
+                    lineHeight: "1.4",
+                    marginBottom: "20px",
+                    textShadow: "0 1px 3px rgba(0,0,0,0.8)"
+                  }}>
+                    {v.description || "¡Transmisión en Vivo! Únete para interactuar."}
+                  </p>
+
+                  {/* Categoría */}
+                  {v.interest && (
+                    <span style={{
+                      background: "rgba(255,255,255,0.1)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      borderRadius: "15px",
+                      padding: "4px 12px",
+                      fontSize: "12px",
+                      color: "#00f2fe",
+                      marginBottom: "25px",
+                      fontWeight: "bold"
+                    }}>
+                      🏷️ {CATEGORY_MAP[v.interest] || v.interest}
+                    </span>
+                  )}
+
+                  {/* Botón de acción para unirse */}
+                  <button
+                    onClick={() => window.location.href = `/live/${v.riuzaki1234}`}
+                    style={{
+                      background: "linear-gradient(135deg, #ff0050, #ff00ff)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "30px",
+                      padding: "12px 32px",
+                      fontSize: "15px",
+                      fontWeight: "bold",
+                      cursor: "pointer",
+                      boxShadow: "0 8px 20px rgba(255, 0, 80, 0.5)",
+                      transition: "transform 0.2s"
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
+                    onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+                  >
+                    Unirse al En Vivo
+                  </button>
+
+                  <style>{`
+                    @keyframes ping-glow {
+                      0% { transform: scale(0.95); opacity: 1; }
+                      70% { transform: scale(1.15); opacity: 0.4; }
+                      100% { transform: scale(1.2); opacity: 0; }
+                    }
+                  `}</style>
+                </div>
+              );
+            }
+
+            return (
+              <div key={v.riuzaki1234} className="video-item">
+                <VideoPlayer
+                  fileType={v.fileType || "video"}
+                  videoUrl={v.fileUrl}
+                  username={v.username}
+                  description={v.description}
+                  interest={v.interest}
+                  riuzaki1234={v.riuzaki1234}
+                  currentUser={currentUser}
+                  userProfile={userProfile}
+                  userId={v.userId}
+                  userStatus={userStatus}
+                  userPhotoURL={v.userPhotoURL}
+                  musicUrl={v.musicUrl}
+                  musicTitle={v.musicTitle}
+                  allowDownload={v.allowDownload}
+                  interactions={
+                    interactions[v.riuzaki1234] || {
+                      likes: v.likes || 0,
+                      comments: [],
+                      favorites: v.favorites || 0,
+                      coins: v.coins || 0,
+                      shares: v.shares || 0,
+                      downloads: v.downloads || 0,
+                    }
+                  }
+                  onInteraction={handleInteraction}
+                  isOpen={isOpen}
+                  setIsOpen={setIsOpen}
+                  updateVideoComments={updateVideoComments}
+                  onVideoPlayStateChange={onVideoPlayStateChange}
+                  onReactToComment={onReactToComment}
+                  reactionComment={v.reactionComment}
+                  subtitles={v.subtitles}
+                  onDeleteVideo={handleDeleteVideo}
+                  userRole={userRole}
+                />
+              </div>
+            );
+          })
+        )}
+      </div>
 
       <div ref={observerRef} style={{ height: "10px" }} />
       {loading && page > 1 && <p style={{ color: "#aaa", textAlign: "center", padding: "10px" }}>Cargando más videos...</p>}
