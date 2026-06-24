@@ -200,6 +200,7 @@ const Feed = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [activeLives, setActiveLives] = useState([]);
+  const [filteredActiveLives, setFilteredActiveLives] = useState([]);
   const observerRef = useRef(null);
 
   // ✅ Escuchar transmisiones en vivo activas en tiempo real
@@ -213,6 +214,23 @@ const Feed = ({
     });
     return () => unsubscribe();
   }, []);
+
+  // ✅ Filtrar transmisiones inactivas (stale) en tiempo real
+  useEffect(() => {
+    const checkStaleLives = () => {
+      const now = Date.now();
+      const filtered = activeLives.filter(live => {
+        const lastActive = live.lastHeartbeat ? new Date(live.lastHeartbeat).getTime() : new Date(live.createdAt).getTime();
+        return (now - lastActive) < 45000; // 45 segundos de límite para considerar inactivo
+      });
+      setFilteredActiveLives(filtered);
+    };
+
+    checkStaleLives(); // Ejecutar inmediatamente
+    const interval = setInterval(checkStaleLives, 10000); // Comprobar cada 10 segundos
+
+    return () => clearInterval(interval);
+  }, [activeLives]);
 
   // ✅ Manejo de autenticación del usuario
   useEffect(() => {
@@ -605,7 +623,7 @@ const Feed = ({
     return matchesSearch && matchesCategory;
   });
 
-  const liveItems = layout === "feed" ? activeLives
+  const liveItems = layout === "feed" ? filteredActiveLives
     .filter(live => {
       const matchesSearch = searchQuery.trim() === "" ||
         (live.title && live.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -750,7 +768,7 @@ const Feed = ({
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       {/* Active Lives Horizontal Bar */}
-      {layout === "feed" && activeLives.length > 0 && (
+      {layout === "feed" && filteredActiveLives.length > 0 && (
         <div style={{
           position: "absolute",
           top: "0px",
@@ -768,7 +786,7 @@ const Feed = ({
           borderBottom: "1px solid rgba(255,255,255,0.05)"
         }} className="active-lives-bar-container">
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            {activeLives.map((live) => (
+            {filteredActiveLives.map((live) => (
               <div
                 key={live.roomId}
                 onClick={() => navigate(`/live/${live.roomId}`)}

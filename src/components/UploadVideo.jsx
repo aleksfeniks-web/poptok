@@ -527,7 +527,8 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
         viewersCount: Math.floor(Math.random() * 15) + 5, // initial mock viewers count
         likes: 0,
         pinnedProduct: null,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        lastHeartbeat: new Date().toISOString()
       });
 
       // Close the upload modal

@@ -137,9 +137,15 @@ const LiveStream = () => {
     try {
       const q = query(collection(db, "lives"), where("status", "==", "active"));
       const snap = await getDocs(q);
+      const now = Date.now();
       const otherLives = snap.docs
         .map(d => d.data())
-        .filter(l => l.roomId !== roomId);
+        .filter(l => {
+          if (l.roomId === roomId) return false;
+          // Filter out stale streams (no heartbeat within 45 seconds)
+          const lastActive = l.lastHeartbeat ? new Date(l.lastHeartbeat).getTime() : new Date(l.createdAt).getTime();
+          return (now - lastActive) < 45000;
+        });
 
       if (otherLives.length > 0) {
         const nextRoomId = otherLives[0].roomId;
@@ -209,6 +215,24 @@ const LiveStream = () => {
       }
     };
   }, [roomId]);
+
+  // Host heartbeat to keep live active
+  useEffect(() => {
+    if (!isHost || !streamActive || !roomId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const liveRef = doc(db, "lives", roomId);
+        await updateDoc(liveRef, {
+          lastHeartbeat: new Date().toISOString()
+        });
+      } catch (e) {
+        console.error("Error sending heartbeat:", e);
+      }
+    }, 15000); // Send heartbeat every 15 seconds
+
+    return () => clearInterval(interval);
+  }, [isHost, streamActive, roomId]);
 
   const triggerGoldGemShower = () => {
     const list = [];
