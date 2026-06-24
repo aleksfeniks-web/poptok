@@ -21,14 +21,18 @@ const LiveCountdown = () => {
 
   return (
     <div style={{
-      width: "100%",
+      width: "100vw",
       height: "100vh",
       background: "radial-gradient(circle, #220011 0%, #000000 100%)",
       display: "flex",
       flexDirection: "column",
       justifyContent: "center",
       alignItems: "center",
-      color: "white"
+      color: "white",
+      position: "fixed",
+      top: 0,
+      left: 0,
+      zIndex: 1000
     }}>
       <h2 style={{ fontSize: "20px", fontWeight: "300", letterSpacing: "2px", textTransform: "uppercase", color: "#aaa" }}>
         Preparando Live...

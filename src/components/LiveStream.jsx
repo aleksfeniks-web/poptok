@@ -66,6 +66,7 @@ const LiveStream = () => {
   const [comments, setComments] = useState([]);
   const [floatingHearts, setFloatingHearts] = useState([]);
   const [hasCamera, setHasCamera] = useState(false);
+  const [facingMode, setFacingMode] = useState("user"); // "user" (front) or "environment" (back)
   const [streamActive, setStreamActive] = useState(true);
 
   // Inputs & Modals
@@ -181,14 +182,18 @@ const LiveStream = () => {
     if (isHost && streamActive) {
       const startCamera = async () => {
         try {
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach((track) => track.stop());
+          }
           const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user" },
+            video: { facingMode: facingMode },
             audio: true
           });
+          streamRef.current = stream;
+          setHasCamera(true);
+          
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
-            streamRef.current = stream;
-            setHasCamera(true);
           }
         } catch (err) {
           console.warn("Cámara no disponible, usando simulador:", err);
@@ -203,7 +208,14 @@ const LiveStream = () => {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
     };
-  }, [isHost, streamActive]);
+  }, [isHost, streamActive, facingMode]);
+
+  // Asignar el stream al videoRef cuando el elemento esté montado en el DOM
+  useEffect(() => {
+    if (isHost && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [isHost, hasCamera, facingMode]);
 
   // Detectar cambios en me gustas para animar corazones flotantes de manera remota
   useEffect(() => {
@@ -468,28 +480,81 @@ const LiveStream = () => {
 
   return (
     <div style={{
-      width: "100%",
+      width: "100vw",
       height: "100vh",
       background: "black",
-      position: "relative",
+      position: "fixed",
+      top: 0,
+      left: 0,
       overflow: "hidden",
-      fontFamily: "system-ui, -apple-system, sans-serif"
+      fontFamily: "system-ui, -apple-system, sans-serif",
+      zIndex: 1000
     }}>
       {/* Video stream viewport */}
-      {isHost && hasCamera ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover"
-          }}
-        />
+      {isHost ? (
+        <div style={{ width: "100%", height: "100%", position: "relative" }}>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: hasCamera ? "block" : "none"
+            }}
+          />
+          {!hasCamera && (
+            <div style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              alignItems: "center",
+              background: "radial-gradient(circle, #330c22 0%, #000000 100%)",
+              color: "white"
+            }}>
+              {liveData && (
+                <div style={{
+                  position: "relative",
+                  width: "140px",
+                  height: "140px",
+                  marginBottom: "20px"
+                }}>
+                  <div className="pulsing-halo" style={{
+                    position: "absolute",
+                    inset: "-10px",
+                    borderRadius: "50%",
+                    border: "4px solid #FF0050",
+                    boxShadow: "0 0 30px #FF0050",
+                    animation: "ping-glow-large 2s infinite ease-out"
+                  }} />
+                  <img
+                    src={liveData.hostPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(liveData.hostName)}&background=ff0050&color=fff&bold=true`}
+                    alt="Creador"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: "4px solid #000"
+                    }}
+                  />
+                </div>
+              )}
+              <h3 style={{ fontSize: "20px", fontWeight: "bold", margin: "10px 0 5px" }}>
+                @{liveData?.hostName || "Creador"}
+              </h3>
+              <p style={{ color: "#aaa", fontSize: "14px", margin: "0" }}>
+                Transmitiendo en Vivo...
+              </p>
+            </div>
+          )}
+        </div>
       ) : (
-        /* Viewer visualizer or Host simulator */
+        /* Viewer visualizer */
         <div style={{
           width: "100%",
           height: "100%",
@@ -532,7 +597,7 @@ const LiveStream = () => {
             @{liveData?.hostName || "Creador"}
           </h3>
           <p style={{ color: "#aaa", fontSize: "14px", margin: "0" }}>
-            {isHost ? "Transmitiendo en Vivo..." : "Espectando en Vivo..."}
+            Espectando en Vivo...
           </p>
         </div>
       )}
@@ -589,6 +654,26 @@ const LiveStream = () => {
         {/* Action button: End live or Exit */}
         {isHost ? (
           <div style={{ display: "flex", gap: "8px" }}>
+            {hasCamera && (
+              <button
+                onClick={() => setFacingMode(prev => prev === "user" ? "environment" : "user")}
+                style={{
+                  background: "rgba(0,0,0,0.7)",
+                  color: "#ff00ff",
+                  border: "1px solid rgba(255,0,255,0.3)",
+                  borderRadius: "20px",
+                  padding: "8px 16px",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px"
+                }}
+              >
+                🔄 Voltear
+              </button>
+            )}
             <button
               onClick={openPinProductModal}
               style={{
