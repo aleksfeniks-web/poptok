@@ -185,10 +185,27 @@ const LiveStream = () => {
           if (streamRef.current) {
             streamRef.current.getTracks().forEach((track) => track.stop());
           }
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: facingMode },
-            audio: true
-          });
+
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("El navegador o el protocolo (se requiere HTTPS) no soportan el acceso a la cámara.");
+          }
+
+          let stream;
+          try {
+            // Intento 1: Video y Audio
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: facingMode },
+              audio: true
+            });
+          } catch (audioErr) {
+            console.warn("Fallo al obtener audio/video combinado, intentando solo video...", audioErr);
+            // Intento 2: Solo Video (muy común si falta micrófono o permiso de audio)
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: facingMode },
+              audio: false
+            });
+          }
+
           streamRef.current = stream;
           setHasCamera(true);
           
@@ -196,7 +213,8 @@ const LiveStream = () => {
             videoRef.current.srcObject = stream;
           }
         } catch (err) {
-          console.warn("Cámara no disponible, usando simulador:", err);
+          console.error("Error al acceder a la cámara:", err);
+          alert("Acceso a Cámara no disponible: " + err.message + "\nSe activará el simulador visual.");
           setHasCamera(false);
         }
       };
