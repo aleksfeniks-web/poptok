@@ -12,6 +12,8 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
   const [messages, setMessages] = useState([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [friends, setFriends] = useState([]);
+  const [activeTab, setActiveTab] = useState("messages"); // "messages" or "activity"
+  const [activityNotifications, setActivityNotifications] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFriend, setSelectedFriend] = useState(initialFriend || "");
   const [selectedFriendData, setSelectedFriendData] = useState(null);
@@ -32,6 +34,46 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
     });
     return () => unsubscribe();
   }, [user]);
+
+  // ─── Fetch activity notifications in real-time ──────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, "activity_notifications"),
+      where("userId", "==", user.uid),
+      orderBy("timestamp", "desc")
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setActivityNotifications(list);
+    }, (err) => {
+      console.error("Error fetching activity notifications:", err);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  // Mark activity notifications as read when on Activity Tab
+  const markNotificationsAsRead = async () => {
+    if (!user || activityNotifications.length === 0) return;
+    const unreadAct = activityNotifications.filter(n => !n.read && n.type !== "purchase");
+    if (unreadAct.length === 0) return;
+    
+    const batchPromises = unreadAct.map(async (n) => {
+      try {
+        const docRef = doc(db, "activity_notifications", n.id);
+        await updateDoc(docRef, { read: true });
+      } catch (e) {
+        console.error("Error marking notification read:", e);
+      }
+    });
+    await Promise.all(batchPromises);
+  };
+
+  useEffect(() => {
+    if (activeTab === "activity") {
+      markNotificationsAsRead();
+    }
+  }, [activeTab, activityNotifications, user]);
 
   // ─── Fetch friends (users) ────────────────────────────────────────────────
   useEffect(() => {
@@ -268,8 +310,60 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
         </button>
       </div>
 
-      {/* ─── Friends List View (No Friend Selected) ─────────────────────────── */}
+      {/* Tab Navigation (only when no friend is selected) */}
       {!selectedFriend && (
+        <div style={{ display: "flex", borderBottom: "1px solid rgba(255, 255, 255, 0.1)", background: "rgba(0,0,0,0.2)" }}>
+          <button
+            onClick={() => setActiveTab("messages")}
+            style={{
+              flex: 1,
+              background: "none",
+              border: "none",
+              color: activeTab === "messages" ? "#ff0050" : "#aaa",
+              fontWeight: "bold",
+              padding: "12px",
+              cursor: "pointer",
+              borderBottom: activeTab === "messages" ? "2px solid #ff0050" : "none",
+              fontSize: "14px",
+              transition: "all 0.3s"
+            }}
+          >
+            Mensajes
+          </button>
+          <button
+            onClick={() => setActiveTab("activity")}
+            style={{
+              flex: 1,
+              background: "none",
+              border: "none",
+              color: activeTab === "activity" ? "#ff0050" : "#aaa",
+              fontWeight: "bold",
+              padding: "12px",
+              cursor: "pointer",
+              borderBottom: activeTab === "activity" ? "2px solid #ff0050" : "none",
+              fontSize: "14px",
+              transition: "all 0.3s",
+              position: "relative"
+            }}
+          >
+            Actividad
+            {activityNotifications.some(n => !n.read && n.type !== "purchase") && (
+              <span style={{
+                position: "absolute",
+                top: "10px",
+                right: "30%",
+                background: "#ff0050",
+                width: "6px",
+                height: "6px",
+                borderRadius: "50%"
+              }} />
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* ─── Friends List View (No Friend Selected - Messages Tab) ─────────────────── */}
+      {!selectedFriend && activeTab === "messages" && (
         <div className="chat-inbox-view">
           <div className="chat-search-bar">
             <FiSearch className="chat-search-icon" size={16} />
@@ -305,6 +399,142 @@ const Chat = ({ closeChat, coinBalance, sendCoin, unreadMessages, setUnreadMessa
               ))
             )}
           </div>
+        </div>
+      )}
+
+      {/* ─── Activity Log View (No Friend Selected - Activity Tab) ─────────────────── */}
+      {!selectedFriend && activeTab === "activity" && (
+        <div className="chat-inbox-view" style={{ overflowY: "auto", maxHeight: "calc(100% - 110px)", padding: "10px" }}>
+          {activityNotifications.filter(n => n.type !== "purchase").length === 0 ? (
+            <div className="chat-empty-friends" style={{ padding: "40px 20px" }}>
+              <p>No hay actividad reciente</p>
+            </div>
+          ) : (
+            activityNotifications.filter(n => n.type !== "purchase").map((notif) => {
+              let notifText = "";
+              let icon = "🔔";
+              if (notif.type === "like") {
+                notifText = `le dio me gusta a tu video "${notif.videoTitle || ""}"`;
+                icon = "❤️";
+              } else if (notif.type === "favorite") {
+                notifText = `agregó tu video "${notif.videoTitle || ""}" a favoritos`;
+                icon = "⭐";
+              } else if (notif.type === "share") {
+                notifText = `compartió tu video "${notif.videoTitle || ""}"`;
+                icon = "🔗";
+              } else if (notif.type === "download") {
+                notifText = `descargó tu video "${notif.videoTitle || ""}"`;
+                icon = "📥";
+              } else if (notif.type === "branded_offer") {
+                notifText = `te envió una propuesta de contenido patrocinado: "${notif.campaignTitle || ""}" por $${notif.offerAmount} USD`;
+                icon = "🏢";
+              }
+              
+              return (
+                <div
+                  key={notif.id}
+                  className="chat-friend-item"
+                  style={{
+                    padding: "12px",
+                    borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+                    background: notif.read ? "transparent" : "rgba(255,255,255,0.03)",
+                    borderRadius: "8px",
+                    marginBottom: "5px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    cursor: "default"
+                  }}
+                >
+                  <div style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    background: "rgba(255,255,255,0.1)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "18px",
+                    flexShrink: 0
+                  }}>
+                    {icon}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h4 style={{ margin: 0, fontSize: "14px", color: "white", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                      @{notif.senderName}
+                    </h4>
+                    <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#ccc", wordBreak: "break-word" }}>
+                      {notifText}
+                    </p>
+                    <span style={{ fontSize: "10px", color: "#777", marginTop: "4px", display: "inline-block" }}>
+                      {notif.timestamp ? new Date(notif.timestamp).toLocaleString("es", { dateStyle: "short", timeStyle: "short" }) : ""}
+                    </span>
+                  </div>
+                  {notif.type === "branded_offer" && notif.status === "pending" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "5px", flexShrink: 0 }}>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const notifRef = doc(db, "activity_notifications", notif.id);
+                            await updateDoc(notifRef, { status: "accepted" });
+                            alert("¡Propuesta de patrocinio aceptada!");
+                          } catch (e) {
+                            console.error(e);
+                          }
+                        }}
+                        style={{
+                          background: "#25D366",
+                          border: "none",
+                          color: "white",
+                          fontSize: "10px",
+                          fontWeight: "bold",
+                          padding: "4px 8px",
+                          borderRadius: "4px",
+                          cursor: "pointer"
+                        }}
+                      >
+                        Aceptar
+                      </button>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const notifRef = doc(db, "activity_notifications", notif.id);
+                            await updateDoc(notifRef, { status: "declined" });
+                            alert("Propuesta declinada.");
+                          } catch (e) {
+                            console.error(e);
+                          }
+                        }}
+                        style={{
+                          background: "#ff0050",
+                          border: "none",
+                          color: "white",
+                          fontSize: "10px",
+                          fontWeight: "bold",
+                          padding: "4px 8px",
+                          borderRadius: "4px",
+                          cursor: "pointer"
+                        }}
+                      >
+                        Declinar
+                      </button>
+                    </div>
+                  )}
+                  {notif.type === "branded_offer" && notif.status && notif.status !== "pending" && (
+                    <span style={{
+                      fontSize: "10px",
+                      color: notif.status === "accepted" ? "#25D366" : "#ff0050",
+                      fontWeight: "bold",
+                      textTransform: "uppercase",
+                      flexShrink: 0
+                    }}>
+                      {notif.status === "accepted" ? "Aceptado" : "Declinado"}
+                    </span>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       )}
 

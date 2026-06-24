@@ -5249,6 +5249,636 @@ canvas {
   transform: translateY(-1px);
 }
 
+/* ==========================================
+   POPTOK NEW ENTERPRISE & ACTIVITY STYLES
+   ========================================== */
 
+/* Activity Badges with Blue-to-Pink Gradient */
+.activity-badge-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: linear-gradient(90deg, #00f2fe, #ff007f);
+  color: white;
+  font-size: 10px;
+  font-weight: 900;
+  border-radius: 12px;
+  padding: 1px 6px;
+  min-width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  font-family: system-ui, -apple-system, sans-serif;
+  z-index: 10;
+}
 
+/* Verified Business Badge */
+.business-badge-verified {
+  background: linear-gradient(90deg, #00f2fe, #ff0050);
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 12px;
+  padding: 2px 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 6px rgba(0, 242, 254, 0.3);
+  text-shadow: none;
+}
+
+/* Double-Tap Like Particles (Hearts and Sparkles) */
+.tap-effect-particle {
+  position: absolute;
+  pointer-events: none;
+  z-index: 999;
+  user-select: none;
+}
+
+.tap-effect-particle.heart {
+  font-size: 32px;
+  text-shadow: 0 0 10px rgba(255, 0, 80, 0.6);
+  animation: floatUpHeart 0.9s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+}
+
+.tap-effect-particle.sparkle {
+  font-size: 20px;
+  text-shadow: 0 0 8px currentColor;
+  animation: floatBurstSparkle 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes floatUpHeart {
+  0% {
+    transform: translate(-50%, -50%) scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(-50%, -100%) scale(var(--scale)) rotate(var(--angle));
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -240%) scale(var(--scale)) rotate(var(--angle));
+    opacity: 0;
+  }
+}
+
+@keyframes floatBurstSparkle {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(var(--scale)) rotate(var(--angle));
+    opacity: 0;
+  }
+}
+
+/* Flying Golden Gem Shower */
+.flying-gold-gem {
+  opacity: 0;
+  transform: translate(0, 0) scale(0.2) rotate(0deg);
+  animation: flyGoldGem 1.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes flyGoldGem {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) scale(0.2) rotate(0deg);
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) scale(var(--scale)) rotate(var(--rot));
+  }
+}
+
+/* Fullscreen Ad Takeover / TopView */
+.ad-takeover-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 15000;
+  background: black;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.ad-takeover-card {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.ad-takeover-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+}
+
+.ad-takeover-header {
+  position: absolute;
+  top: 30px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 2;
+}
+
+.ad-takeover-logo {
+  font-size: 24px;
+  font-weight: 900;
+  color: white;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+  letter-spacing: -0.5px;
+}
+
+.ad-takeover-skip-btn {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  backdrop-filter: blur(5px);
+  transition: all 0.2s;
+}
+
+.ad-takeover-skip-btn:hover {
+  background: rgba(0, 0, 0, 0.85);
+  border-color: white;
+}
+
+.ad-takeover-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 40px 20px 30px;
+  background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, transparent 100%);
+  color: white;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.ad-takeover-info h3 {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0 0 5px;
+  text-shadow: 0 1px 5px rgba(0,0,0,0.5);
+}
+
+.ad-takeover-info p {
+  color: #ddd;
+  font-size: 14px;
+  margin: 0;
+  text-shadow: 0 1px 5px rgba(0,0,0,0.5);
+}
+
+.ad-takeover-badge {
+  background: rgba(255,255,255,0.25);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  text-transform: uppercase;
+  width: fit-content;
+  margin-bottom: 5px;
+}
+
+.ad-takeover-cta-btn {
+  background: linear-gradient(90deg, #00f2fe, #ff0050);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(255,0,80,0.4);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.ad-takeover-cta-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(255,0,80,0.6);
+}
+
+/* Ad In-Feed Badge & CTA button */
+.ad-infeed-badge {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-left: 8px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.ad-infeed-cta-btn {
+  background: linear-gradient(90deg, #00f2fe, #ff0050);
+  color: white;
+  border: none;
+  border-radius: 18px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(255,0,80,0.3);
+  margin-left: 10px;
+  transition: all 0.2s;
+}
+
+.ad-infeed-cta-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 14px rgba(255,0,80,0.5);
+}
+
+/* Business Dashboard Container & Styling */
+.business-dashboard-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(15px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: white;
+}
+
+.business-dashboard-card {
+  width: 95%;
+  max-width: 800px;
+  height: 90vh;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+}
+
+.business-dashboard-header {
+  padding: 20px;
+  border-bottom: 1px solid #222;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.business-dashboard-header h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(90deg, #00f2fe, #ff0050);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.business-dashboard-tabs {
+  display: flex;
+  background: #1a1a1a;
+  border-bottom: 1px solid #222;
+}
+
+.business-dashboard-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: #888;
+  padding: 12px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+}
+
+.business-dashboard-tab.active {
+  color: white;
+  border-bottom-color: #ff0050;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.business-dashboard-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* Wallet Box */
+.business-wallet-box {
+  background: linear-gradient(135deg, rgba(0, 242, 254, 0.1), rgba(255, 0, 80, 0.08));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.business-wallet-info h4 {
+  margin: 0 0 5px;
+  color: #aaa;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.business-wallet-balance {
+  font-size: 32px;
+  font-weight: 900;
+  color: white;
+}
+
+.business-wallet-btn {
+  background: linear-gradient(90deg, #00f2fe, #ff0050);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(255,0,80,0.3);
+}
+
+/* Forms in Dashboard */
+.business-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.business-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.business-form-group label {
+  font-size: 12px;
+  font-weight: bold;
+  color: #bbb;
+}
+
+.business-form-input, .business-form-select, .business-form-textarea {
+  background: #1c1c1c;
+  border: 1px solid #333;
+  color: white;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.business-form-input:focus, .business-form-select:focus, .business-form-textarea:focus {
+  border-color: #ff0050;
+}
+
+.business-submit-btn {
+  background: #ff0050;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+/* Campaign List Table */
+.business-table-container {
+  overflow-x: auto;
+  margin-top: 15px;
+}
+
+.business-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.business-table th, .business-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #222;
+}
+
+.business-table th {
+  color: #888;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.business-table td {
+  color: #eee;
+}
+
+.business-status-badge {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.business-status-badge.active {
+  background: rgba(46, 204, 113, 0.15);
+  color: #2ecc71;
+}
+
+.business-status-badge.inactive {
+  background: rgba(149, 165, 166, 0.15);
+  color: #95a5a6;
+}
+
+/* B2B Invoice print layout style */
+.b2b-invoice-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10100;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.b2b-invoice-card {
+  background: white;
+  color: black;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* Live stats and close overlays styling */
+.live-stats-overlay {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background: radial-gradient(circle at center, #1b0c1b 0%, #050505 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-family: system-ui, -apple-system, sans-serif;
+  z-index: 1200;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.live-stats-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  border-radius: 28px;
+  padding: 40px 30px;
+  max-width: 450px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  animation: modalFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.live-stats-header h2 {
+  font-size: 26px;
+  font-weight: 800;
+  margin: 10px 0 5px;
+  background: linear-gradient(90deg, #00f2fe, #ff0050);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.live-stats-header p {
+  color: #bbb;
+  font-size: 14px;
+  margin: 0;
+}
+
+.live-stats-logo {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  background: linear-gradient(90deg, #00f2fe, #ff0050);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.live-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin: 15px 0;
+}
+
+.live-stat-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 18px;
+  padding: 20px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.live-stat-box:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 0, 80, 0.3);
+}
+
+.live-stat-icon {
+  font-size: 24px;
+}
+
+.live-stat-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.live-stat-label {
+  font-size: 11px;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.live-stats-btn {
+  background: linear-gradient(90deg, #00f2fe, #ff0050);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 14px 30px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 8px 25px rgba(255, 0, 80, 0.3);
+  transition: all 0.3s ease;
+}
+
+.live-stats-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(255, 0, 80, 0.5);
+}
+
+@keyframes modalFadeIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
 

@@ -129,6 +129,69 @@ const Profile = ({ onSelectVideo }) => {
   const [loadingFollowList, setLoadingFollowList] = useState(false);
   const videosRef = useRef(null);
 
+  // Business / Enterprise Mode States
+  const [userProfile, setUserProfile] = useState(null);
+  const [showBusinessVerifyModal, setShowBusinessVerifyModal] = useState(false);
+  const [businessVerifyStep, setBusinessVerifyStep] = useState(1);
+  const [verifyForm, setVerifyForm] = useState({
+    companyName: "",
+    category: "Tecnología & Software",
+    taxId: "",
+    email: "",
+    phone: "",
+    website: ""
+  });
+  const [selectedDocName, setSelectedDocName] = useState("");
+  const [showBusinessDashboard, setShowBusinessDashboard] = useState(false);
+  const [dashboardTab, setDashboardTab] = useState("wallet");
+  const [depositModal, setDepositModal] = useState(false);
+  const [depositAmount, setDepositAmount] = useState("100");
+  const [isDepositing, setIsDepositing] = useState(false);
+  const [depositSuccess, setDepositSuccess] = useState(false);
+  
+  // Card mock fields
+  const [creditCardNum, setCreditCardNum] = useState("");
+  const [creditCardExpiry, setCreditCardExpiry] = useState("");
+  const [creditCardCvc, setCreditCardCvc] = useState("");
+
+  const [campaignsList, setCampaignsList] = useState([]);
+  const [newCampaign, setNewCampaign] = useState({
+    title: "",
+    description: "",
+    link: "",
+    adType: "infeed",
+    tags: "Tecnología & Software",
+    budget: "50",
+    imageUrl: ""
+  });
+
+  const [brandedOffer, setBrandedOffer] = useState({
+    creatorId: "",
+    amount: "500",
+    description: ""
+  });
+  const [allCreatorsList, setAllCreatorsList] = useState([]);
+  const [invoiceData, setInvoiceData] = useState(null);
+
+  // Load campaigns and creators when Dashboard is open
+  useEffect(() => {
+    if (!user || !showBusinessDashboard) return;
+
+    // Load campaigns from Firestore
+    const qCampaigns = query(collection(db, "campaigns"), where("businessId", "==", user.uid));
+    getDocs(qCampaigns).then((snap) => {
+      setCampaignsList(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    // Load creators (excluding current user)
+    getDocs(collection(db, "users")).then((snap) => {
+      setAllCreatorsList(snap.docs
+        .filter(d => d.id !== user.uid)
+        .map(d => ({ id: d.id, ...d.data() })));
+    });
+  }, [user, showBusinessDashboard]);
+
+
   const openFollowModal = async (type) => {
     setShowFollowModal(type);
     setLoadingFollowList(true);
@@ -236,6 +299,7 @@ const Profile = ({ onSelectVideo }) => {
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         const data = userSnap.data();
+        setUserProfile(data);
         setCoins(data.coins || 0);
         setHighScore(data.highScore || 0);
         setPaypalEmail(data.paypalEmail || "");
@@ -375,6 +439,224 @@ const Profile = ({ onSelectVideo }) => {
       setUserVideos(videos);
     } catch (err) {
       console.error("Error al obtener videos del usuario en Firestore:", err);
+    }
+  };
+
+  // Business Account Helper Functions
+  const handleVerifySubmit = async (e) => {
+    e.preventDefault();
+    if (businessVerifyStep === 1) {
+      if (!verifyForm.companyName || !verifyForm.taxId) {
+        alert("Por favor completa los campos requeridos.");
+        return;
+      }
+      setBusinessVerifyStep(2);
+    } else if (businessVerifyStep === 2) {
+      if (!verifyForm.email || !verifyForm.phone) {
+        alert("Por favor completa la información de contacto.");
+        return;
+      }
+      setBusinessVerifyStep(3);
+    } else if (businessVerifyStep === 3) {
+      if (!selectedDocName) {
+        alert("Por favor selecciona un documento de verificación.");
+        return;
+      }
+      setBusinessVerifyStep(4);
+      // Simular verificación de IA y registros comerciales durante 2.5 segundos
+      setTimeout(async () => {
+        try {
+          const userRef = doc(db, "users", user.uid);
+          const businessData = {
+            isBusiness: true,
+            businessStatus: "verified",
+            businessWallet: 100.00, // ¡Saldo inicial de regalo de $100 USD!
+            businessInfo: {
+              ...verifyForm,
+              documentName: selectedDocName,
+              verifiedAt: new Date().toISOString()
+            }
+          };
+          await updateDoc(userRef, businessData);
+          setBusinessVerifyStep(5);
+          await fetchUserData(user.uid);
+        } catch (err) {
+          console.error("Error setting business status:", err);
+          alert("Error en el servidor al verificar.");
+          setBusinessVerifyStep(3);
+        }
+      }, 2500);
+    }
+  };
+
+  const handleStripeDeposit = async (e) => {
+    e.preventDefault();
+    const amt = parseFloat(depositAmount);
+    if (isNaN(amt) || amt <= 0) {
+      alert("Por favor ingresa un monto válido.");
+      return;
+    }
+    if (!creditCardNum || !creditCardExpiry || !creditCardCvc) {
+      alert("Por favor ingresa la información de tu tarjeta.");
+      return;
+    }
+    setIsDepositing(true);
+    try {
+      // Simular retraso de pasarela de pago Stripe/PayPal
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const userRef = doc(db, "users", user.uid);
+      const currentWallet = userProfile?.businessWallet || 0;
+      const newWallet = currentWallet + amt;
+      await updateDoc(userRef, {
+        businessWallet: newWallet
+      });
+
+      // Generar factura B2B
+      const invId = "INV-" + Math.floor(Math.random() * 900000 + 100000);
+      setInvoiceData({
+        id: invId,
+        companyName: userProfile?.businessInfo?.businessName || verifyForm.companyName || "Empresa Poptok",
+        taxId: userProfile?.businessInfo?.taxId || verifyForm.taxId || "XAXX010101000",
+        amount: amt,
+        date: new Date().toLocaleDateString(),
+        time: new Date().toLocaleTimeString(),
+        method: "Stripe Card (**** **** **** " + creditCardNum.slice(-4) + ")",
+        authCode: "AUTH-" + Math.floor(Math.random() * 1000000)
+      });
+
+      setDepositSuccess(true);
+      await fetchUserData(user.uid);
+    } catch (err) {
+      console.error("Error depositing:", err);
+      alert("Error al procesar el pago.");
+    } finally {
+      setIsDepositing(false);
+    }
+  };
+
+  const handleCreateCampaign = async (e) => {
+    e.preventDefault();
+    const budget = parseFloat(newCampaign.budget);
+    if (!newCampaign.title || !newCampaign.link || isNaN(budget) || budget <= 0) {
+      alert("Por favor completa los campos requeridos.");
+      return;
+    }
+
+    const currentWallet = userProfile?.businessWallet || 0;
+    if (currentWallet < budget) {
+      alert("No tienes saldo suficiente en tu billetera virtual. Por favor recarga.");
+      return;
+    }
+
+    try {
+      // 1. Descontar de la billetera virtual
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        businessWallet: Math.max(0, currentWallet - budget)
+      });
+
+      // 2. Crear documento de campaña
+      const predefImages = [
+        "https://images.pexels.com/photos/1092671/pexels-photo-1092671.jpeg?auto=compress&cs=tinysrgb&w=600",
+        "https://images.pexels.com/photos/205421/pexels-photo-205421.jpeg?auto=compress&cs=tinysrgb&w=600",
+        "https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg?auto=compress&cs=tinysrgb&w=600"
+      ];
+      const imgUrl = newCampaign.imageUrl || predefImages[Math.floor(Math.random() * predefImages.length)];
+
+      await addDoc(collection(db, "campaigns"), {
+        businessId: user.uid,
+        businessName: userProfile?.businessInfo?.businessName || user.displayName || "Empresa Poptok",
+        title: newCampaign.title,
+        description: newCampaign.description,
+        link: newCampaign.link,
+        adType: newCampaign.adType,
+        tags: newCampaign.tags,
+        budget: budget,
+        remainingBudget: budget,
+        costPerView: newCampaign.adType === "takeover" ? 0.25 : 0.05,
+        costPerClick: newCampaign.adType === "takeover" ? 0.50 : 0.15,
+        imageUrl: imgUrl,
+        viewsCount: 0,
+        clicksCount: 0,
+        status: "active",
+        createdAt: new Date().toISOString()
+      });
+
+      alert("🚀 ¡Campaña creada y publicada con éxito!");
+      setNewCampaign({
+        title: "",
+        description: "",
+        link: "",
+        adType: "infeed",
+        tags: "Tecnología & Software",
+        budget: "50",
+        imageUrl: ""
+      });
+
+      // Recargar campañas
+      const q = query(collection(db, "campaigns"), where("businessId", "==", user.uid));
+      const snap = await getDocs(q);
+      setCampaignsList(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      await fetchUserData(user.uid);
+    } catch (err) {
+      console.error("Error creating campaign:", err);
+      alert("Error al crear campaña.");
+    }
+  };
+
+  const handleSendBrandedOffer = async (e) => {
+    e.preventDefault();
+    const amount = parseFloat(brandedOffer.amount);
+    if (!brandedOffer.creatorId || isNaN(amount) || amount <= 0 || !brandedOffer.description) {
+      alert("Por favor completa los campos de la propuesta.");
+      return;
+    }
+
+    const currentWallet = userProfile?.businessWallet || 0;
+    if (currentWallet < amount) {
+      alert("No tienes saldo suficiente en tu billetera virtual. Por favor recarga.");
+      return;
+    }
+
+    try {
+      // 1. Retener fondos en garantía/escrow
+      const userRef = doc(db, "users", user.uid);
+      await updateDoc(userRef, {
+        businessWallet: Math.max(0, currentWallet - amount)
+      });
+
+      // 2. Crear notificación para el creador
+      await addDoc(collection(db, "activity_notifications"), {
+        userId: brandedOffer.creatorId,
+        type: "branded_offer",
+        senderId: user.uid,
+        senderName: userProfile?.businessInfo?.businessName || user.displayName || "Empresa Poptok",
+        offerAmount: amount,
+        offerDesc: brandedOffer.description,
+        timestamp: new Date().toISOString(),
+        read: false
+      });
+
+      // 3. Crear mensaje de chat directo
+      await addDoc(collection(db, "messages"), {
+        senderId: user.uid,
+        receiverId: brandedOffer.creatorId,
+        text: `🤝 ¡Hola! Te he enviado una propuesta de Contenido Patrocinado por $${amount} USD. Detalles: "${brandedOffer.description}". Por favor revisa tu bandeja de entrada de Actividad para aceptar.`,
+        timestamp: new Date(),
+        read: false
+      });
+
+      alert("🤝 ¡Propuesta enviada con éxito y fondos retenidos en garantía! Se ha notificado al creador.");
+      setBrandedOffer({
+        creatorId: "",
+        amount: "500",
+        description: ""
+      });
+      await fetchUserData(user.uid);
+    } catch (err) {
+      console.error("Error sending branded offer:", err);
+      alert("Error al enviar la propuesta.");
     }
   };
 
@@ -637,8 +919,11 @@ const Profile = ({ onSelectVideo }) => {
             </div>
         ) : (
           <>
-            <h2 className="profile-name-title" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <h2 className="profile-name-title" style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
               {user.displayName || "Creador Poptok"}
+              {userProfile?.isBusiness && userProfile?.businessStatus === "verified" && (
+                <span className="business-badge-verified" title="Empresa Verificada">🏢 Verificado</span>
+              )}
             </h2>
             <p className="profile-email-sub">{user.email}</p>
             <div className="profile-social-links" style={{ display: "flex", gap: "14px", justifyContent: "center", marginTop: "10px" }}>
@@ -668,13 +953,57 @@ const Profile = ({ onSelectVideo }) => {
                 </a>
               )}
             </div>
-            <div style={{ display: "flex", gap: "12px", justifyContent: "center", marginTop: "15px" }}>
-              <button onClick={() => setIsEditing(true)} className="profile-action-btn">
-                <FaPen size={12} /> Editar Perfil
-              </button>
-              <button onClick={handleSignOut} className="profile-action-btn logout">
-                <FaSignOutAlt size={12} /> Cerrar Sesión
-              </button>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "center", marginTop: "15px", width: "100%", maxWidth: "320px", margin: "15px auto 0" }}>
+              <div style={{ display: "flex", gap: "12px", width: "100%", justifyContent: "center" }}>
+                <button onClick={() => setIsEditing(true)} className="profile-action-btn" style={{ flex: 1 }}>
+                  <FaPen size={12} /> Editar Perfil
+                </button>
+                <button onClick={handleSignOut} className="profile-action-btn logout" style={{ flex: 1 }}>
+                  <FaSignOutAlt size={12} /> Cerrar Sesión
+                </button>
+              </div>
+              
+              {userProfile?.isBusiness && userProfile?.businessStatus === "verified" ? (
+                <button 
+                  onClick={() => setShowBusinessDashboard(true)} 
+                  className="profile-action-btn" 
+                  style={{
+                    width: "100%",
+                    background: "linear-gradient(90deg, #00f2fe, #ff0050)",
+                    color: "white",
+                    border: "none",
+                    boxShadow: "0 4px 15px rgba(255, 0, 80, 0.4)",
+                    fontWeight: "bold",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px"
+                  }}
+                >
+                  📊 Dashboard de Anuncios
+                </button>
+              ) : (
+                <button 
+                  onClick={() => {
+                    setBusinessVerifyStep(1);
+                    setSelectedDocName("");
+                    setShowBusinessVerifyModal(true);
+                  }} 
+                  className="profile-action-btn" 
+                  style={{
+                    width: "100%",
+                    border: "1.5px solid #00f2fe",
+                    color: "#00f2fe",
+                    background: "rgba(0, 242, 254, 0.05)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "6px"
+                  }}
+                >
+                  🏢 Convertir a Cuenta de Empresa
+                </button>
+              )}
             </div>
 
             {/* Sección LFPDPPP / Derechos ARCO */}
@@ -1260,6 +1589,697 @@ const Profile = ({ onSelectVideo }) => {
             >
               Cerrar
             </button>
+          </div>
+        </div>
+      )}
+      {/* MODAL: VERIFICACIÓN MODO EMPRESARIAL */}
+      {showBusinessVerifyModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.9)",
+          backdropFilter: "blur(10px)",
+          zIndex: 10100,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "20px",
+          fontFamily: "system-ui, -apple-system, sans-serif"
+        }}>
+          <div style={{
+            background: "#121212",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "24px",
+            padding: "30px",
+            maxWidth: "420px",
+            width: "100%",
+            boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
+            color: "white"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h3 style={{ margin: 0, fontSize: "20px", fontWeight: "800", background: "linear-gradient(90deg, #00f2fe, #ff0050)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                Verificación de Empresa
+              </h3>
+              {businessVerifyStep !== 4 && (
+                <button onClick={() => setShowBusinessVerifyModal(false)} style={{ background: "none", border: "none", color: "#888", cursor: "pointer" }}>
+                  <AiOutlineClose size={18} />
+                </button>
+              )}
+            </div>
+
+            {/* Steps indicator */}
+            <div style={{ display: "flex", gap: "5px", marginBottom: "20px" }}>
+              {[1, 2, 3].map((s) => (
+                <div key={s} style={{
+                  flex: 1,
+                  height: "4px",
+                  borderRadius: "2px",
+                  background: businessVerifyStep >= s ? "linear-gradient(90deg, #00f2fe, #ff007f)" : "#333"
+                }} />
+              ))}
+            </div>
+
+            <form onSubmit={handleVerifySubmit}>
+              {businessVerifyStep === 1 && (
+                <div className="business-form">
+                  <p style={{ fontSize: "13px", color: "#aaa", margin: "0 0 10px" }}>Paso 1: Información Legal de la Empresa</p>
+                  <div className="business-form-group">
+                    <label>Nombre Comercial de la Empresa *</label>
+                    <input
+                      type="text"
+                      className="business-form-input"
+                      value={verifyForm.companyName}
+                      onChange={(e) => setVerifyForm({ ...verifyForm, companyName: e.target.value })}
+                      placeholder="Ej. Acme Corp"
+                      required
+                    />
+                  </div>
+                  <div className="business-form-group">
+                    <label>Registro Comercial / Tax ID / RFC *</label>
+                    <input
+                      type="text"
+                      className="business-form-input"
+                      value={verifyForm.taxId}
+                      onChange={(e) => setVerifyForm({ ...verifyForm, taxId: e.target.value })}
+                      placeholder="Ej. ACM123456XYZ"
+                      required
+                    />
+                  </div>
+                  <div className="business-form-group">
+                    <label>Categoría Industrial *</label>
+                    <select
+                      className="business-form-select"
+                      value={verifyForm.category}
+                      onChange={(e) => setVerifyForm({ ...verifyForm, category: e.target.value })}
+                    >
+                      <option value="Tecnología & Software">Tecnología & Software</option>
+                      <option value="Moda & Belleza">Moda & Belleza</option>
+                      <option value="Alimentos & Bebidas">Alimentos & Bebidas</option>
+                      <option value="Entretenimiento">Entretenimiento</option>
+                      <option value="Salud & Deporte">Salud & Deporte</option>
+                      <option value="Educación">Educación</option>
+                      <option value="Otros">Otros</option>
+                    </select>
+                  </div>
+                  <button type="submit" className="business-submit-btn">Continuar</button>
+                </div>
+              )}
+
+              {businessVerifyStep === 2 && (
+                <div className="business-form">
+                  <p style={{ fontSize: "13px", color: "#aaa", margin: "0 0 10px" }}>Paso 2: Información de Contacto</p>
+                  <div className="business-form-group">
+                    <label>Correo Electrónico de Contacto *</label>
+                    <input
+                      type="email"
+                      className="business-form-input"
+                      value={verifyForm.email}
+                      onChange={(e) => setVerifyForm({ ...verifyForm, email: e.target.value })}
+                      placeholder="contacto@miempresa.com"
+                      required
+                    />
+                  </div>
+                  <div className="business-form-group">
+                    <label>Teléfono Comercial *</label>
+                    <input
+                      type="tel"
+                      className="business-form-input"
+                      value={verifyForm.phone}
+                      onChange={(e) => setVerifyForm({ ...verifyForm, phone: e.target.value })}
+                      placeholder="+52 55 1234 5678"
+                      required
+                    />
+                  </div>
+                  <div className="business-form-group">
+                    <label>Sitio Web Comercial</label>
+                    <input
+                      type="url"
+                      className="business-form-input"
+                      value={verifyForm.website}
+                      onChange={(e) => setVerifyForm({ ...verifyForm, website: e.target.value })}
+                      placeholder="https://miempresa.com"
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button type="button" onClick={() => setBusinessVerifyStep(1)} className="business-submit-btn" style={{ background: "#444", flex: 1 }}>Atrás</button>
+                    <button type="submit" className="business-submit-btn" style={{ flex: 1 }}>Continuar</button>
+                  </div>
+                </div>
+              )}
+
+              {businessVerifyStep === 3 && (
+                <div className="business-form">
+                  <p style={{ fontSize: "13px", color: "#aaa", margin: "0 0 10px" }}>Paso 3: Carga de Documentos Oficiales</p>
+                  <p style={{ fontSize: "12px", color: "#888", margin: "0 0 10px" }}>
+                    Sube un comprobante de registro comercial, licencia de negocio o constancia fiscal oficial para validar tu legitimidad.
+                  </p>
+                  <div 
+                    onClick={() => setSelectedDocName("Constancia_Situacion_Fiscal_Acme.pdf")}
+                    style={{
+                      border: "2px dashed #444",
+                      borderRadius: "15px",
+                      padding: "30px 20px",
+                      textAlign: "center",
+                      cursor: "pointer",
+                      background: selectedDocName ? "rgba(0, 242, 254, 0.05)" : "transparent",
+                      borderColor: selectedDocName ? "#00f2fe" : "#444",
+                      transition: "all 0.2s",
+                      marginBottom: "15px"
+                    }}
+                  >
+                    <div style={{ fontSize: "36px", marginBottom: "10px" }}>📄</div>
+                    <span style={{ fontSize: "13px", color: selectedDocName ? "#00f2fe" : "#ccc" }}>
+                      {selectedDocName || "Haz clic para seleccionar o arrastra aquí tu documento PDF"}
+                    </span>
+                  </div>
+                  <div style={{ display: "flex", gap: "10px" }}>
+                    <button type="button" onClick={() => setBusinessVerifyStep(2)} className="business-submit-btn" style={{ background: "#444", flex: 1 }}>Atrás</button>
+                    <button type="submit" className="business-submit-btn" style={{ flex: 1 }}>Enviar Verificación</button>
+                  </div>
+                </div>
+              )}
+
+              {businessVerifyStep === 4 && (
+                <div style={{ textAlign: "center", padding: "20px 0" }}>
+                  <div style={{
+                    width: "48px",
+                    height: "48px",
+                    border: "4px solid rgba(255,255,255,0.1)",
+                    borderTop: "4px solid #ff0050",
+                    borderRadius: "50%",
+                    animation: "spin 1s linear infinite",
+                    margin: "0 auto 20px auto"
+                  }} className="secure-spinner"></div>
+                  <h4 style={{ margin: "0 0 10px" }}>Validando Autenticidad</h4>
+                  <p style={{ fontSize: "13px", color: "#aaa", lineHeight: "1.5" }}>
+                    Cruzando información del RFC y registros comerciales con bases de datos oficiales gubernamentales y de IA de Poptok...
+                  </p>
+                </div>
+              )}
+
+              {businessVerifyStep === 5 && (
+                <div style={{ textAlign: "center", padding: "10px 0" }}>
+                  <div style={{ fontSize: "50px", marginBottom: "15px" }}>🏢🎉</div>
+                  <h3 style={{ margin: "0 0 10px", color: "#2ecc71" }}>¡Verificado con éxito!</h3>
+                  <p style={{ fontSize: "13px", color: "#ccc", lineHeight: "1.6", marginBottom: "20px" }}>
+                    Tu empresa ha sido dada de alta en Poptok. Se ha activado tu Dashboard de Anuncios y te hemos regalado **$100.00 USD** de saldo inicial para tus campañas.
+                  </p>
+                  <button type="button" onClick={() => setShowBusinessVerifyModal(false)} className="business-submit-btn" style={{ width: "100%", background: "linear-gradient(90deg, #00f2fe, #ff0050)" }}>
+                    Comenzar en Modo Empresa
+                  </button>
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: DASHBOARD DE EMPRESA */}
+      {showBusinessDashboard && (
+        <div className="business-dashboard-modal">
+          <div className="business-dashboard-card">
+            <div className="business-dashboard-header">
+              <h2>🏢 Dashboard de Empresa: {userProfile?.businessInfo?.businessName || "Mi Empresa"}</h2>
+              <button 
+                onClick={() => setShowBusinessDashboard(false)} 
+                style={{ background: "none", border: "none", color: "#888", cursor: "pointer" }}
+              >
+                <AiOutlineClose size={20} />
+              </button>
+            </div>
+
+            <div className="business-dashboard-tabs">
+              <button 
+                onClick={() => setDashboardTab("wallet")} 
+                className={`business-dashboard-tab ${dashboardTab === "wallet" ? "active" : ""}`}
+              >
+                💳 Billetera Virtual
+              </button>
+              <button 
+                onClick={() => setDashboardTab("campaigns")} 
+                className={`business-dashboard-tab ${dashboardTab === "campaigns" ? "active" : ""}`}
+              >
+                📢 Gestor de Campañas
+              </button>
+              <button 
+                onClick={() => setDashboardTab("branded")} 
+                className={`business-dashboard-tab ${dashboardTab === "branded" ? "active" : ""}`}
+              >
+                🤝 Branded Content
+              </button>
+            </div>
+
+            <div className="business-dashboard-content">
+              {/* TAB 1: BILLETERA VIRTUAL */}
+              {dashboardTab === "wallet" && (
+                <div>
+                  <div className="business-wallet-box">
+                    <div className="business-wallet-info">
+                      <h4>Crédito Disponible para Anuncios</h4>
+                      <div className="business-wallet-balance">
+                        ${(userProfile?.businessWallet || 0).toFixed(2)} USD
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        setDepositSuccess(false);
+                        setCreditCardNum("");
+                        setCreditCardExpiry("");
+                        setCreditCardCvc("");
+                        setDepositModal(true);
+                      }} 
+                      className="business-wallet-btn"
+                    >
+                      + Recargar Crédito (Stripe/PayPal)
+                    </button>
+                  </div>
+
+                  <h3>Tipos de Anuncios que puedes adquirir</h3>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px", marginTop: "15px" }}>
+                    <div style={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: "15px", padding: "15px" }}>
+                      <span style={{ fontSize: "20px" }}>📱</span>
+                      <h4 style={{ margin: "10px 0 5px" }}>In-Feed Ads</h4>
+                      <p style={{ fontSize: "12px", color: "#aaa", margin: 0, lineHeight: "1.4" }}>
+                        Anuncios integrados orgánicamente en el feed de "Pa' Ti". Segmentados por interés. Costo: $0.05 USD por vista (CPV) / $0.15 USD por clic (CPC).
+                      </p>
+                    </div>
+                    <div style={{ background: "#1a1a1a", border: "1px solid #333", borderRadius: "15px", padding: "15px" }}>
+                      <span style={{ fontSize: "20px" }}>🎬</span>
+                      <h4 style={{ margin: "10px 0 5px" }}>Takeover / TopView</h4>
+                      <p style={{ fontSize: "12px", color: "#aaa", margin: 0, lineHeight: "1.4" }}>
+                        Anuncio a pantalla completa inmediatamente al abrir la app. Máxima visibilidad garantizada. Costo: $0.25 USD por vista / $0.50 USD por clic.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: GESTOR DE CAMPAÑAS */}
+              {dashboardTab === "campaigns" && (
+                <div>
+                  <h3>Crear Nueva Campaña Publicitaria</h3>
+                  <form onSubmit={handleCreateCampaign} className="business-form" style={{ background: "#1a1a1a", padding: "15px", borderRadius: "15px", border: "1px solid #333", marginBottom: "20px" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                      <div className="business-form-group">
+                        <label>Título de la Campaña *</label>
+                        <input
+                          type="text"
+                          className="business-form-input"
+                          value={newCampaign.title}
+                          onChange={(e) => setNewCampaign({ ...newCampaign, title: e.target.value })}
+                          placeholder="Ej. Consigue un 20% de Descuento"
+                          required
+                        />
+                      </div>
+                      <div className="business-form-group">
+                        <label>Tipo de Anuncio *</label>
+                        <select
+                          className="business-form-select"
+                          value={newCampaign.adType}
+                          onChange={(e) => setNewCampaign({ ...newCampaign, adType: e.target.value })}
+                        >
+                          <option value="infeed">In-Feed Ad (Post en Feed)</option>
+                          <option value="takeover">Takeover / TopView (Inicio Pantalla Completa)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="business-form-group">
+                      <label>Descripción de Anuncio</label>
+                      <textarea
+                        rows={2}
+                        className="business-form-textarea"
+                        value={newCampaign.description}
+                        onChange={(e) => setNewCampaign({ ...newCampaign, description: e.target.value })}
+                        placeholder="Escribe el texto de tu anuncio..."
+                      />
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                      <div className="business-form-group">
+                        <label>Enlace del Botón Acción (CTA Link) *</label>
+                        <input
+                          type="url"
+                          className="business-form-input"
+                          value={newCampaign.link}
+                          onChange={(e) => setNewCampaign({ ...newCampaign, link: e.target.value })}
+                          placeholder="https://mitienda.com/oferta"
+                          required
+                        />
+                      </div>
+                      <div className="business-form-group">
+                        <label>Imagen del Anuncio (URL) *</label>
+                        <input
+                          type="url"
+                          className="business-form-input"
+                          value={newCampaign.imageUrl}
+                          onChange={(e) => setNewCampaign({ ...newCampaign, imageUrl: e.target.value })}
+                          placeholder="URL de imagen premium..."
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                      <div className="business-form-group">
+                        <label>Interés de Segmentación *</label>
+                        <select
+                          className="business-form-select"
+                          value={newCampaign.tags}
+                          onChange={(e) => setNewCampaign({ ...newCampaign, tags: e.target.value })}
+                        >
+                          <option value="Tecnología & Software">Tecnología & Software</option>
+                          <option value="Moda & Belleza">Moda & Belleza</option>
+                          <option value="Alimentos & Bebidas">Alimentos & Bebidas</option>
+                          <option value="Entretenimiento">Entretenimiento</option>
+                          <option value="Salud & Deporte">Salud & Deporte</option>
+                          <option value="Educación">Educación</option>
+                          <option value="Random">Todos</option>
+                        </select>
+                      </div>
+                      <div className="business-form-group">
+                        <label>Presupuesto Asignado (USD) *</label>
+                        <input
+                          type="number"
+                          className="business-form-input"
+                          value={newCampaign.budget}
+                          onChange={(e) => setNewCampaign({ ...newCampaign, budget: e.target.value })}
+                          placeholder="Ej. 100"
+                          min="10"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <button type="submit" className="business-submit-btn" style={{ background: "linear-gradient(90deg, #00f2fe, #ff0050)" }}>
+                      Publicar Campaña
+                    </button>
+                  </form>
+
+                  <h3>Tus Campañas Activas</h3>
+                  <div className="business-table-container">
+                    <table className="business-table">
+                      <thead>
+                        <tr>
+                          <th>Campaña</th>
+                          <th>Tipo</th>
+                          <th>Presupuesto</th>
+                          <th>Etiqueta</th>
+                          <th>Vistas</th>
+                          <th>Clics</th>
+                          <th>Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {campaignsList.length === 0 ? (
+                          <tr>
+                            <td colSpan="7" style={{ textAlign: "center", color: "#666", padding: "15px" }}>
+                              No tienes campañas creadas.
+                            </td>
+                          </tr>
+                        ) : (
+                          campaignsList.map((c) => (
+                            <tr key={c.id}>
+                              <td style={{ fontWeight: "bold" }}>{c.title}</td>
+                              <td style={{ textTransform: "capitalize" }}>{c.adType}</td>
+                              <td>${c.remainingBudget?.toFixed(2)} / ${c.budget?.toFixed(2)}</td>
+                              <td>{c.tags}</td>
+                              <td>{c.viewsCount || 0}</td>
+                              <td>{c.clicksCount || 0}</td>
+                              <td>
+                                <span className={`business-status-badge ${c.status === "active" ? "active" : "inactive"}`}>
+                                  {c.status === "active" ? "Activo" : "Finalizado"}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 3: BRANDED CONTENT */}
+              {dashboardTab === "branded" && (
+                <div>
+                  <h3>Garantía de Contenido Patrocinado (Escrow)</h3>
+                  <p style={{ fontSize: "12px", color: "#aaa", lineHeight: "1.4", margin: "0 0 15px" }}>
+                    Permite que las marcas paguen a creadores de contenido dentro de Poptok actuando como intermediario seguro. 
+                    El presupuesto ingresado será retenido de tu saldo y enviado al creador. El cobro final se efectúa cuando el creador publique tu video patrocinado.
+                  </p>
+
+                  <form onSubmit={handleSendBrandedOffer} className="business-form" style={{ background: "#1a1a1a", padding: "15px", borderRadius: "15px", border: "1px solid #333" }}>
+                    <div className="business-form-group">
+                      <label>Seleccionar Creador Poptok *</label>
+                      <select
+                        className="business-form-select"
+                        value={brandedOffer.creatorId}
+                        onChange={(e) => setBrandedOffer({ ...brandedOffer, creatorId: e.target.value })}
+                        required
+                      >
+                        <option value="">Selecciona un creador...</option>
+                        {allCreatorsList.map((creator) => (
+                          <option key={creator.id} value={creator.id}>
+                            @{creator.name || creator.email?.split("@")[0]} ({creator.followers?.length || 0} seguidores)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="business-form-group">
+                      <label>Presupuesto de Patrocinio (USD) *</label>
+                      <input
+                        type="number"
+                        className="business-form-input"
+                        value={brandedOffer.amount}
+                        onChange={(e) => setBrandedOffer({ ...brandedOffer, amount: e.target.value })}
+                        placeholder="Monto a pagar, ej. 500"
+                        min="50"
+                        required
+                      />
+                    </div>
+
+                    <div className="business-form-group">
+                      <label>Instrucciones de la Campaña (Branded Content Brief) *</label>
+                      <textarea
+                        rows={3}
+                        className="business-form-textarea"
+                        value={brandedOffer.description}
+                        onChange={(e) => setBrandedOffer({ ...brandedOffer, description: e.target.value })}
+                        placeholder="Describe los detalles de lo que necesitas en el video patrocinado..."
+                        required
+                      />
+                    </div>
+
+                    <button type="submit" className="business-submit-btn" style={{ background: "linear-gradient(90deg, #00f2fe, #ff0050)" }}>
+                      Enviar Propuesta y Retener Fondos
+                    </button>
+                  </form>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUB-MODAL: RECARGAR SALDO CON STRIPE / PAYPAL */}
+      {depositModal && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.85)",
+          backdropFilter: "blur(5px)",
+          zIndex: 10200,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "20px",
+          fontFamily: "system-ui, -apple-system, sans-serif"
+        }}>
+          <div style={{
+            background: "#16161a",
+            border: "1px solid rgba(255,255,255,0.15)",
+            borderRadius: "20px",
+            padding: "25px",
+            maxWidth: "380px",
+            width: "100%",
+            boxShadow: "0 15px 35px rgba(0,0,0,0.6)",
+            color: "white"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "bold" }}>Depósito Stripe / PayPal</h3>
+              {!isDepositing && (
+                <button onClick={() => setDepositModal(false)} style={{ background: "none", border: "none", color: "#888", cursor: "pointer" }}>
+                  <AiOutlineClose size={18} />
+                </button>
+              )}
+            </div>
+
+            {depositSuccess ? (
+              <div style={{ textAlign: "center", padding: "10px 0" }}>
+                <div style={{ fontSize: "40px", marginBottom: "10px" }}>💳✅</div>
+                <h4 style={{ color: "#2ecc71", margin: "0 0 10px" }}>¡Depósito Completado!</h4>
+                <p style={{ fontSize: "12px", color: "#aaa", marginBottom: "15px" }}>
+                  Se han abonado **${parseFloat(depositAmount).toFixed(2)} USD** a tu billetera virtual de anunciante.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <button 
+                    onClick={() => {
+                      setDepositModal(false);
+                    }} 
+                    className="business-submit-btn" 
+                    style={{ margin: 0, background: "#444" }}
+                  >
+                    Cerrar
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setDepositModal(false);
+                      // Trigger receipt/invoice modal
+                    }} 
+                    className="business-submit-btn" 
+                    style={{ margin: 0, background: "linear-gradient(90deg, #00f2fe, #ff0050)" }}
+                  >
+                    Ver Factura B2B
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleStripeDeposit} className="business-form">
+                <div className="business-form-group">
+                  <label>Monto a Depositar (USD) *</label>
+                  <input
+                    type="number"
+                    className="business-form-input"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    placeholder="Ej. 100"
+                    min="10"
+                    required
+                  />
+                </div>
+
+                <div style={{ display: "flex", gap: "10px", margin: "5px 0", background: "rgba(255,255,255,0.03)", padding: "10px", borderRadius: "10px", justifyContent: "center" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "bold", color: "#00f2fe" }}>Stripe Secure</span>
+                  <span style={{ color: "#444" }}>|</span>
+                  <span style={{ fontSize: "12px", fontWeight: "bold", color: "#ff0050" }}>PayPal Checkout</span>
+                </div>
+
+                <div className="business-form-group">
+                  <label>Número de Tarjeta *</label>
+                  <input
+                    type="text"
+                    className="business-form-input"
+                    value={creditCardNum}
+                    onChange={(e) => setCreditCardNum(e.target.value)}
+                    placeholder="4000 1234 5678 9010"
+                    maxLength="19"
+                    required
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                  <div className="business-form-group">
+                    <label>Expiración *</label>
+                    <input
+                      type="text"
+                      className="business-form-input"
+                      value={creditCardExpiry}
+                      onChange={(e) => setCreditCardExpiry(e.target.value)}
+                      placeholder="MM/AA"
+                      maxLength="5"
+                      required
+                    />
+                  </div>
+                  <div className="business-form-group">
+                    <label>CVC *</label>
+                    <input
+                      type="password"
+                      className="business-form-input"
+                      value={creditCardCvc}
+                      onChange={(e) => setCreditCardCvc(e.target.value)}
+                      placeholder="123"
+                      maxLength="4"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="business-submit-btn" 
+                  disabled={isDepositing}
+                  style={{ background: "linear-gradient(90deg, #00f2fe, #ff0050)", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}
+                >
+                  {isDepositing ? (
+                    <>
+                      <div style={{
+                        width: "14px",
+                        height: "14px",
+                        border: "2px solid rgba(255,255,255,0.2)",
+                        borderTop: "2px solid white",
+                        borderRadius: "50%",
+                        animation: "spin 0.6s linear infinite"
+                      }}></div>
+                      Procesando...
+                    </>
+                  ) : `Pagar $${parseFloat(depositAmount || 0).toFixed(2)} USD`}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: FACTURA B2B (FACTURACIÓN AUTOMÁTICA) */}
+      {invoiceData && (
+        <div className="b2b-invoice-modal-overlay" onClick={() => setInvoiceData(null)}>
+          <div className="b2b-invoice-card" onClick={(e) => e.stopPropagation()}>
+            <div style={{ textAlign: "center", borderBottom: "2px dashed #000", paddingBottom: "15px", marginBottom: "15px" }}>
+              <h2 style={{ margin: "0 0 5px", fontSize: "20px", fontWeight: "900", textTransform: "uppercase" }}>POPTOK APP B2B</h2>
+              <p style={{ fontSize: "11px", margin: 0, color: "#444" }}>Facturación Electrónica B2B Automática</p>
+              <p style={{ fontSize: "11px", margin: "2px 0 0", color: "#444" }}>Conforme a normativas internacionales de publicidad</p>
+            </div>
+
+            <div style={{ fontSize: "12px", display: "flex", flexDirection: "column", gap: "6px", lineHeight: "1.4" }}>
+              <div><strong>Factura N°:</strong> {invoiceData.id}</div>
+              <div><strong>Fecha:</strong> {invoiceData.date} - {invoiceData.time}</div>
+              <div><strong>Cliente:</strong> {invoiceData.companyName}</div>
+              <div><strong>RFC/Tax ID:</strong> {invoiceData.taxId}</div>
+              <div><strong>Método:</strong> {invoiceData.method}</div>
+              <div><strong>Autorización:</strong> {invoiceData.authCode}</div>
+              <div style={{ borderBottom: "1px dashed #000", margin: "10px 0" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px", fontWeight: "bold" }}>
+                <span>Subtotal (Crédito Publicidad):</span>
+                <span>${invoiceData.amount.toFixed(2)} USD</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "14px" }}>
+                <span>IVA/Impuestos (0%):</span>
+                <span>$0.00 USD</span>
+              </div>
+              <div style={{ borderBottom: "2px dashed #000", margin: "10px 0" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "18px", fontWeight: "900" }}>
+                <span>TOTAL PAGADO:</span>
+                <span>${invoiceData.amount.toFixed(2)} USD</span>
+              </div>
+            </div>
+
+            <div style={{ textAlign: "center", marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px" }}>
+              <button 
+                onClick={() => {
+                  window.print();
+                }} 
+                style={{ background: "#000", color: "white", border: "none", borderRadius: "5px", padding: "8px 12px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}
+              >
+                🖨️ Imprimir / Descargar PDF
+              </button>
+              <button 
+                onClick={() => setInvoiceData(null)} 
+                style={{ background: "#eee", color: "#000", border: "1px solid #ccc", borderRadius: "5px", padding: "8px 12px", cursor: "pointer", fontSize: "12px" }}
+              >
+                Cerrar Factura
+              </button>
+            </div>
           </div>
         </div>
       )}

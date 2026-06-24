@@ -23,9 +23,40 @@ const Shop = ({ onContactSeller, userStatus, initialSellerIdFilter, onClearSelle
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isBuyingProduct, setIsBuyingProduct] = useState(false);
 
   const fileInputRef = useRef(null);
   const currentUser = auth.currentUser;
+
+  const handleSimulatedPurchase = async () => {
+    if (!currentUser || !selectedProduct) return;
+    setIsBuyingProduct(true);
+    try {
+      // Simular retraso de procesamiento de Stripe / PayPal
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Crear documento en la colección activity_notifications
+      await addDoc(collection(db, "activity_notifications"), {
+        userId: selectedProduct.sellerId,
+        type: "purchase",
+        senderId: currentUser.uid,
+        senderName: currentUser.displayName || currentUser.email || "Comprador de Poptok",
+        productId: selectedProduct.id,
+        productTitle: selectedProduct.title,
+        price: selectedProduct.price,
+        timestamp: new Date().toISOString(),
+        read: false
+      });
+      
+      alert("🛒 ¡Compra realizada con éxito! El vendedor ha sido notificado.");
+      setSelectedProduct(null);
+    } catch (err) {
+      console.error("Error al procesar la compra:", err);
+      alert("Error al procesar la compra.");
+    } finally {
+      setIsBuyingProduct(false);
+    }
+  };
 
   // ─── Fetch products ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -279,42 +310,61 @@ const Shop = ({ onContactSeller, userStatus, initialSellerIdFilter, onClearSelle
                 </div>
 
                 {currentUser && currentUser.uid !== selectedProduct.sellerId ? (
-                  selectedProduct.sellerPhone ? (
-                    <a
-                      href={`https://wa.me/${selectedProduct.sellerPhone.replace(/\+/g, "").replace(/\s/g, "").replace(/-/g, "")}?text=${encodeURIComponent(
-                        `Hola, estoy interesado en tu artículo "${selectedProduct.title}" en Poptok.`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="product-modal-contact-btn whatsapp-btn"
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "15px" }}>
+                    <button
+                      onClick={handleSimulatedPurchase}
+                      className="product-modal-contact-btn"
                       style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "8px",
-                        background: "#25D366",
+                        background: "linear-gradient(90deg, #00f2fe, #ff0050)",
                         color: "white",
-                        textDecoration: "none",
                         fontWeight: "bold",
+                        border: "none",
+                        boxShadow: "0 4px 15px rgba(255, 0, 80, 0.4)",
                         padding: "12px",
                         borderRadius: "25px",
-                        marginTop: "15px",
-                        boxShadow: "0 4px 15px rgba(37, 211, 102, 0.3)"
+                        cursor: "pointer"
                       }}
+                      disabled={isBuyingProduct}
                     >
-                      💬 Contactar Vendedor (WhatsApp)
-                    </a>
-                  ) : (
-                    <button
-                      className="product-modal-contact-btn"
-                      onClick={() => {
-                        onContactSeller(selectedProduct.sellerId);
-                        setSelectedProduct(null);
-                      }}
-                    >
-                      💬 Contactar al Vendedor
+                      {isBuyingProduct ? "Procesando Compra..." : "🛍️ Comprar Artículo"}
                     </button>
-                  )
+
+                    {selectedProduct.sellerPhone ? (
+                      <a
+                        href={`https://wa.me/${selectedProduct.sellerPhone.replace(/\+/g, "").replace(/\s/g, "").replace(/-/g, "")}?text=${encodeURIComponent(
+                          `Hola, estoy interesado en tu artículo "${selectedProduct.title}" en Poptok.`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="product-modal-contact-btn whatsapp-btn"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                          background: "#25D366",
+                          color: "white",
+                          textDecoration: "none",
+                          fontWeight: "bold",
+                          padding: "12px",
+                          borderRadius: "25px",
+                          boxShadow: "0 4px 15px rgba(37, 211, 102, 0.3)"
+                        }}
+                      >
+                        💬 Contactar Vendedor (WhatsApp)
+                      </a>
+                    ) : (
+                      <button
+                        className="product-modal-contact-btn"
+                        onClick={() => {
+                          onContactSeller(selectedProduct.sellerId);
+                          setSelectedProduct(null);
+                        }}
+                      >
+                        💬 Contactar al Vendedor
+                      </button>
+                    )}
+                  </div>
                 ) : currentUser && currentUser.uid === selectedProduct.sellerId ? (
                   <p className="product-modal-own-item">Tú eres el vendedor de este artículo</p>
                 ) : (

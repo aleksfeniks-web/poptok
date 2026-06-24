@@ -75,6 +75,10 @@ const LiveStream = () => {
   const [showProductsModal, setShowProductsModal] = useState(false);
   const [productsList, setProductsList] = useState([]);
   const [giftAnimation, setGiftAnimation] = useState(null);
+  const [particles, setParticles] = useState([]);
+  const [goldGems, setGoldGems] = useState([]);
+  const [showStats, setShowStats] = useState(false);
+  const [finalStats, setFinalStats] = useState({ likes: 0, viewers: 0, gems: 0 });
 
   // Refs
   const videoRef = useRef(null);
@@ -165,11 +169,13 @@ const LiveStream = () => {
       }
       const data = snap.data();
       if (data.status === "ended") {
+        setFinalStats({
+          likes: data.likes || 0,
+          viewers: data.viewersCount || 0,
+          gems: data.gemsCount || 0
+        });
         setStreamActive(false);
-        // Si somos el espectador, redirigir automáticamente
-        if (currentUser && data.hostId !== currentUser.uid) {
-          handleAutoRedirect();
-        }
+        setShowStats(true);
         return;
       }
       setLiveData(data);
@@ -185,6 +191,106 @@ const LiveStream = () => {
 
     return () => unsubscribe();
   }, [roomId, currentUser]);
+
+  // Cleanup on unmount or page exit (host only)
+  useEffect(() => {
+    const handleUnload = () => {
+      if (isHostRef.current && roomId) {
+        const liveRef = doc(db, "lives", roomId);
+        updateDoc(liveRef, { status: "ended" }).catch(e => console.error(e));
+      }
+    };
+    window.addEventListener("beforeunload", handleUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleUnload);
+      if (isHostRef.current && roomId) {
+        const liveRef = doc(db, "lives", roomId);
+        updateDoc(liveRef, { status: "ended" }).catch(e => console.error(e));
+      }
+    };
+  }, [roomId]);
+
+  const triggerGoldGemShower = () => {
+    const list = [];
+    const count = 20;
+    const now = Date.now();
+    for (let i = 0; i < count; i++) {
+      const startX = window.innerWidth * 0.5 + (Math.random() - 0.5) * 100;
+      const startY = window.innerHeight * 0.8;
+      const tx = (Math.random() - 0.5) * window.innerWidth * 0.8;
+      const ty = -window.innerHeight * 0.5 - Math.random() * window.innerHeight * 0.3;
+      list.push({
+        id: `gold-gem-${now}-${i}`,
+        x: startX,
+        y: startY,
+        tx,
+        ty,
+        scale: 0.5 + Math.random() * 0.8,
+        rot: Math.random() * 720 - 360,
+        delay: i * 80
+      });
+    }
+    setGoldGems(prev => [...prev, ...list]);
+    setTimeout(() => {
+      setGoldGems(prev => prev.filter(g => !list.find(lg => lg.id === g.id)));
+    }, 4000);
+  };
+
+  const spawnParticles = (x, y) => {
+    const id = Math.random() + Date.now();
+    const newParticles = [];
+    newParticles.push({
+      id: `heart-${id}`,
+      type: "heart",
+      x,
+      y,
+      emoji: ["❤️", "💖", "💝", "💕"][Math.floor(Math.random() * 4)],
+      scale: 0.8 + Math.random() * 0.5,
+      angle: -20 + Math.random() * 40
+    });
+    for (let i = 0; i < 6; i++) {
+      const angle = (i / 6) * 2 * Math.PI + Math.random() * 0.4;
+      const dist = 50 + Math.random() * 40;
+      const tx = Math.cos(angle) * dist;
+      const ty = Math.sin(angle) * dist - 30;
+      newParticles.push({
+        id: `sparkle-${id}-${i}`,
+        type: "sparkle",
+        x,
+        y,
+        color: ["#00f2fe", "#ff007f", "#9d00ff", "#ffeb3b", "#ff5722"][Math.floor(Math.random() * 5)],
+        emoji: ["✨", "⭐", "💫", "🌟"][Math.floor(Math.random() * 4)],
+        tx,
+        ty,
+        scale: 0.5 + Math.random() * 0.8,
+        angle: Math.random() * 360
+      });
+    }
+    setParticles(prev => [...prev, ...newParticles]);
+    setTimeout(() => {
+      setParticles(prev => prev.filter(p => !newParticles.find(np => np.id === p.id)));
+    }, 1200);
+  };
+
+  const handleScreenDoubleTap = (e) => {
+    if (e.target.closest("button") || e.target.closest("input") || e.target.closest("select") || e.target.closest("textarea")) {
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    spawnParticles(x, y);
+    handleLike();
+  };
+
+  const handleExitLive = () => {
+    setFinalStats({
+      likes: liveData?.likes || 0,
+      viewers: liveData?.viewersCount || 0,
+      gems: liveData?.gemsCount || 0
+    });
+    setShowStats(true);
+  };
 
   // Incrementar viewersCount cuando el espectador se conecta y decrementar al salir
   useEffect(() => {
@@ -314,6 +420,12 @@ const LiveStream = () => {
           name: latestComment.giftType || "Gema",
           username: latestComment.username
         });
+        
+        // Lluvia de gemas doradas si es tipo 6 (Gema Dorada)
+        if (latestComment.giftIndex === 6) {
+          triggerGoldGemShower();
+        }
+
         // Quitar la animación después de 3 segundos
         const timer = setTimeout(() => {
           setGiftAnimation(null);
@@ -337,6 +449,12 @@ const LiveStream = () => {
   const handleEndLive = async () => {
     if (!roomId) return;
     
+    setFinalStats({
+      likes: liveData?.likes || 0,
+      viewers: liveData?.viewersCount || 0,
+      gems: liveData?.gemsCount || 0
+    });
+    
     // Cambiar estado a ended
     const liveRef = doc(db, "lives", roomId);
     try {
@@ -349,7 +467,7 @@ const LiveStream = () => {
       streamRef.current.getTracks().forEach((track) => track.stop());
     }
     setStreamActive(false);
-    navigate("/");
+    setShowStats(true);
   };
 
   // Enviar comentario
@@ -451,6 +569,12 @@ const LiveStream = () => {
       });
       
       setShowGiftsModal(false);
+
+      // Incrementar gemsCount en el documento de transmisión
+      const liveRef = doc(db, "lives", roomId);
+      await updateDoc(liveRef, {
+        gemsCount: increment(1)
+      });
     } catch (err) {
       console.error("Error al regalar gema:", err);
       alert("Error: " + err.message);
@@ -545,22 +669,127 @@ const LiveStream = () => {
     );
   }
 
+  if (showStats) {
+    return (
+      <div style={{
+        position: "fixed",
+        inset: 0,
+        background: "radial-gradient(circle, #2a081a 0%, #000000 100%)",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        color: "white",
+        zIndex: 20000,
+        fontFamily: "system-ui, -apple-system, sans-serif"
+      }}>
+        <div style={{
+          background: "rgba(255, 255, 255, 0.05)",
+          backdropFilter: "blur(20px)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          borderRadius: "20px",
+          padding: "40px",
+          width: "90%",
+          maxWidth: "400px",
+          textAlign: "center",
+          boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5)"
+        }}>
+          <h2 style={{
+            fontSize: "28px",
+            fontWeight: "900",
+            marginBottom: "10px",
+            background: "linear-gradient(45deg, #00f2fe, #ff007f)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent"
+          }}>
+            Resumen del Live
+          </h2>
+          <p style={{ color: "#aaa", fontSize: "14px", marginBottom: "30px" }}>
+            Estadísticas finales de la transmisión
+          </p>
+          
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            gap: "15px",
+            marginBottom: "35px"
+          }}>
+            <div style={{
+              background: "rgba(255, 255, 255, 0.03)",
+              border: "1px solid rgba(255, 255, 255, 0.05)",
+              padding: "15px 10px",
+              borderRadius: "12px"
+            }}>
+              <span style={{ fontSize: "24px", display: "block", marginBottom: "5px" }}>❤️</span>
+              <span style={{ fontSize: "18px", fontWeight: "bold", display: "block" }}>{finalStats.likes}</span>
+              <span style={{ fontSize: "10px", color: "#888", textTransform: "uppercase" }}>Likes</span>
+            </div>
+            
+            <div style={{
+              background: "rgba(255, 255, 255, 0.03)",
+              border: "1px solid rgba(255, 255, 255, 0.05)",
+              padding: "15px 10px",
+              borderRadius: "12px"
+            }}>
+              <span style={{ fontSize: "24px", display: "block", marginBottom: "5px" }}>👥</span>
+              <span style={{ fontSize: "18px", fontWeight: "bold", display: "block" }}>{finalStats.viewers}</span>
+              <span style={{ fontSize: "10px", color: "#888", textTransform: "uppercase" }}>Vistas</span>
+            </div>
+            
+            <div style={{
+              background: "rgba(255, 255, 255, 0.03)",
+              border: "1px solid rgba(255, 255, 255, 0.05)",
+              padding: "15px 10px",
+              borderRadius: "12px"
+            }}>
+              <span style={{ fontSize: "24px", display: "block", marginBottom: "5px" }}>💎</span>
+              <span style={{ fontSize: "18px", fontWeight: "bold", display: "block" }}>{finalStats.gems}</span>
+              <span style={{ fontSize: "10px", color: "#888", textTransform: "uppercase" }}>Gemas</span>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => navigate("/")}
+            style={{
+              background: "linear-gradient(90deg, #00f2fe, #ff007f)",
+              color: "white",
+              border: "none",
+              borderRadius: "25px",
+              padding: "12px 35px",
+              fontSize: "15px",
+              fontWeight: "bold",
+              cursor: "pointer",
+              boxShadow: "0 8px 25px rgba(255, 0, 127, 0.4)",
+              transition: "transform 0.2s"
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
+            onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+          >
+            Volver a PopTok
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{
-      width: "100vw",
-      height: "100vh",
-      position: "fixed",
-      top: 0,
-      left: 0,
-      overflow: "hidden",
-      fontFamily: "system-ui, -apple-system, sans-serif",
-      zIndex: 1000,
-      boxSizing: "border-box",
-      border: "3.5px solid transparent",
-      borderRadius: "20px",
-      background: "linear-gradient(black, black) padding-box, linear-gradient(135deg, #00f2fe 0%, #ff007f 50%, #9d00ff 100%) border-box",
-      boxShadow: "inset 0 0 20px rgba(0, 242, 254, 0.2)"
-    }}>
+    <div 
+      onDoubleClick={handleScreenDoubleTap}
+      style={{
+        width: "100vw",
+        height: "100vh",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        overflow: "hidden",
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        zIndex: 1000,
+        boxSizing: "border-box",
+        border: "3.5px solid transparent",
+        borderRadius: "20px",
+        background: "linear-gradient(black, black) padding-box, linear-gradient(135deg, #00f2fe 0%, #ff007f 50%, #9d00ff 100%) border-box",
+        boxShadow: "inset 0 0 20px rgba(0, 242, 254, 0.2)"
+      }}>
       {/* Video stream viewport */}
       {isHost ? (
         <div style={{ width: "100%", height: "100%", position: "relative" }}>
@@ -790,7 +1019,7 @@ const LiveStream = () => {
           </div>
         ) : (
           <button
-            onClick={() => navigate("/")}
+            onClick={handleExitLive}
             style={{
               background: "rgba(255, 255, 255, 0.1)",
               color: "white",
@@ -1443,6 +1672,75 @@ const LiveStream = () => {
           </div>
         </div>
       )}
+
+      {/* Tap Effect Particles */}
+      {particles.map((p) => {
+        if (p.type === "heart") {
+          return (
+            <div
+              key={p.id}
+              className="tap-effect-particle heart"
+              style={{
+                left: `${p.x}px`,
+                top: `${p.y}px`,
+                position: "absolute",
+                "--scale": p.scale,
+                "--angle": `${p.angle}deg`,
+                zIndex: 9999,
+                pointerEvents: "none"
+              }}
+            >
+              {p.emoji}
+            </div>
+          );
+        } else {
+          return (
+            <div
+              key={p.id}
+              className="tap-effect-particle sparkle"
+              style={{
+                left: `${p.x}px`,
+                top: `${p.y}px`,
+                position: "absolute",
+                color: p.color,
+                "--dx": `${p.tx}px`,
+                "--dy": `${p.ty}px`,
+                "--scale": p.scale,
+                "--angle": `${p.angle}deg`,
+                zIndex: 9999,
+                pointerEvents: "none"
+              }}
+            >
+              {p.emoji}
+            </div>
+          );
+        }
+      })}
+
+      {/* Gold Gems Shower */}
+      {goldGems.map((gem) => (
+        <div
+          key={gem.id}
+          className="flying-gold-gem"
+          style={{
+            position: "fixed",
+            left: `${gem.x}px`,
+            top: `${gem.y}px`,
+            width: "36px",
+            height: "36px",
+            backgroundImage: `url(${coin6})`,
+            backgroundSize: "contain",
+            backgroundRepeat: "no-repeat",
+            zIndex: 12000,
+            pointerEvents: "none",
+            "--tx": `${gem.tx}px`,
+            "--ty": `${gem.ty}px`,
+            "--scale": gem.scale,
+            "--rot": `${gem.rot}deg`,
+            animationDelay: `${gem.delay}ms`
+          }}
+        />
+      ))}
 
       {/* Embedded Animations and Keyframes */}
       <style>{`

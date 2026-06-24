@@ -4,7 +4,7 @@ import "../index.css";
 import VideoPlayer from "./VideoPlayer.jsx";
 import { auth, db } from "../firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, doc, updateDoc, getDoc, getDocs, query, orderBy, limit, increment, arrayUnion, setDoc, onSnapshot, deleteDoc, where } from "firebase/firestore";
+import { collection, doc, updateDoc, getDoc, getDocs, query, orderBy, limit, increment, arrayUnion, setDoc, onSnapshot, deleteDoc, where, addDoc } from "firebase/firestore";
 import { AiFillHeart } from "react-icons/ai";
 import { FiSearch, FiVideo } from "react-icons/fi";
 
@@ -109,6 +109,88 @@ const Feed = ({
 }) => {
   const navigate = useNavigate();
   const [videos, setVideos] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+
+  // Escuchar campañas publicitarias activas de tipo in-feed
+  useEffect(() => {
+    const q = query(
+      collection(db, "campaigns"),
+      where("status", "==", "active"),
+      where("adType", "==", "infeed")
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+                               .filter(c => c.remainingBudget > 0);
+      setCampaigns(list);
+    }, (err) => {
+      console.error("Error al escuchar campañas:", err);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const doesCampaignMatchVideo = (campaignTag, videoInterest) => {
+    if (!campaignTag || campaignTag === "Random" || campaignTag === "Todos") return true;
+    if (campaignTag === videoInterest) return true;
+    
+    const mappings = {
+      "Tecnología & Software": ["Science & Tech", "IA", "Crypto", "Gaming"],
+      "Moda & Belleza": ["Lifestyle", "Animals & Pets"],
+      "Alimentos & Bebidas": ["Food & Drinks"],
+      "Entretenimiento": ["Anime & Manga", "Humor", "Memes", "WTF", "Relationship & Dating", "Movies & TV", "Superhero", "Comic"],
+      "Salud & Deporte": ["Sports"],
+      "Educación": ["Science & Tech", "Latest News"]
+    };
+    
+    const mapped = mappings[campaignTag];
+    if (mapped && mapped.includes(videoInterest)) return true;
+    return false;
+  };
+
+  const injectAds = (contentVideos) => {
+    if (!campaigns || campaigns.length === 0) return contentVideos;
+    
+    const result = [];
+    let adIndex = 0;
+    
+    for (let i = 0; i < contentVideos.length; i++) {
+      result.push(contentVideos[i]);
+      
+      // Inject an ad every 3 videos
+      if ((i + 1) % 3 === 0) {
+        const video = contentVideos[i];
+        
+        // Match campaign with video interest
+        let matchingCampaign = campaigns.find(c => doesCampaignMatchVideo(c.tags, video.interest));
+        
+        // Fallback to any campaign if no match
+        if (!matchingCampaign && campaigns.length > 0) {
+          matchingCampaign = campaigns[adIndex % campaigns.length];
+        }
+        
+        if (matchingCampaign) {
+          result.push({
+            riuzaki1234: `ad-${matchingCampaign.id}-${i}`,
+            isAd: true,
+            adId: matchingCampaign.id,
+            username: matchingCampaign.businessName,
+            businessName: matchingCampaign.businessName,
+            description: matchingCampaign.description || matchingCampaign.title,
+            interest: video.interest || "Random",
+            fileUrl: matchingCampaign.imageUrl,
+            fileType: "image",
+            link: matchingCampaign.link,
+            likes: 0,
+            favorites: 0,
+            shares: 0,
+            downloads: 0,
+            comments: []
+          });
+          adIndex++;
+        }
+      }
+    }
+    return result;
+  };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [interactions, setInteractions] = useState({});
@@ -379,6 +461,19 @@ const Feed = ({
         if (video && !video.isPexels) {
           const videoRef = doc(db, "videos", riuzaki1234);
           await updateDoc(videoRef, { likes: increment(1) });
+          
+          if (video.userId && video.userId !== currentUser.uid) {
+            await addDoc(collection(db, "activity_notifications"), {
+              userId: video.userId,
+              type: "like",
+              senderId: currentUser.uid,
+              senderName: currentUser.displayName || currentUser.email || "Usuario de Poptok",
+              videoId: riuzaki1234,
+              videoTitle: video.description || "",
+              timestamp: new Date().toISOString(),
+              read: false
+            });
+          }
         }
       } else if (type === "favorites") {
         if (!currentUser) return;
@@ -392,16 +487,55 @@ const Feed = ({
         if (video && !video.isPexels) {
           const videoRef = doc(db, "videos", riuzaki1234);
           await updateDoc(videoRef, { favorites: increment(1) });
+          
+          if (video.userId && video.userId !== currentUser.uid) {
+            await addDoc(collection(db, "activity_notifications"), {
+              userId: video.userId,
+              type: "favorite",
+              senderId: currentUser.uid,
+              senderName: currentUser.displayName || currentUser.email || "Usuario de Poptok",
+              videoId: riuzaki1234,
+              videoTitle: video.description || "",
+              timestamp: new Date().toISOString(),
+              read: false
+            });
+          }
         }
       } else if (type === "shares") {
         if (video && !video.isPexels) {
           const videoRef = doc(db, "videos", riuzaki1234);
           await updateDoc(videoRef, { shares: increment(1) });
+          
+          if (currentUser && video.userId && video.userId !== currentUser.uid) {
+            await addDoc(collection(db, "activity_notifications"), {
+              userId: video.userId,
+              type: "share",
+              senderId: currentUser.uid,
+              senderName: currentUser.displayName || currentUser.email || "Usuario de Poptok",
+              videoId: riuzaki1234,
+              videoTitle: video.description || "",
+              timestamp: new Date().toISOString(),
+              read: false
+            });
+          }
         }
       } else if (type === "downloads") {
         if (video && !video.isPexels) {
           const videoRef = doc(db, "videos", riuzaki1234);
           await updateDoc(videoRef, { downloads: increment(1) });
+          
+          if (currentUser && video.userId && video.userId !== currentUser.uid) {
+            await addDoc(collection(db, "activity_notifications"), {
+              userId: video.userId,
+              type: "download",
+              senderId: currentUser.uid,
+              senderName: currentUser.displayName || currentUser.email || "Usuario de Poptok",
+              videoId: riuzaki1234,
+              videoTitle: video.description || "",
+              timestamp: new Date().toISOString(),
+              read: false
+            });
+          }
         }
       }
     } catch (err) {
@@ -499,15 +633,17 @@ const Feed = ({
       ]
     : filteredVideos;
 
+  const baseVideosWithAds = injectAds(baseVideos);
+
   const displayVideos = activeExploreVideoId
     ? [
-        ...baseVideos.slice(0, 1),
+        ...baseVideosWithAds.slice(0, 1),
         ...liveItems,
-        ...baseVideos.slice(1)
+        ...baseVideosWithAds.slice(1)
       ]
     : [
         ...liveItems,
-        ...baseVideos
+        ...baseVideosWithAds
       ];
 
   // ─── Empty state component ─────────────────────────────────────────────────

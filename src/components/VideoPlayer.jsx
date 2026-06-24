@@ -6,7 +6,7 @@ import { FiShare2, FiDownload, FiTrash2 } from "react-icons/fi";
 import Comments from "./Comments.jsx";
 import { toggleFollow, getFollowingList } from "../utils/follow.js";
 import { db } from "../firebase.js";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { 
   FaGamepad, FaCat, FaCar, FaFlask, FaFilm, FaUtensils, FaLaugh, 
   FaHeart, FaMusic, FaRobot, FaBolt, FaGlobe, FaBitcoin, FaRandom, 
@@ -69,7 +69,7 @@ const coinGlowColors = {
 };
 
 const VideoPlayer = forwardRef(
-  ({ fileType, videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange, onReactToComment, reactionComment, subtitles, onDeleteVideo, userRole, userStatus }, ref) => {
+  ({ fileType, videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange, onReactToComment, reactionComment, subtitles, onDeleteVideo, userRole, userStatus, isAd, adId, link, businessName }, ref) => {
     const [hasError, setHasError] = useState(false);
     const [showCoin, setShowCoin] = useState(false);
     const [spawnedCoinType, setSpawnedCoinType] = useState(1);
@@ -106,6 +106,72 @@ const VideoPlayer = forwardRef(
     const [creatorLinks, setCreatorLinks] = useState({ instagram: "", twitter: "", youtube: "", custom: "" });
     const [downloading, setDownloading] = useState(false);
     const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+
+    // Business & Ad Server Tracking
+    const [creatorProfile, setCreatorProfile] = useState(null);
+    useEffect(() => {
+      if (!userId || isAd) return;
+      const ref = doc(db, "users", userId);
+      getDoc(ref).then((snap) => {
+        if (snap.exists()) {
+          setCreatorProfile(snap.data());
+        }
+      }).catch(err => console.error("Error fetching creator profile:", err));
+    }, [userId, isAd]);
+
+    const adViewTrackedRef = useRef(false);
+    useEffect(() => {
+      if (isAd && adId && isPlaying && !adViewTrackedRef.current) {
+        adViewTrackedRef.current = true;
+        
+        const trackView = async () => {
+          try {
+            const adRef = doc(db, "campaigns", adId);
+            const adSnap = await getDoc(adRef);
+            if (adSnap.exists()) {
+              const adData = adSnap.data();
+              const cost = adData.costPerView || 0.05;
+              const remaining = adData.remainingBudget || 0;
+              const nextRemaining = Math.max(0, remaining - cost);
+
+              await updateDoc(adRef, {
+                viewsCount: increment(1),
+                remainingBudget: nextRemaining,
+                status: nextRemaining <= 0 ? "ended" : adData.status
+              });
+            }
+          } catch (err) {
+            console.error("Error tracking ad view:", err);
+          }
+        };
+
+        trackView();
+      }
+    }, [isAd, adId, isPlaying]);
+
+    const handleAdClick = async () => {
+      if (!adId || !link) return;
+      try {
+        const adRef = doc(db, "campaigns", adId);
+        const adSnap = await getDoc(adRef);
+        if (adSnap.exists()) {
+          const adData = adSnap.data();
+          const cost = adData.costPerClick || 0.15;
+          const remaining = adData.remainingBudget || 0;
+          const nextRemaining = Math.max(0, remaining - cost);
+          
+          await updateDoc(adRef, {
+            clicksCount: increment(1),
+            remainingBudget: nextRemaining,
+            status: nextRemaining <= 0 ? "ended" : adData.status
+          });
+        }
+      } catch (err) {
+        console.error("Error updating ad click:", err);
+      }
+      window.open(link, "_blank");
+    };
+
     
     // Subtitles state
     const [activeSubtitle, setActiveSubtitle] = useState("");
@@ -813,9 +879,16 @@ const VideoPlayer = forwardRef(
           )}
 
           {/* Contenedor del nombre de usuario */}
-          <div className="user-name-container" onClick={() => setShowLinksModal(true)} style={{ cursor: "pointer" }}>
-            <h3 className="text-lg font-semibold text-white p-0.5 rounded">
-              @{username}
+          <div className="user-name-container" onClick={isAd ? null : () => setShowLinksModal(true)} style={{ cursor: isAd ? "default" : "pointer" }}>
+            <h3 className="text-lg font-semibold text-white p-0.5 rounded" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              @{isAd ? (businessName || username) : username}
+              {isAd ? (
+                <span className="ad-infeed-badge">Patrocinado</span>
+              ) : (
+                creatorProfile?.isBusiness && creatorProfile?.businessStatus === "verified" && (
+                  <span className="business-badge-verified" title="Empresa Verificada" style={{ fontSize: "10px", padding: "1px 5px" }}>🏢</span>
+                )
+              )}
             </h3>
 
             {/* Descripción del video */}
@@ -831,6 +904,20 @@ const VideoPlayer = forwardRef(
                 {interestIcons[interest] || <FaStar className="text-white" />}
                 <span className="ml-1" style={{ marginLeft: "5px" }}>{CATEGORY_MAP[interest] || interest}</span>
               </div>
+            )}
+
+            {/* Botón de Llamada a la Acción (CTA) para publicidad */}
+            {isAd && link && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAdClick();
+                }}
+                className="ad-infeed-cta-btn"
+                style={{ marginTop: "10px" }}
+              >
+                Saber más ➔
+              </button>
             )}
 
             {/* Music Info */}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Route, Routes, useNavigate } from "react-router-dom";
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, updateProfile, GoogleAuthProvider, OAuthProvider, signInWithPopup, signInWithCredential } from "firebase/auth";
-import { collection, onSnapshot, query, where, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, query, where, doc, getDoc, setDoc, updateDoc, getDocs, increment } from "firebase/firestore";
 import { auth, db } from "./firebase.js";
 
 import Sidebar from "./components/Sidebar.jsx";
@@ -57,6 +57,11 @@ function App() {
   const [following, setFollowing] = useState([]);
   const [reactionComment, setReactionComment] = useState(null);
   const [shopSellerFilter, setShopSellerFilter] = useState(null);
+  const [activityCount, setActivityCount] = useState(0);
+  const [shopNotificationCount, setShopNotificationCount] = useState(0);
+  const [takeoverAd, setTakeoverAd] = useState(null);
+  const [showTakeover, setShowTakeover] = useState(false);
+  const [takeoverTimeLeft, setTakeoverTimeLeft] = useState(5);
 
   // ✅ 1. Escuchar monedas del usuario en tiempo real desde Firestore
   useEffect(() => {
@@ -179,7 +184,7 @@ function App() {
     });
   };
 
-  // ✅ Simular un tiempo de carga inicial
+  // ✅ Simular un tiempo de carga inicial y lanzar Takeover Ad si está disponible
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
@@ -187,6 +192,88 @@ function App() {
     }, 2500);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      const fetchTakeover = async () => {
+        try {
+          const q = query(
+            collection(db, "campaigns"),
+            where("status", "==", "active"),
+            where("adType", "==", "takeover")
+          );
+          const snap = await getDocs(q);
+          const activeTakeovers = snap.docs
+            .map(doc => ({ id: doc.id, ...doc.data() }))
+            .filter(c => c.remainingBudget > 0);
+          
+          if (activeTakeovers.length > 0) {
+            const selectedAd = activeTakeovers[Math.floor(Math.random() * activeTakeovers.length)];
+            setTakeoverAd(selectedAd);
+            setShowTakeover(true);
+            setTakeoverTimeLeft(5);
+            
+            const adRef = doc(db, "campaigns", selectedAd.id);
+            const cost = selectedAd.costPerView || 0.25;
+            const remaining = selectedAd.remainingBudget || 0;
+            const nextRemaining = Math.max(0, remaining - cost);
+            await updateDoc(adRef, {
+              viewsCount: increment(1),
+              remainingBudget: nextRemaining,
+              status: nextRemaining <= 0 ? "ended" : selectedAd.status
+            });
+          }
+        } catch (err) {
+          console.error("Error loading takeover ad:", err);
+        }
+      };
+      
+      fetchTakeover();
+    }
+  }, [loading]);
+
+  useEffect(() => {
+    if (!showTakeover) return;
+    if (takeoverTimeLeft <= 0) {
+      setShowTakeover(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setTakeoverTimeLeft(prev => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [showTakeover, takeoverTimeLeft]);
+
+  // ✅ Escuchar notificaciones de actividad en tiempo real
+  useEffect(() => {
+    if (!uid) {
+      setActivityCount(0);
+      setShopNotificationCount(0);
+      return;
+    }
+    const q = query(
+      collection(db, "activity_notifications"),
+      where("userId", "==", uid),
+      where("read", "==", false)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let actCount = 0;
+      let shopCount = 0;
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.type === "purchase") {
+          shopCount++;
+        } else {
+          actCount++;
+        }
+      });
+      setActivityCount(actCount);
+      setShopNotificationCount(shopCount);
+    }, (err) => {
+      console.error("Error al escuchar notificaciones de actividad:", err);
+    });
+    return () => unsubscribe();
+  }, [uid]);
 
   // ✅ Toggle body scroll class based on active view
   useEffect(() => {
@@ -758,6 +845,58 @@ function App() {
           />
         )}
 
+        {/* Fullscreen Ad Takeover Overlay */}
+        {showTakeover && takeoverAd && (
+          <div className="ad-takeover-overlay">
+            <div className="ad-takeover-card">
+              <img
+                src={takeoverAd.imageUrl}
+                alt={takeoverAd.title}
+                className="ad-takeover-media"
+              />
+              <div className="ad-takeover-header">
+                <span className="ad-takeover-logo">PopTok</span>
+                <button
+                  className="ad-takeover-skip-btn"
+                  onClick={() => setShowTakeover(false)}
+                >
+                  Omitir {takeoverTimeLeft}s
+                </button>
+              </div>
+              <div className="ad-takeover-footer">
+                <span className="ad-takeover-badge">Patrocinado</span>
+                <div className="ad-takeover-info">
+                  <h3>{takeoverAd.businessName || "Anuncio Patrocinado"}</h3>
+                  <p>{takeoverAd.description || takeoverAd.title}</p>
+                </div>
+                {takeoverAd.link && (
+                  <button
+                    className="ad-takeover-cta-btn"
+                    onClick={async () => {
+                      try {
+                        const adRef = doc(db, "campaigns", takeoverAd.id);
+                        const cost = takeoverAd.costPerClick || 0.50;
+                        const remaining = takeoverAd.remainingBudget || 0;
+                        const nextRemaining = Math.max(0, remaining - cost);
+                        await updateDoc(adRef, {
+                          clicksCount: increment(1),
+                          remainingBudget: nextRemaining,
+                          status: nextRemaining <= 0 ? "ended" : takeoverAd.status
+                        });
+                      } catch (err) {
+                        console.error("Error charging takeover click:", err);
+                      }
+                      window.open(takeoverAd.link, "_blank");
+                    }}
+                  >
+                    Saber más ➔
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Bottom Bar Navigation */}
         <div className="bottom-bar">
           {/* Home */}
@@ -778,9 +917,14 @@ function App() {
               setShowUploadSection(false);
               setShowChat(false);
             }}
-            style={{ color: activeView === "shop" ? "#FF0050" : undefined }}
+            style={{ color: activeView === "shop" ? "#FF0050" : undefined, position: "relative" }}
           >
             <FiShoppingCart size={22} />
+            {shopNotificationCount > 0 && (
+              <span className="activity-badge-count">
+                {shopNotificationCount}
+              </span>
+            )}
           </button>
 
           {/* Upload */}
@@ -788,8 +932,13 @@ function App() {
 
           {/* Chat / Inbox */}
           <button className="inbox-button" onClick={handleOpenChat} style={{ position: "relative" }}>
-            <FiCoffee size={22} color={unreadMessages ? "#FF0050" : undefined} />
-            {unreadMessages && (
+            <FiCoffee size={22} color={unreadMessages || activityCount > 0 ? "#FF0050" : undefined} />
+            {activityCount > 0 && (
+              <span className="activity-badge-count">
+                {activityCount}
+              </span>
+            )}
+            {unreadMessages && activityCount === 0 && (
               <span style={{
                 position: "absolute", top: "8px", right: "8px",
                 background: "#FF0050", borderRadius: "50%", width: "7px", height: "7px",
