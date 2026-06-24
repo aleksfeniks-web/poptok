@@ -68,6 +68,34 @@ const coinGlowColors = {
   6: "#fbbf24"  // Gold
 };
 
+const DiamondIcon = ({ size = 16, style = {} }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{
+      display: "inline-block",
+      verticalAlign: "middle",
+      marginLeft: "4px",
+      filter: "drop-shadow(0 0 2px rgba(255, 0, 127, 0.4))",
+      ...style
+    }}
+  >
+    <defs>
+      <linearGradient id="diamondGradientVP" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#ff007f" />
+        <stop offset="50%" stopColor="#9d00ff" />
+        <stop offset="100%" stopColor="#00f2fe" />
+      </linearGradient>
+    </defs>
+    <path
+      fill="url(#diamondGradientVP)"
+      d="m23.22 5.743-3.011-4.068a4.005 4.005 0 0 0 -3.254-1.675h-9.91a4 4 0 0 0 -3.245 1.656l-3.065 4.097a3.993 3.993 0 0 0 .123 4.784l8.792 12.328a2.985 2.985 0 0 0 2.35 1.135 3.006 3.006 0 0 0 2.378-1.175l8.722-12.191a4 4 0 0 0 .12-4.891zm-4.628-2.892 3.018 4.078c.016.022.02.048.036.071h-4.892l-1.428-5h1.629a2.012 2.012 0 0 1 1.637.851zm-6.592 16.267-2.7-10.118h5.4zm-2.674-12.118 1.428-5h2.492l1.428 5zm-3.909-4.163a2.007 2.007 0 0 1 1.628-.837h1.629l-1.428 5h-4.928c.014-.022.018-.049.034-.07zm-2.969 6.488a1.9 1.9 0 0 1 -.185-.325h4.969l2.994 11.23zm11.323 10.915 3-11.24h4.986a2.1 2.1 0 0 1 -.243.421z"
+    />
+  </svg>
+);
+
 const VideoPlayer = forwardRef(
   ({ fileType, videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange, onReactToComment, reactionComment, subtitles, onDeleteVideo, userRole, userStatus, isAd, adId, link, businessName }, ref) => {
     const [hasError, setHasError] = useState(false);
@@ -885,8 +913,8 @@ const VideoPlayer = forwardRef(
               {isAd ? (
                 <span className="ad-infeed-badge">Patrocinado</span>
               ) : (
-                creatorProfile?.isBusiness && creatorProfile?.businessStatus === "verified" && (
-                  <span className="business-badge-verified" title="Empresa Verificada" style={{ fontSize: "10px", padding: "1px 5px" }}>🏢</span>
+                (creatorProfile?.isBusiness || creatorProfile?.businessStatus === "verified") && (
+                  <DiamondIcon size={16} />
                 )
               )}
             </h3>

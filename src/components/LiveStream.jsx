@@ -14,7 +14,8 @@ import {
   orderBy, 
   increment, 
   runTransaction,
-  getDocs
+  getDocs,
+  getDoc
 } from "firebase/firestore";
 
 import coin1 from "../assets/coin_1.svg";
@@ -51,6 +52,128 @@ const coinColors = {
   6: "#FFD700"
 };
 
+const DiamondIcon = ({ size = 16, style = {} }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{
+      display: "inline-block",
+      verticalAlign: "middle",
+      marginLeft: "4px",
+      filter: "drop-shadow(0 0 2px rgba(255, 0, 127, 0.4))",
+      ...style
+    }}
+  >
+    <defs>
+      <linearGradient id="diamondGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#ff007f" />
+        <stop offset="50%" stopColor="#9d00ff" />
+        <stop offset="100%" stopColor="#00f2fe" />
+      </linearGradient>
+    </defs>
+    <path
+      fill="url(#diamondGradient)"
+      d="m23.22 5.743-3.011-4.068a4.005 4.005 0 0 0 -3.254-1.675h-9.91a4 4 0 0 0 -3.245 1.656l-3.065 4.097a3.993 3.993 0 0 0 .123 4.784l8.792 12.328a2.985 2.985 0 0 0 2.35 1.135 3.006 3.006 0 0 0 2.378-1.175l8.722-12.191a4 4 0 0 0 .12-4.891zm-4.628-2.892 3.018 4.078c.016.022.02.048.036.071h-4.892l-1.428-5h1.629a2.012 2.012 0 0 1 1.637.851zm-6.592 16.267-2.7-10.118h5.4zm-2.674-12.118 1.428-5h2.492l1.428 5zm-3.909-4.163a2.007 2.007 0 0 1 1.628-.837h1.629l-1.428 5h-4.928c.014-.022.018-.049.034-.07zm-2.969 6.488a1.9 1.9 0 0 1 -.185-.325h4.969l2.994 11.23zm11.323 10.915 3-11.24h4.986a2.1 2.1 0 0 1 -.243.421z"
+    />
+  </svg>
+);
+
+const CameraFlipIcon = ({ size = 32, style = {} }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 100 100"
+    xmlns="http://www.w3.org/2000/svg"
+    style={{
+      filter: "drop-shadow(0 0 4px rgba(0, 242, 254, 0.5)) drop-shadow(0 0 2px rgba(255, 0, 255, 0.5))",
+      ...style
+    }}
+  >
+    <defs>
+      <linearGradient id="cameraGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stopColor="#FF758F" />
+        <stop offset="50%" stopColor="#D69CFC" />
+        <stop offset="100%" stopColor="#00f2fe" />
+      </linearGradient>
+    </defs>
+    {/* Top Flip Arrow */}
+    <path
+      d="M 72 18 C 66 11, 58 8, 50 8 C 42 8, 34 11, 28 18"
+      fill="none"
+      stroke="url(#cameraGradient)"
+      strokeWidth="4"
+      strokeLinecap="round"
+    />
+    <path
+      d="M 36 12 L 28 18 L 34 26"
+      fill="none"
+      stroke="url(#cameraGradient)"
+      strokeWidth="4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+
+    {/* Camera Body */}
+    <path
+      d="M 38 25 L 62 25 C 65 25, 66 27, 66 30 L 66 33 C 66 33, 72 33, 74 35 C 77 37, 78 40, 78 43 L 78 67 C 78 72, 75 75, 70 75 L 30 75 C 25 75, 22 72, 22 67 L 22 43 C 22 40, 23 37, 26 35 C 28 33, 34 33, 34 33 L 34 30 C 34 27, 35 25, 38 25 Z"
+      fill="none"
+      stroke="url(#cameraGradient)"
+      strokeWidth="4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+
+    {/* Viewfinder Inner Pill */}
+    <rect
+      x="44"
+      y="30"
+      width="12"
+      height="3"
+      rx="1.5"
+      fill="url(#cameraGradient)"
+    />
+
+    {/* Central Lens */}
+    <circle
+      cx="50"
+      cy="54"
+      r="13"
+      fill="none"
+      stroke="url(#cameraGradient)"
+      strokeWidth="4"
+    />
+
+    {/* Flash indicator */}
+    <rect
+      x="66"
+      y="43"
+      width="6"
+      height="3"
+      rx="1.5"
+      fill="url(#cameraGradient)"
+    />
+
+    {/* Bottom Flip Arrow */}
+    <path
+      d="M 28 82 C 34 89, 42 92, 50 92 C 58 92, 66 89, 72 82"
+      fill="none"
+      stroke="url(#cameraGradient)"
+      strokeWidth="4"
+      strokeLinecap="round"
+    />
+    <path
+      d="M 64 88 L 72 82 L 66 74"
+      fill="none"
+      stroke="url(#cameraGradient)"
+      strokeWidth="4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 const LiveStream = () => {
   const { roomId } = useParams();
   const navigate = useNavigate();
@@ -60,6 +183,8 @@ const LiveStream = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [isHost, setIsHost] = useState(false);
   const [liveData, setLiveData] = useState(null);
+  const [hostProfile, setHostProfile] = useState(null);
+  const [userVerifications, setUserVerifications] = useState({}); // { uid: { isBusiness, businessStatus } }
 
   // Live Stats
   const [viewers, setViewers] = useState(0);
@@ -116,6 +241,59 @@ const LiveStream = () => {
     });
     return () => unsubscribe();
   }, [currentUser]);
+
+  // Escuchar perfil del host actual para verificar su tipo
+  useEffect(() => {
+    if (!liveData?.hostId) return;
+    const hostRef = doc(db, "users", liveData.hostId);
+    const unsubscribe = onSnapshot(hostRef, (snap) => {
+      if (snap.exists()) {
+        setHostProfile(snap.data());
+      }
+    });
+    return () => unsubscribe();
+  }, [liveData?.hostId]);
+
+  // Cargar/cachear verificación de los comentadores en el chat
+  useEffect(() => {
+    if (comments.length === 0) return;
+    
+    // Buscar uids únicos que no tengan verificación cargada aún
+    const uidsToFetch = [...new Set(comments.map(c => c.userId).filter(uid => uid && !userVerifications[uid]))];
+    if (uidsToFetch.length === 0) return;
+
+    uidsToFetch.forEach(async (uid) => {
+      try {
+        const userRef = doc(db, "users", uid);
+        const snap = await getDoc(userRef);
+        if (snap.exists()) {
+          const data = snap.data();
+          setUserVerifications(prev => ({
+            ...prev,
+            [uid]: {
+              isBusiness: data.isBusiness || false,
+              businessStatus: data.businessStatus || ""
+            }
+          }));
+        } else {
+          setUserVerifications(prev => ({
+            ...prev,
+            [uid]: { isBusiness: false, businessStatus: "" }
+          }));
+        }
+      } catch (e) {
+        console.error("Error al obtener perfil de comentador:", e);
+      }
+    });
+  }, [comments, userVerifications]);
+
+  const showCommentDiamond = (comment) => {
+    const cached = userVerifications[comment.userId];
+    if (cached) {
+      return cached.isBusiness || cached.businessStatus === "verified";
+    }
+    return comment.isBusiness || comment.businessStatus === "verified";
+  };
 
   // Reset states when roomId changes
   useEffect(() => {
@@ -868,8 +1046,11 @@ const LiveStream = () => {
                   />
                 </div>
               )}
-              <h3 style={{ fontSize: "20px", fontWeight: "bold", margin: "10px 0 5px" }}>
+              <h3 style={{ fontSize: "20px", fontWeight: "bold", margin: "10px 0 5px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
                 @{liveData?.hostName || "Creador"}
+                {(hostProfile?.isBusiness || hostProfile?.businessStatus === "verified") && (
+                  <DiamondIcon size={18} />
+                )}
               </h3>
               <p style={{ color: "#aaa", fontSize: "14px", margin: "0" }}>
                 Transmitiendo en Vivo...
@@ -917,8 +1098,11 @@ const LiveStream = () => {
               />
             </div>
           )}
-          <h3 style={{ fontSize: "20px", fontWeight: "bold", margin: "10px 0 5px" }}>
+          <h3 style={{ fontSize: "20px", fontWeight: "bold", margin: "10px 0 5px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
             @{liveData?.hostName || "Creador"}
+            {(hostProfile?.isBusiness || hostProfile?.businessStatus === "verified") && (
+              <DiamondIcon size={18} />
+            )}
           </h3>
           <p style={{ color: "#aaa", fontSize: "14px", margin: "0" }}>
             Espectando en Vivo...
@@ -968,7 +1152,6 @@ const LiveStream = () => {
           {/* 👥 Followers count styling matching reference image */}
           <div style={{
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
             padding: "2px 8px"
@@ -984,16 +1167,6 @@ const LiveStream = () => {
             }}>
               <FiUsers size={16} style={{ color: "#00f2fe" }} /> {viewers}
             </div>
-            <span style={{
-              fontSize: "9px",
-              color: "#a0e9ff",
-              fontWeight: "600",
-              marginTop: "1px",
-              textTransform: "uppercase",
-              letterSpacing: "0.5px"
-            }}>
-              Seguidores Viendo
-            </span>
           </div>
         </div>
 
@@ -1031,14 +1204,11 @@ const LiveStream = () => {
                 fontSize: "13px",
                 fontWeight: "bold",
                 cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
                 boxShadow: "0 0 10px rgba(255, 0, 80, 0.2)",
                 transition: "all 0.2s"
               }}
             >
-              🛑 Finalizar
+              Finalizar
             </button>
           </div>
         ) : (
@@ -1255,7 +1425,10 @@ const LiveStream = () => {
                   gap: "6px"
                 }}>
                   <img src={coinImages[comment.giftIndex || 1]} style={{ width: "16px", height: "16px" }} alt="gem" />
-                  <span style={{ color: "#FFD700" }}>@{comment.username}</span>
+                  <span style={{ color: "#FFD700", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    @{comment.username}
+                    {showCommentDiamond(comment) && <DiamondIcon size={12} />}
+                  </span>
                   <span>{comment.text}</span>
                 </div>
               );
@@ -1270,8 +1443,9 @@ const LiveStream = () => {
                 fontSize: "13px",
                 border: "1px solid rgba(255,255,255,0.05)"
               }}>
-                <span style={{ color: "#FF99B0", fontWeight: "bold", marginRight: "6px" }}>
+                <span style={{ color: "#FF99B0", fontWeight: "bold", marginRight: "6px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
                   @{comment.username}
+                  {showCommentDiamond(comment) && <DiamondIcon size={12} />}
                 </span>
                 <span style={{ color: "white" }}>{comment.text}</span>
               </div>
@@ -1387,19 +1561,27 @@ const LiveStream = () => {
           cursor: "pointer"
         }} onClick={() => setFacingMode(prev => prev === "user" ? "environment" : "user")}>
           <div style={{
-            width: "50px",
-            height: "50px",
+            width: "55px",
+            height: "55px",
             borderRadius: "50%",
-            background: "rgba(0, 0, 0, 0.6)",
-            border: "2px solid #ff00ff",
-            boxShadow: "0 0 12px rgba(255, 0, 255, 0.5)",
+            background: "rgba(10, 10, 15, 0.75)",
+            border: "1.5px solid rgba(255, 255, 255, 0.15)",
+            boxShadow: "0 0 20px rgba(0, 242, 254, 0.35), 0 0 10px rgba(255, 117, 143, 0.35), inset 0 0 12px rgba(255, 255, 255, 0.05)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
             color: "white",
-            fontSize: "20px"
+            transition: "all 0.2s ease"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "scale(1.1)";
+            e.currentTarget.style.boxShadow = "0 0 25px rgba(0, 242, 254, 0.55), 0 0 15px rgba(255, 117, 143, 0.55)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.boxShadow = "0 0 20px rgba(0, 242, 254, 0.35), 0 0 10px rgba(255, 117, 143, 0.35), inset 0 0 12px rgba(255, 255, 255, 0.05)";
           }}>
-            📷
+            <CameraFlipIcon size={30} />
           </div>
           <span style={{
             color: "#fff",
