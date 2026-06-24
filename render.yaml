@@ -24,3 +24,16 @@ services:
         value: "1:678268067561:web:a64a482ae5210dd1d25a78"
       - key: VITE_FIREBASE_MEASUREMENT_ID
         value: "G-XZ77PCH8H0"
+      - key: VITE_PAYMENT_API_URL
+        value: "https://poptok-payment-backend.onrender.com"
+
+  - type: web
+    name: poptok-payment-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: STRIPE_SECRET_KEY
+        sync: false
+

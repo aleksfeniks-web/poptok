@@ -107,8 +107,9 @@ const StripeDepositForm = ({ amount, onCancel, onSuccess, businessName, taxId, u
     setErrorMessage("");
 
     try {
-      // 1. Llamar al backend local para crear el Payment Intent
-      const response = await fetch("http://localhost:5000/create-payment-intent", {
+      // 1. Llamar al backend para crear el Payment Intent
+      const paymentApiUrl = import.meta.env.VITE_PAYMENT_API_URL || "http://localhost:5000";
+      const response = await fetch(`${paymentApiUrl}/create-payment-intent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: parseFloat(amount), businessName })
