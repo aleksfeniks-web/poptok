@@ -6,6 +6,10 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage
 import { AiFillHeart, AiOutlineClose } from "react-icons/ai";
 import { BsAward, BsCoin, BsGrid3X3Gap } from "react-icons/bs";
 import { FaUserEdit, FaInstagram, FaTwitter, FaYoutube, FaPaypal, FaExternalLinkAlt, FaPen, FaSignOutAlt, FaShieldAlt, FaDownload, FaTrashAlt, FaUsers, FaUserCheck } from "react-icons/fa";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+
+const stripePromise = loadStripe("pk_test_51TlyhWLq6Ijso4oiuQLReCiX9r1sQKZrMApvrWQlAxtLv189pKNC4mh5PZLaRkzAg2OL9MY5O2fj0M8VVZEQgtyD00cHuXVW4E");
 
 import coin1 from "../assets/coin_1.svg";
 import coin2 from "../assets/coin_2.svg";
@@ -89,6 +93,128 @@ const PEXELS_DEMO_VIDEOS = [
   },
 ];
 
+const StripeDepositForm = ({ amount, onCancel, onSuccess, businessName, taxId, user, fetchUserData }) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    
+    setIsProcessing(true);
+    setErrorMessage("");
+
+    try {
+      // 1. Llamar al backend local para crear el Payment Intent
+      const response = await fetch("http://localhost:5000/create-payment-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: parseFloat(amount), businessName })
+      });
+
+      if (!response.ok) {
+        throw new Error("No se pudo iniciar la transacción con Stripe.");
+      }
+
+      const { clientSecret } = await response.json();
+
+      // 2. Confirmar el pago en el cliente usando CardElement
+      const cardElement = elements.getElement(CardElement);
+      const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: {
+            name: businessName
+          }
+        }
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+      } else if (paymentIntent && paymentIntent.status === "succeeded") {
+        // 3. Acreditar saldo en Firestore
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const currentWallet = userSnap.data().businessWallet || 0;
+          await updateDoc(userRef, {
+            businessWallet: currentWallet + parseFloat(amount)
+          });
+        }
+        
+        await fetchUserData(user.uid);
+        onSuccess(paymentIntent.id);
+      }
+    } catch (err) {
+      console.error(err);
+      setErrorMessage(err.message || "Error al procesar el pago.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="business-form" style={{ marginTop: "15px" }}>
+      <div style={{ display: "flex", gap: "10px", margin: "5px 0 15px", background: "rgba(255,255,255,0.03)", padding: "10px", borderRadius: "10px", justifyContent: "center" }}>
+        <span style={{ fontSize: "12px", fontWeight: "bold", color: "#00f2fe" }}>Pago Seguro con Tarjeta (Stripe)</span>
+      </div>
+
+      <div className="business-form-group">
+        <label style={{ display: "block", marginBottom: "8px" }}>Datos de la Tarjeta *</label>
+        <div style={{
+          background: "rgba(255, 255, 255, 0.05)",
+          border: "1px solid rgba(255, 255, 255, 0.15)",
+          borderRadius: "8px",
+          padding: "12px 15px",
+          color: "white"
+        }}>
+          <CardElement options={{
+            style: {
+              base: {
+                color: "#ffffff",
+                fontFamily: "system-ui, -apple-system, sans-serif",
+                fontSize: "15px",
+                "::placeholder": { color: "#888888" }
+              },
+              invalid: {
+                color: "#ff0050"
+              }
+            }
+          }} />
+        </div>
+      </div>
+
+      {errorMessage && (
+        <p style={{ color: "#ff0050", fontSize: "12px", marginTop: "10px", textAlign: "center" }}>
+          ❌ {errorMessage}
+        </p>
+      )}
+
+      <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
+        <button 
+          type="button" 
+          onClick={onCancel}
+          disabled={isProcessing}
+          className="business-submit-btn" 
+          style={{ margin: 0, background: "#444" }}
+        >
+          Cancelar
+        </button>
+        <button 
+          type="submit" 
+          className="business-submit-btn" 
+          disabled={isProcessing || !stripe}
+          style={{ background: "linear-gradient(90deg, #00f2fe, #ff0050)", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", margin: 0, flex: 1 }}
+        >
+          {isProcessing ? "Procesando..." : `Pagar $${parseFloat(amount).toFixed(2)} USD`}
+        </button>
+      </div>
+    </form>
+  );
+};
+
 const Profile = ({ onSelectVideo }) => {
   const [user, setUser] = useState(null);
   const [displayName, setDisplayName] = useState("");
@@ -148,6 +274,7 @@ const Profile = ({ onSelectVideo }) => {
   const [depositAmount, setDepositAmount] = useState("100");
   const [isDepositing, setIsDepositing] = useState(false);
   const [depositSuccess, setDepositSuccess] = useState(false);
+  const [depositAmountFixed, setDepositAmountFixed] = useState(false);
   
   // Card mock fields
   const [creditCardNum, setCreditCardNum] = useState("");
@@ -1846,6 +1973,7 @@ const Profile = ({ onSelectVideo }) => {
                         setCreditCardNum("");
                         setCreditCardExpiry("");
                         setCreditCardCvc("");
+                        setDepositAmountFixed(false);
                         setDepositModal(true);
                       }} 
                       className="business-wallet-btn"
@@ -2145,7 +2273,7 @@ const Profile = ({ onSelectVideo }) => {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleStripeDeposit} className="business-form">
+              <div className="business-form">
                 <div className="business-form-group">
                   <label>Monto a Depositar (USD) *</label>
                   <input
@@ -2155,77 +2283,47 @@ const Profile = ({ onSelectVideo }) => {
                     onChange={(e) => setDepositAmount(e.target.value)}
                     placeholder="Ej. 100"
                     min="10"
-                    required
+                    disabled={depositAmountFixed}
                   />
+                  {!depositAmountFixed && (
+                    <button 
+                      onClick={() => setDepositAmountFixed(true)}
+                      disabled={!depositAmount || parseFloat(depositAmount) < 10}
+                      className="business-submit-btn"
+                      style={{ marginTop: "15px", background: "linear-gradient(90deg, #00f2fe, #ff0050)" }}
+                    >
+                      Confirmar Monto
+                    </button>
+                  )}
                 </div>
 
-                <div style={{ display: "flex", gap: "10px", margin: "5px 0", background: "rgba(255,255,255,0.03)", padding: "10px", borderRadius: "10px", justifyContent: "center" }}>
-                  <span style={{ fontSize: "12px", fontWeight: "bold", color: "#00f2fe" }}>Stripe Secure</span>
-                  <span style={{ color: "#444" }}>|</span>
-                  <span style={{ fontSize: "12px", fontWeight: "bold", color: "#ff0050" }}>PayPal Checkout</span>
-                </div>
-
-                <div className="business-form-group">
-                  <label>Número de Tarjeta *</label>
-                  <input
-                    type="text"
-                    className="business-form-input"
-                    value={creditCardNum}
-                    onChange={(e) => setCreditCardNum(e.target.value)}
-                    placeholder="4000 1234 5678 9010"
-                    maxLength="19"
-                    required
-                  />
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                  <div className="business-form-group">
-                    <label>Expiración *</label>
-                    <input
-                      type="text"
-                      className="business-form-input"
-                      value={creditCardExpiry}
-                      onChange={(e) => setCreditCardExpiry(e.target.value)}
-                      placeholder="MM/AA"
-                      maxLength="5"
-                      required
+                {depositAmountFixed && (
+                  <Elements stripe={stripePromise}>
+                    <StripeDepositForm
+                      amount={depositAmount}
+                      onCancel={() => setDepositAmountFixed(false)}
+                      onSuccess={(payIntentId) => {
+                        const invId = "INV-" + Math.floor(Math.random() * 900000 + 100000);
+                        setInvoiceData({
+                          id: invId,
+                          companyName: userProfile?.businessInfo?.businessName || verifyForm.companyName || "Empresa Poptok",
+                          taxId: userProfile?.businessInfo?.taxId || verifyForm.taxId || "XAXX010101000",
+                          amount: parseFloat(depositAmount),
+                          date: new Date().toLocaleDateString(),
+                          time: new Date().toLocaleTimeString(),
+                          method: "Stripe Real Card (" + payIntentId.substring(0, 15) + ")",
+                          authCode: "AUTH-" + Math.floor(Math.random() * 1000000)
+                        });
+                        setDepositSuccess(true);
+                      }}
+                      businessName={userProfile?.businessInfo?.businessName || verifyForm.companyName || "Empresa Poptok"}
+                      taxId={userProfile?.businessInfo?.taxId || verifyForm.taxId || "XAXX010101000"}
+                      user={user}
+                      fetchUserData={fetchUserData}
                     />
-                  </div>
-                  <div className="business-form-group">
-                    <label>CVC *</label>
-                    <input
-                      type="password"
-                      className="business-form-input"
-                      value={creditCardCvc}
-                      onChange={(e) => setCreditCardCvc(e.target.value)}
-                      placeholder="123"
-                      maxLength="4"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <button 
-                  type="submit" 
-                  className="business-submit-btn" 
-                  disabled={isDepositing}
-                  style={{ background: "linear-gradient(90deg, #00f2fe, #ff0050)", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}
-                >
-                  {isDepositing ? (
-                    <>
-                      <div style={{
-                        width: "14px",
-                        height: "14px",
-                        border: "2px solid rgba(255,255,255,0.2)",
-                        borderTop: "2px solid white",
-                        borderRadius: "50%",
-                        animation: "spin 0.6s linear infinite"
-                      }}></div>
-                      Procesando...
-                    </>
-                  ) : `Pagar $${parseFloat(depositAmount || 0).toFixed(2)} USD`}
-                </button>
-              </form>
+                  </Elements>
+                )}
+              </div>
             )}
           </div>
         </div>
