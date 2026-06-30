@@ -6,6 +6,7 @@ import { FiShare2, FiDownload, FiTrash2 } from "react-icons/fi";
 import Comments from "./Comments.jsx";
 import { toggleFollow, getFollowingList } from "../utils/follow.js";
 import { db } from "../firebase.js";
+import { getCDNUrl } from "../utils/cdn.js";
 import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
 import { 
   FaGamepad, FaCat, FaCar, FaFlask, FaFilm, FaUtensils, FaLaugh, 
@@ -99,6 +100,7 @@ const DiamondIcon = ({ size = 16, style = {} }) => (
 const VideoPlayer = forwardRef(
   ({ fileType, videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange, onReactToComment, reactionComment, subtitles, onDeleteVideo, userRole, userStatus, isAd, adId, link, businessName }, ref) => {
     const [hasError, setHasError] = useState(false);
+    const [shouldLoad, setShouldLoad] = useState(false);
     const [showCoin, setShowCoin] = useState(false);
     const [spawnedCoinType, setSpawnedCoinType] = useState(1);
     const [coinPosition, setCoinPosition] = useState({ x: 0, y: 0 });
@@ -445,7 +447,7 @@ const VideoPlayer = forwardRef(
 
       setDownloading(true);
       try {
-        const response = await fetch(videoUrl);
+        const response = await fetch(getCDNUrl(videoUrl));
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
         
@@ -493,7 +495,7 @@ const VideoPlayer = forwardRef(
     useEffect(() => {
       if (fileType === "image") {
         const img = new Image();
-        img.src = videoUrl;
+        img.src = getCDNUrl(videoUrl);
         img.onload = () => {
           setIsVertical(img.width < img.height);
         };
@@ -615,6 +617,31 @@ const VideoPlayer = forwardRef(
       setShowCoin(false);
       onInteraction(uid, "coins", spawnedCoinType);
     };
+
+    // Intersection Observer para precargar videos antes de que entren al viewport (umbral amplio de 800px)
+    useEffect(() => {
+      const observerElement = containerRef.current;
+      if (!observerElement) return;
+
+      const preloadObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              setShouldLoad(true);
+            }
+          });
+        },
+        {
+          rootMargin: "800px 0px 800px 0px",
+          threshold: 0
+        }
+      );
+
+      preloadObserver.observe(observerElement);
+      return () => {
+        preloadObserver.unobserve(observerElement);
+      };
+    }, []);
 
     // Intersection Observer para reproducir videos o música visibles
     useEffect(() => {
@@ -802,7 +829,7 @@ const VideoPlayer = forwardRef(
           )}
           {fileType === "image" ? (
             <img
-              src={videoUrl}
+              src={getCDNUrl(videoUrl)}
               className="video-player"
               style={{ objectFit: "contain", backgroundColor: "#000" }}
               alt="Post content"
@@ -812,10 +839,11 @@ const VideoPlayer = forwardRef(
           ) : (
             <video
               ref={videoRef}
-              src={videoUrl}
+              src={shouldLoad ? getCDNUrl(videoUrl) : ""}
               className="video-player"
               autoPlay
               playsInline
+              preload={shouldLoad ? "auto" : "none"}
               muted={isMuted}
               loop
               onTimeUpdate={handleTimeUpdate}

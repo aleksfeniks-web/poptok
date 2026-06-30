@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { db } from "../firebase.js";
 import { collection, query, orderBy, onSnapshot, doc, deleteDoc, updateDoc } from "firebase/firestore";
+import { getCDNUrl } from "../utils/cdn.js";
 import { FiTrash2, FiShield } from "react-icons/fi";
 
 const AdminPortal = () => {
@@ -146,9 +147,9 @@ const AdminPortal = () => {
                 borderRadius: "12px"
               }}>
                 {video.fileType === "image" ? (
-                  <img src={video.fileUrl} alt="Preview" style={{ width: "50px", height: "70px", objectFit: "cover", borderRadius: "6px" }} />
+                  <img src={getCDNUrl(video.fileUrl)} alt="Preview" style={{ width: "50px", height: "70px", objectFit: "cover", borderRadius: "6px" }} />
                 ) : (
-                  <video src={video.fileUrl} style={{ width: "50px", height: "70px", objectFit: "cover", borderRadius: "6px", backgroundColor: "#000" }} muted />
+                  <video src={getCDNUrl(video.fileUrl)} style={{ width: "50px", height: "70px", objectFit: "cover", borderRadius: "6px", backgroundColor: "#000" }} muted />
                 )}
                 
                 <div style={{ flex: 1, minWidth: 0 }}>

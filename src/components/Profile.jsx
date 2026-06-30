@@ -3,6 +3,8 @@ import { auth, db, storage } from "../firebase.js";
 import { onAuthStateChanged, updateProfile, signOut } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, query, where, updateDoc, deleteDoc } from "firebase/firestore";
 import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import LazyVideoThumbnail from "./LazyVideoThumbnail.jsx";
+import { getCDNUrl } from "../utils/cdn.js";
 import { AiFillHeart, AiOutlineClose } from "react-icons/ai";
 import { BsAward, BsCoin, BsGrid3X3Gap } from "react-icons/bs";
 import { FaUserEdit, FaInstagram, FaTwitter, FaYoutube, FaPaypal, FaExternalLinkAlt, FaPen, FaSignOutAlt, FaShieldAlt, FaDownload, FaTrashAlt, FaUsers, FaUserCheck, FaLeaf } from "react-icons/fa";
@@ -1403,9 +1405,10 @@ const Profile = ({ onSelectVideo }) => {
                 {video.fileType === "image" ? (
                   <img className="profile-video-thumbnail" src={video.fileUrl} alt="thumbnail" style={{ objectFit: "cover" }} />
                 ) : (
-                  <video className="profile-video-thumbnail" muted preload="metadata">
-                    <source src={video.fileUrl} type="video/mp4" />
-                  </video>
+                  <LazyVideoThumbnail
+                    src={video.fileUrl}
+                    className="profile-video-thumbnail"
+                  />
                 )}
                 <div className="profile-video-likes-badge">
                   <AiFillHeart /> {video.likes || 0}
@@ -1430,9 +1433,10 @@ const Profile = ({ onSelectVideo }) => {
                 {video.fileType === "image" ? (
                   <img className="profile-video-thumbnail" src={video.fileUrl} alt="thumbnail" style={{ objectFit: "cover" }} />
                 ) : (
-                  <video className="profile-video-thumbnail" muted preload="metadata">
-                    <source src={video.fileUrl} type="video/mp4" />
-                  </video>
+                  <LazyVideoThumbnail
+                    src={video.fileUrl}
+                    className="profile-video-thumbnail"
+                  />
                 )}
                 <div className="profile-video-likes-badge">
                   <AiFillHeart style={{ color: "#ff0050" }} /> {video.likes || 0}
@@ -1499,13 +1503,13 @@ const Profile = ({ onSelectVideo }) => {
 
              {selectedVideo.fileType === "image" ? (
                <img
-                 src={selectedVideo.fileUrl}
+                 src={getCDNUrl(selectedVideo.fileUrl)}
                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
                  alt="Post content"
                />
              ) : (
                <video
-                 src={selectedVideo.fileUrl}
+                 src={getCDNUrl(selectedVideo.fileUrl)}
                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
                  controls
                  autoPlay

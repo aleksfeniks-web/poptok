@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "../index.css";
 import VideoPlayer from "./VideoPlayer.jsx";
+import LazyVideoThumbnail from "./LazyVideoThumbnail.jsx";
+import { getCDNUrl } from "../utils/cdn.js";
 import { auth, db } from "../firebase.js";
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, doc, updateDoc, getDoc, getDocs, query, orderBy, limit, increment, arrayUnion, setDoc, onSnapshot, deleteDoc, where, addDoc } from "firebase/firestore";
@@ -728,9 +730,10 @@ const Feed = ({
               >
                 <div className="rednote-thumbnail-wrapper">
                   <span className="rednote-tag-badge">{v.interest || "Random"}</span>
-                  <video className="rednote-thumbnail" muted preload="metadata" playsInline>
-                    <source src={`${v.fileUrl}#t=0.1`} type="video/mp4" />
-                  </video>
+                  <LazyVideoThumbnail
+                    src={v.fileUrl}
+                    className="rednote-thumbnail"
+                  />
                   <div className="rednote-play-icon">▶</div>
                 </div>
                 <div className="rednote-card-info">
@@ -1021,7 +1024,7 @@ const Feed = ({
               <div key={v.riuzaki1234} className="video-item">
                 <VideoPlayer
                   fileType={v.fileType || "video"}
-                  videoUrl={v.fileUrl}
+                  videoUrl={getCDNUrl(v.fileUrl)}
                   username={v.username}
                   description={v.description}
                   interest={v.interest}
