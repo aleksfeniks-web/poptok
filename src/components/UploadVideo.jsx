@@ -119,6 +119,53 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, duetVide
   // AI state
   const [showAI, setShowAI] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("none");
+  
+  // Filtros de belleza y retoques
+  const [beautyPreset, setBeautyPreset] = useState("none"); // "none" | "smooth" | "radiant" | "warm" | "glam" | "custom"
+  const [skinSmooth, setSkinSmooth] = useState(0); // 0 to 100
+  const [skinBrightness, setSkinBrightness] = useState(100); // 100 to 150
+  const [skinSaturate, setSkinSaturate] = useState(100); // 100 to 140
+
+  const handleSelectBeautyPreset = (preset) => {
+    setBeautyPreset(preset);
+    if (preset === "none") {
+      setSkinSmooth(0);
+      setSkinBrightness(100);
+      setSkinSaturate(100);
+    } else if (preset === "smooth") {
+      setSkinSmooth(50);
+      setSkinBrightness(110);
+      setSkinSaturate(105);
+    } else if (preset === "radiant") {
+      setSkinSmooth(40);
+      setSkinBrightness(120);
+      setSkinSaturate(110);
+    } else if (preset === "warm") {
+      setSkinSmooth(30);
+      setSkinBrightness(110);
+      setSkinSaturate(118);
+    } else if (preset === "glam") {
+      setSkinSmooth(65);
+      setSkinBrightness(115);
+      setSkinSaturate(125);
+    }
+  };
+
+  const handleSmoothChange = (val) => {
+    setSkinSmooth(val);
+    setBeautyPreset("custom");
+  };
+
+  const handleBrightnessChange = (val) => {
+    setSkinBrightness(val);
+    setBeautyPreset("custom");
+  };
+
+  const handleSaturateChange = (val) => {
+    setSkinSaturate(val);
+    setBeautyPreset("custom");
+  };
+
   const [selectedStyle, setSelectedStyle] = useState("gradient");
   const [textContent, setTextContent] = useState("");
   const [allowDownload, setAllowDownload] = useState(true);
@@ -203,9 +250,26 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, duetVide
         return;
       }
 
-      // Aplicar filtro AI de cámara en tiempo real
+      // Aplicar filtro AI de cámara y de belleza en tiempo real
       const activeFilter = AI_FILTERS.find(f => f.id === selectedFilter);
-      ctx.filter = activeFilter?.filter || "none";
+      const filterParts = [];
+      if (activeFilter && activeFilter.filter) {
+        filterParts.push(activeFilter.filter);
+      }
+      
+      // Aplicar parámetros de belleza
+      if (skinSmooth > 0) {
+        // Un desenfoque sutil (blur) de hasta 1.5px suaviza la piel.
+        filterParts.push(`blur(${(skinSmooth / 100) * 1.5}px)`);
+      }
+      if (skinBrightness !== 100) {
+        filterParts.push(`brightness(${skinBrightness / 100})`);
+      }
+      if (skinSaturate !== 100) {
+        filterParts.push(`saturate(${skinSaturate / 100})`);
+      }
+      
+      ctx.filter = filterParts.join(" ") || "none";
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       ctx.filter = "none"; // Restablecer para no aplicar el filtro a los stickers emoji
 
@@ -248,7 +312,7 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, duetVide
     return () => {
       cancelAnimationFrame(animId);
     };
-  }, [isCameraActive, tab, selectedSticker, stickerX, stickerY, stickerScale, selectedFilter]);
+  }, [isCameraActive, tab, selectedSticker, stickerX, stickerY, stickerScale, selectedFilter, skinSmooth, skinBrightness, skinSaturate]);
 
   const startRecording = () => {
     const canvas = recordCanvasRef.current;
@@ -818,6 +882,96 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, duetVide
                   </div>
                 )}
               </div>
+
+              {/* ── Beauty Filters ── */}
+              <div style={{ width: "100%" }}>
+                <label className="upload-field-label">✨ Filtro de Belleza</label>
+                <div style={{ display: "flex", gap: "8px", overflowX: "auto", padding: "4px 0", scrollbarWidth: "none" }}>
+                  {[
+                    { id: "none", label: "Original" },
+                    { id: "smooth", label: "✨ Suave" },
+                    { id: "radiant", label: "💫 Radiante" },
+                    { id: "warm", label: "🌤️ Cálido" },
+                    { id: "glam", label: "💖 Glamour" },
+                  ].map(preset => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => handleSelectBeautyPreset(preset.id)}
+                      style={{
+                        background: beautyPreset === preset.id ? "#ff0050" : "#222",
+                        border: "none",
+                        color: "#fff",
+                        borderRadius: "15px",
+                        padding: "6px 12px",
+                        fontSize: "12px",
+                        fontWeight: "bold",
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {(beautyPreset !== "none" || skinSmooth > 0 || skinBrightness !== 100 || skinSaturate !== 100) && (
+                <div style={{ width: "100%", background: "rgba(255,255,255,0.03)", padding: "12px", borderRadius: "12px", display: "flex", flexDirection: "column", gap: "10px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "11px", color: "#aaa", fontWeight: "bold" }}>Ajustes de Belleza</span>
+                    {beautyPreset === "custom" && (
+                      <span style={{ fontSize: "10px", color: "#ff0050", fontWeight: "bold", background: "rgba(255, 0, 80, 0.1)", padding: "2px 6px", borderRadius: "6px" }}>Personalizado</span>
+                    )}
+                  </div>
+                  
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#ddd" }}>
+                      <span>Suavizar Piel</span>
+                      <span style={{ color: "#ff0050", fontWeight: "bold" }}>{skinSmooth}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={skinSmooth}
+                      onChange={e => handleSmoothChange(parseInt(e.target.value))}
+                      style={{ width: "100%", accentColor: "#ff0050", cursor: "pointer" }}
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#ddd" }}>
+                      <span>Brillo</span>
+                      <span style={{ color: "#ff0050", fontWeight: "bold" }}>{skinBrightness}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="100"
+                      max="150"
+                      value={skinBrightness}
+                      onChange={e => handleBrightnessChange(parseInt(e.target.value))}
+                      style={{ width: "100%", accentColor: "#ff0050", cursor: "pointer" }}
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#ddd" }}>
+                      <span>Color / Tono</span>
+                      <span style={{ color: "#ff0050", fontWeight: "bold" }}>{skinSaturate}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="100"
+                      max="140"
+                      value={skinSaturate}
+                      onChange={e => handleSaturateChange(parseInt(e.target.value))}
+                      style={{ width: "100%", accentColor: "#ff0050", cursor: "pointer" }}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div style={{ width: "100%" }}>
                 <label className="upload-field-label">🎭 Filtro de Cara (Emoji AR)</label>
