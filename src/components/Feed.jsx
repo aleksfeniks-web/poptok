@@ -107,7 +107,8 @@ const Feed = ({
   activeExploreVideoId,
   setActiveExploreVideoId,
   onVideoPlayStateChange,
-  onReactToComment
+  onReactToComment,
+  onStartDuet
 }) => {
   const navigate = useNavigate();
   const [videos, setVideos] = useState([]);
