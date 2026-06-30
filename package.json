@@ -12,6 +12,7 @@
   "dependencies": {
     "@stripe/react-stripe-js": "^6.6.0",
     "@stripe/stripe-js": "^9.8.0",
+    "agora-rtc-sdk-ng": "^4.24.5",
     "axios": "^1.6.8",
     "emoji-picker-react": "^4.9.2",
     "firebase": "^10.9.0",

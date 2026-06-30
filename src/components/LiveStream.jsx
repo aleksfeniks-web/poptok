@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import AgoraRTC from "agora-rtc-sdk-ng";
 import { useParams, useNavigate } from "react-router-dom";
 import { AiOutlineHeart, AiFillHeart } from "react-icons/ai";
 import { FiUsers, FiShoppingBag, FiX } from "react-icons/fi";
@@ -211,6 +212,11 @@ const LiveStream = () => {
   const commentsEndRef = useRef(null);
   const prevLikesRef = useRef(0);
   const isHostRef = useRef(false);
+  
+  // Agora refs & state
+  const agoraClientRef = useRef(null);
+  const localTracksRef = useRef([]);
+  const [remoteVideoTrack, setRemoteVideoTrack] = useState(null);
 
   useEffect(() => {
     isHostRef.current = isHost;
@@ -375,6 +381,121 @@ const LiveStream = () => {
 
     return () => unsubscribe();
   }, [roomId, currentUser]);
+
+  // Agora.io WebRTC Core Integration
+  useEffect(() => {
+    if (!roomId || !streamActive) return;
+
+    let active = true;
+    const appId = import.meta.env.VITE_AGORA_APP_ID;
+
+    if (!appId) {
+      console.warn("VITE_AGORA_APP_ID no está configurado en .env. La transmisión en vivo real de Agora no se iniciará.");
+      return;
+    }
+
+    const initAgora = async () => {
+      try {
+        const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+        agoraClientRef.current = client;
+
+        if (isHost) {
+          await client.setClientRole("host");
+          await client.join(appId, roomId, null, currentUser?.uid || null);
+
+          // Crear pistas de audio y video de cámara
+          const [micTrack, camTrack] = await AgoraRTC.createMicrophoneAndCameraTracks().catch(err => {
+            console.warn("Fallo al obtener pistas combinadas, intentando solo video...", err);
+            return AgoraRTC.createCameraVideoTrack().then(videoTrack => [null, videoTrack]);
+          });
+
+          if (!active) {
+            if (micTrack) micTrack.close();
+            if (camTrack) camTrack.close();
+            return;
+          }
+
+          const tracksToPublish = [];
+          localTracksRef.current = [];
+
+          if (micTrack) {
+            tracksToPublish.push(micTrack);
+            localTracksRef.current.push(micTrack);
+          }
+          if (camTrack) {
+            tracksToPublish.push(camTrack);
+            localTracksRef.current.push(camTrack);
+            // Play local video track inside container
+            setTimeout(() => {
+              const el = document.getElementById("local-video-container");
+              if (el) camTrack.play("local-video-container");
+            }, 500);
+          }
+
+          if (tracksToPublish.length > 0) {
+            await client.publish(tracksToPublish);
+          }
+        } else {
+          // Audience Mode
+          await client.setClientRole("audience");
+
+          client.on("user-published", async (user, mediaType) => {
+            if (!active) return;
+            await client.subscribe(user, mediaType);
+            if (mediaType === "video") {
+              setRemoteVideoTrack(user.videoTrack);
+            }
+            if (mediaType === "audio") {
+              user.audioTrack.play();
+            }
+          });
+
+          client.on("user-unpublished", (user, mediaType) => {
+            if (mediaType === "video") {
+              setRemoteVideoTrack(null);
+            }
+          });
+
+          await client.join(appId, roomId, null, null);
+        }
+      } catch (err) {
+        console.error("Error al inicializar Agora:", err);
+      }
+    };
+
+    initAgora();
+
+    return () => {
+      active = false;
+      setRemoteVideoTrack(null);
+      const client = agoraClientRef.current;
+      
+      // Detener pistas locales
+      localTracksRef.current.forEach(track => {
+        if (track) {
+          track.stop();
+          track.close();
+        }
+      });
+      localTracksRef.current = [];
+
+      if (client) {
+        client.leave().then(() => {
+          client.removeAllListeners();
+        }).catch(e => console.error("Error al salir de Agora:", e));
+      }
+    };
+  }, [roomId, isHost, streamActive, currentUser]);
+
+  // Effect to play remote track when available
+  useEffect(() => {
+    if (remoteVideoTrack) {
+      remoteVideoTrack.play("remote-video-container");
+      return () => {
+        remoteVideoTrack.stop();
+      };
+    }
+  }, [remoteVideoTrack]);
 
   // Cleanup on unmount or page exit (host only)
   useEffect(() => {
@@ -995,19 +1116,22 @@ const LiveStream = () => {
       {/* Video stream viewport */}
       {isHost ? (
         <div style={{ width: "100%", height: "100%", position: "relative" }}>
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              display: hasCamera ? "block" : "none"
-            }}
-          />
-          {!hasCamera && (
+          {import.meta.env.VITE_AGORA_APP_ID ? (
+            <div id="local-video-container" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : hasCamera ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover"
+              }}
+            />
+          ) : null}
+          {((!import.meta.env.VITE_AGORA_APP_ID && !hasCamera)) && (
             <div style={{
               width: "100%",
               height: "100%",
@@ -1068,45 +1192,64 @@ const LiveStream = () => {
           justifyContent: "center",
           alignItems: "center",
           background: "radial-gradient(circle, #330c22 0%, #000000 100%)",
-          color: "white"
+          color: "white",
+          position: "relative"
         }}>
-          {liveData && (
-            <div style={{
-              position: "relative",
-              width: "140px",
-              height: "140px",
-              marginBottom: "20px"
-            }}>
-              <div className="pulsing-halo" style={{
+          {import.meta.env.VITE_AGORA_APP_ID && (
+            <div
+              id="remote-video-container"
+              style={{
+                width: "100%",
+                height: "100%",
                 position: "absolute",
-                inset: "-10px",
-                borderRadius: "50%",
-                border: "4px solid #FF0050",
-                boxShadow: "0 0 30px #FF0050",
-                animation: "ping-glow-large 2s infinite ease-out"
-              }} />
-              <img
-                src={liveData.hostPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(liveData.hostName)}&background=ff0050&color=fff&bold=true`}
-                alt="Creador"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  borderRadius: "50%",
-                  objectFit: "cover",
-                  border: "4px solid #000"
-                }}
-              />
+                top: 0,
+                left: 0,
+                zIndex: 1,
+                display: remoteVideoTrack ? "block" : "none"
+              }}
+            />
+          )}
+          {!remoteVideoTrack && (
+            <div style={{ zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center" }}>
+              {liveData && (
+                <div style={{
+                  position: "relative",
+                  width: "140px",
+                  height: "140px",
+                  marginBottom: "20px"
+                }}>
+                  <div className="pulsing-halo" style={{
+                    position: "absolute",
+                    inset: "-10px",
+                    borderRadius: "50%",
+                    border: "4px solid #FF0050",
+                    boxShadow: "0 0 30px #FF0050",
+                    animation: "ping-glow-large 2s infinite ease-out"
+                  }} />
+                  <img
+                    src={liveData.hostPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(liveData.hostName)}&background=ff0050&color=fff&bold=true`}
+                    alt="Creador"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: "50%",
+                      objectFit: "cover",
+                      border: "4px solid #000"
+                    }}
+                  />
+                </div>
+              )}
+              <h3 style={{ fontSize: "20px", fontWeight: "bold", margin: "10px 0 5px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
+                @{liveData?.hostName || "Creador"}
+                {(hostProfile?.isBusiness || hostProfile?.businessStatus === "verified") && (
+                  <DiamondIcon size={18} />
+                )}
+              </h3>
+              <p style={{ color: "#aaa", fontSize: "14px", margin: "0" }}>
+                Espectando en Vivo...
+              </p>
             </div>
           )}
-          <h3 style={{ fontSize: "20px", fontWeight: "bold", margin: "10px 0 5px", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-            @{liveData?.hostName || "Creador"}
-            {(hostProfile?.isBusiness || hostProfile?.businessStatus === "verified") && (
-              <DiamondIcon size={18} />
-            )}
-          </h3>
-          <p style={{ color: "#aaa", fontSize: "14px", margin: "0" }}>
-            Espectando en Vivo...
-          </p>
         </div>
       )}
 
@@ -1168,6 +1311,25 @@ const LiveStream = () => {
               <FiUsers size={16} style={{ color: "#00f2fe" }} /> {viewers}
             </div>
           </div>
+          
+          {!import.meta.env.VITE_AGORA_APP_ID && (
+            <div style={{
+              background: "rgba(255, 187, 0, 0.15)",
+              border: "1.5px solid #FFBB00",
+              color: "#FFBB00",
+              padding: "4px 10px",
+              borderRadius: "8px",
+              fontSize: "12px",
+              fontWeight: "bold",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              marginLeft: "10px",
+              boxShadow: "0 0 10px rgba(255, 187, 0, 0.2)"
+            }}>
+              ⚠️ Modo Simulador
+            </div>
+          )}
         </div>
 
         {/* Action button: End live or Exit */}
