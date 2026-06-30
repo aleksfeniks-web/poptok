@@ -410,7 +410,7 @@ const VideoPlayer = forwardRef(
         audio.pause();
         setIsPlayingAudio(false);
       };
-    }, [fileType, musicUrl, videoUrl]);
+    }, [fileType, musicUrl, videoUrl, shouldLoad]);
 
     const handleShare = async () => {
       const shareUrl = `${window.location.origin}/?v=${riuzaki1234}`;
@@ -513,7 +513,7 @@ const VideoPlayer = forwardRef(
           };
         }
       }
-    }, [fileType, videoUrl]);
+    }, [fileType, videoUrl, shouldLoad]);
 
     // 1. Acumulador de tiempo de reproducción (segundo a segundo) y lógica RNG para aparecer gemas
     useEffect(() => {
@@ -643,7 +643,7 @@ const VideoPlayer = forwardRef(
       };
     }, []);
 
-    // Intersection Observer para reproducir videos o música visibles
+    // Intersection Observer para detectar visibilidad del video (Feed)
     useEffect(() => {
       const observerElement = containerRef.current;
       if (!observerElement) return;
@@ -652,33 +652,11 @@ const VideoPlayer = forwardRef(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              if (fileType === "image") {
-                setIsPlaying(true);
-                onVideoPlayStateChange?.(true);
-                if (audioRef.current && musicUrl) {
-                  audioRef.current.play()
-                    .then(() => setIsPlayingAudio(true))
-                    .catch((err) => console.log("Audio play blocked:", err));
-                }
-              } else {
-                videoRef.current?.play().then(() => {
-                  setIsPlaying(true);
-                  onVideoPlayStateChange?.(true);
-                }).catch((err) => console.log("Auto-play blocked:", err));
-              }
+              setIsPlaying(true);
+              onVideoPlayStateChange?.(true);
             } else {
-              if (fileType === "image") {
-                setIsPlaying(false);
-                onVideoPlayStateChange?.(false);
-                if (audioRef.current) {
-                  audioRef.current.pause();
-                  setIsPlayingAudio(false);
-                }
-              } else {
-                videoRef.current?.pause();
-                setIsPlaying(false);
-                onVideoPlayStateChange?.(false);
-              }
+              setIsPlaying(false);
+              onVideoPlayStateChange?.(false);
             }
           });
         },
@@ -690,7 +668,39 @@ const VideoPlayer = forwardRef(
       return () => {
         observer.unobserve(observerElement);
       };
-    }, [fileType, musicUrl]);
+    }, []);
+
+    // Controlar la reproducción/pausa de video y audio en base al estado de carga y visibilidad
+    useEffect(() => {
+      if (fileType === "image") {
+        if (shouldLoad && isPlaying) {
+          if (audioRef.current && musicUrl && !isPlayingAudio) {
+            audioRef.current.play()
+              .then(() => setIsPlayingAudio(true))
+              .catch((err) => console.log("Audio play blocked:", err));
+          }
+        } else {
+          if (audioRef.current) {
+            audioRef.current.pause();
+            setIsPlayingAudio(false);
+          }
+        }
+      } else {
+        const videoElement = videoRef.current;
+        if (!videoElement) return;
+
+        if (shouldLoad && isPlaying) {
+          if (videoElement.paused) {
+            videoElement.play()
+              .catch((err) => console.log("Video play blocked:", err));
+          }
+        } else {
+          if (!videoElement.paused) {
+            videoElement.pause();
+          }
+        }
+      }
+    }, [shouldLoad, isPlaying, fileType, musicUrl, isPlayingAudio]);
 
     // Habilitar el sonido después de la interacción del usuario
     const enableSound = () => {
@@ -834,16 +844,20 @@ const VideoPlayer = forwardRef(
               style={{ objectFit: "contain", backgroundColor: "#000" }}
               alt="Post content"
             />
+          ) : !shouldLoad ? (
+            <div className="video-player" style={{ backgroundColor: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div className="feed-loading-spinner" />
+            </div>
           ) : hasError ? (
             <p style={{ textAlign: "center", color: "gray", marginTop: "50%" }}>No se pudo cargar el video.</p>
           ) : (
             <video
               ref={videoRef}
-              src={shouldLoad ? getCDNUrl(videoUrl) : ""}
+              src={getCDNUrl(videoUrl)}
               className="video-player"
               autoPlay
               playsInline
-              preload={shouldLoad ? "auto" : "none"}
+              preload="auto"
               muted={isMuted}
               loop
               onTimeUpdate={handleTimeUpdate}
