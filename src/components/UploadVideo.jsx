@@ -76,7 +76,7 @@ const MUSIC_TRACKS = [
 ];
 
 
-const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStatus }) => {
+const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, duetVideo, clearDuet, userStatus }) => {
   const navigate = useNavigate();
   const [tab, setTab] = useState("video"); // "video" | "photo" | "text" | "live"
   const [liveTitle, setLiveTitle] = useState("");
@@ -84,6 +84,11 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
   const [imageFile, setImageFile] = useState(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviewUrls, setImagePreviewUrls] = useState([]);
+  const [activePreviewIndex, setActivePreviewIndex] = useState(0);
+  const [location, setLocation] = useState("");
+  const duetVideoRef = useRef(null);
   const [description, setDescription] = useState("");
   const [selectedInterest, setSelectedInterest] = useState("");
   const [loading, setLoading] = useState(false);
@@ -198,7 +203,11 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
         return;
       }
 
+      // Aplicar filtro AI de cámara en tiempo real
+      const activeFilter = AI_FILTERS.find(f => f.id === selectedFilter);
+      ctx.filter = activeFilter?.filter || "none";
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      ctx.filter = "none"; // Restablecer para no aplicar el filtro a los stickers emoji
 
       if (selectedSticker !== "none") {
         let stickerEmoji = "";
@@ -239,7 +248,7 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
     return () => {
       cancelAnimationFrame(animId);
     };
-  }, [isCameraActive, tab, selectedSticker, stickerX, stickerY, stickerScale]);
+  }, [isCameraActive, tab, selectedSticker, stickerX, stickerY, stickerScale, selectedFilter]);
 
   const startRecording = () => {
     const canvas = recordCanvasRef.current;
@@ -269,11 +278,20 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
 
     setRecordedChunks(chunks);
     setMediaRecorder(recorder);
+
+    if (duetVideoRef.current) {
+      duetVideoRef.current.currentTime = 0;
+      duetVideoRef.current.play().catch(e => console.log("Duet video play error:", e));
+    }
+
     recorder.start();
     setRecording(true);
   };
 
   const stopRecording = () => {
+    if (duetVideoRef.current) {
+      duetVideoRef.current.pause();
+    }
     if (mediaRecorder && recording) {
       mediaRecorder.stop();
       setRecording(false);
@@ -684,7 +702,7 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
           {/* ── Drop zone (video / photo tabs) ────────────── */}
           {(tab === "video" || tab === "photo") && (
             <>
-              {!videoPreviewUrl && !imagePreviewUrl ? (
+              {!videoPreviewUrl && imagePreviewUrls.length === 0 ? (
                 <div
                   className={`upload-dropzone ${dragOver ? "drag-over" : ""}`}
                   onClick={openFilePicker}
@@ -694,15 +712,15 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
                 >
                   <FiUploadCloud size={40} className="upload-dropzone-icon" />
                   <p className="upload-dropzone-text">
-                    {tab === "video" ? "Arrastra tu video aquí" : "Arrastra tu foto aquí"}
+                    {tab === "video" ? "Arrastra tu video aquí" : "Arrastra tus fotos aquí"}
                   </p>
                   <p className="upload-dropzone-sub">o haz clic para seleccionar</p>
                   <p className="upload-dropzone-hint">
-                    {tab === "video" ? "MP4, MOV, AVI — máx. 100MB" : "JPG, PNG, WEBP — máx. 20MB"}
+                    {tab === "video" ? "MP4, MOV, AVI — máx. 100MB" : "JPG, PNG, WEBP — admite varias fotos"}
                   </p>
                 </div>
               ) : (
-                <div className="upload-preview-wrapper">
+                <div className="upload-preview-wrapper" style={{ display: "flex", flexDirection: "column", height: "auto", minHeight: "260px" }}>
                   {tab === "video" && videoPreviewUrl && (
                     <video
                       ref={previewVideoRef}
@@ -713,13 +731,41 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
                       muted={selectedMusic !== "none"}
                     />
                   )}
-                  {tab === "photo" && imagePreviewUrl && (
-                    <img
-                      src={imagePreviewUrl}
-                      className="upload-preview-img"
-                      style={{ filter: activeFilter?.filter || "" }}
-                      alt="preview"
-                    />
+                  {tab === "photo" && imagePreviewUrls.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", width: "100%" }}>
+                      <img
+                        src={imagePreviewUrls[activePreviewIndex]}
+                        className="upload-preview-img"
+                        style={{ filter: activeFilter?.filter || "", maxHeight: "280px", objectFit: "contain", borderRadius: "8px" }}
+                        alt="preview"
+                      />
+                      {imagePreviewUrls.length > 1 && (
+                        <div style={{ display: "flex", gap: "6px", overflowX: "auto", maxWidth: "90%", padding: "5px 0", scrollbarWidth: "none" }}>
+                          {imagePreviewUrls.map((url, index) => (
+                            <img
+                              key={index}
+                              src={url}
+                              style={{
+                                width: "45px",
+                                height: "45px",
+                                objectFit: "cover",
+                                borderRadius: "6px",
+                                border: activePreviewIndex === index ? "2px solid #ff0050" : "1px solid rgba(255,255,255,0.2)",
+                                cursor: "pointer",
+                                transition: "all 0.2s"
+                              }}
+                              onClick={() => {
+                                setActivePreviewIndex(index);
+                                // Sincronizar el imageFile legacy por si aplican filtros
+                                setImageFile(imageFiles[index]);
+                                setImagePreviewUrl(url);
+                              }}
+                              alt="thumbnail"
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                   <button className="upload-preview-clear" onClick={clearSelection}><FiX /></button>
                 </div>
@@ -975,6 +1021,46 @@ const UploadVideo = ({ onUploadSuccess, reactionComment, clearReaction, userStat
                     ))}
                   </select>
                 </div>
+
+                {/* Location */}
+                <div className="upload-location-wrapper" style={{ marginTop: "12px" }}>
+                  <label className="upload-field-label">📍 Ubicación (Opcional)</label>
+                  <input
+                    type="text"
+                    className="upload-category-select"
+                    placeholder="Escribe una ubicación (ej: París, Francia)"
+                    value={location}
+                    onChange={e => setLocation(e.target.value)}
+                    style={{ width: "100%", marginTop: "6px" }}
+                  />
+                  <div style={{ display: "flex", gap: "6px", marginTop: "8px", flexWrap: "wrap" }}>
+                    {["Tokio", "París", "Nueva York", "Madrid", "Miami", "CDMX"].map(loc => (
+                      <button
+                        key={loc}
+                        type="button"
+                        onClick={() => setLocation(loc)}
+                        style={{
+                          background: "rgba(255,255,255,0.08)",
+                          border: "none",
+                          color: "#ddd",
+                          padding: "4px 10px",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                          cursor: "pointer"
+                        }}
+                      >
+                        {loc}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Banner de Dúo */}
+                {duetVideo && (
+                  <div style={{ background: "rgba(0, 242, 254, 0.15)", border: "1px solid rgba(0, 242, 254, 0.3)", padding: "10px 14px", borderRadius: "12px", color: "#fff", fontSize: "13px", marginTop: "12px" }}>
+                    🎬 Publicando como <strong>Dúo</strong> en respuesta al video de <strong>@{duetVideo.username}</strong>.
+                  </div>
+                )}
 
                 {/* Music Selector with Preview */}
                 <div className="upload-music-wrapper" style={{ marginTop: "12px" }}>

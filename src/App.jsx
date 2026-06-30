@@ -56,6 +56,7 @@ function App() {
   const [liveToastNotification, setLiveToastNotification] = useState(null);
   const [following, setFollowing] = useState([]);
   const [reactionComment, setReactionComment] = useState(null);
+  const [duetVideo, setDuetVideo] = useState(null);
   const [shopSellerFilter, setShopSellerFilter] = useState(null);
   const [activityCount, setActivityCount] = useState(0);
   const [shopNotificationCount, setShopNotificationCount] = useState(0);
@@ -608,6 +609,7 @@ function App() {
   const handleUploadSuccess = () => {
     setRefreshTrigger((prev) => prev + 1);
     setShowUploadSection(false);
+    setDuetVideo(null);
     setPage(1);
   };
 
@@ -811,6 +813,10 @@ function App() {
                     setReactionComment(cmt);
                     setShowUploadSection(true);
                   }}
+                  onStartDuet={(vid) => {
+                    setDuetVideo(vid);
+                    setShowUploadSection(true);
+                  }}
                 />
               )}
             </>
@@ -827,6 +833,8 @@ function App() {
             setPage={setPage} 
             reactionComment={reactionComment}
             clearReaction={() => setReactionComment(null)}
+            duetVideo={duetVideo}
+            clearDuet={() => setDuetVideo(null)}
             userStatus={userStatus}
           />
         )}

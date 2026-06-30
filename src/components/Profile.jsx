@@ -282,6 +282,7 @@ const Profile = ({ onSelectVideo }) => {
   const [userVideos, setUserVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState(null);
+  const [activeProfileImageIndex, setActiveProfileImageIndex] = useState(0);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef(null);
 
@@ -1400,7 +1401,7 @@ const Profile = ({ onSelectVideo }) => {
               <div
                 key={video.riuzaki1234}
                 className="profile-video-card"
-                onClick={() => setSelectedVideo(video)}
+                onClick={() => { setSelectedVideo(video); setActiveProfileImageIndex(0); }}
               >
                 {video.fileType === "image" ? (
                   <img className="profile-video-thumbnail" src={video.fileUrl} alt="thumbnail" style={{ objectFit: "cover" }} />
@@ -1428,7 +1429,7 @@ const Profile = ({ onSelectVideo }) => {
               <div
                 key={video.riuzaki1234}
                 className="profile-video-card"
-                onClick={() => setSelectedVideo(video)}
+                onClick={() => { setSelectedVideo(video); setActiveProfileImageIndex(0); }}
               >
                 {video.fileType === "image" ? (
                   <img className="profile-video-thumbnail" src={video.fileUrl} alt="thumbnail" style={{ objectFit: "cover" }} />
@@ -1502,11 +1503,38 @@ const Profile = ({ onSelectVideo }) => {
             </button>
 
              {selectedVideo.fileType === "image" ? (
-               <img
-                 src={getCDNUrl(selectedVideo.fileUrl)}
-                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                 alt="Post content"
-               />
+               <div style={{ position: "relative", width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#000" }}>
+                 <img
+                   src={getCDNUrl(selectedVideo.fileUrls && selectedVideo.fileUrls.length > 0 ? selectedVideo.fileUrls[activeProfileImageIndex] : selectedVideo.fileUrl)}
+                   style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                   alt="Post content"
+                 />
+                 {selectedVideo.fileUrls && selectedVideo.fileUrls.length > 1 && (
+                   <>
+                     {activeProfileImageIndex > 0 && (
+                       <button
+                         onClick={(e) => { e.stopPropagation(); setActiveProfileImageIndex(prev => prev - 1); }}
+                         style={{ position: "absolute", left: "15px", background: "rgba(0,0,0,0.6)", border: "none", color: "#fff", borderRadius: "50%", width: "36px", height: "36px", fontSize: "18px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 10 }}
+                       >
+                         ‹
+                       </button>
+                     )}
+                     {activeProfileImageIndex < selectedVideo.fileUrls.length - 1 && (
+                       <button
+                         onClick={(e) => { e.stopPropagation(); setActiveProfileImageIndex(prev => prev + 1); }}
+                         style={{ position: "absolute", right: "15px", background: "rgba(0,0,0,0.6)", border: "none", color: "#fff", borderRadius: "50%", width: "36px", height: "36px", fontSize: "18px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", zIndex: 10 }}
+                       >
+                         ›
+                       </button>
+                     )}
+                     <div style={{ position: "absolute", bottom: "20px", left: "50%", transform: "translateX(-50%)", display: "flex", gap: "6px", zIndex: 10 }}>
+                       {selectedVideo.fileUrls.map((_, i) => (
+                         <span key={i} style={{ width: "8px", height: "8px", borderRadius: "50%", background: i === activeProfileImageIndex ? "#ff0050" : "rgba(255,255,255,0.5)", transition: "background 0.2s" }} />
+                       ))}
+                     </div>
+                   </>
+                 )}
+               </div>
              ) : (
                <video
                  src={getCDNUrl(selectedVideo.fileUrl)}

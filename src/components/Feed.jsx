@@ -1025,6 +1025,9 @@ const Feed = ({
                 <VideoPlayer
                   fileType={v.fileType || "video"}
                   videoUrl={getCDNUrl(v.fileUrl)}
+                  fileUrls={v.fileUrls}
+                  duetParentUrl={v.duetParentUrl}
+                  location={v.location}
                   username={v.username}
                   description={v.description}
                   interest={v.interest}
@@ -1057,6 +1060,7 @@ const Feed = ({
                   subtitles={v.subtitles}
                   onDeleteVideo={handleDeleteVideo}
                   userRole={userRole}
+                  onStartDuet={onStartDuet}
                 />
               </div>
             );

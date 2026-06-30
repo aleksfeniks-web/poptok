@@ -98,7 +98,7 @@ const DiamondIcon = ({ size = 16, style = {} }) => (
 );
 
 const VideoPlayer = forwardRef(
-  ({ fileType, videoUrl, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange, onReactToComment, reactionComment, subtitles, onDeleteVideo, userRole, userStatus, isAd, adId, link, businessName }, ref) => {
+  ({ fileType, videoUrl, fileUrls, duetParentUrl, location, onStartDuet, username, riuzaki1234, interactions, onInteraction, uid, currentUser, userProfile, userId, userPhotoURL, commentsList, updateVideoComments, description, interest, musicUrl, musicTitle, allowDownload, onVideoPlayStateChange, onReactToComment, reactionComment, subtitles, onDeleteVideo, userRole, userStatus, isAd, adId, link, businessName }, ref) => {
     const [hasError, setHasError] = useState(false);
     const [shouldLoad, setShouldLoad] = useState(false);
     const [showCoin, setShowCoin] = useState(false);
@@ -106,7 +106,11 @@ const VideoPlayer = forwardRef(
     const [coinPosition, setCoinPosition] = useState({ x: 0, y: 0 });
     const [velocity, setVelocity] = useState({ dx: 1, dy: 1 });
     const videoRef = useRef(null);
+    const duetParentVideoRef = useRef(null);
     const containerRef = useRef(null);
+    
+    // Soporte para carrusel de imágenes
+    const [activeImageIndex, setActiveImageIndex] = useState(0);
     const [isMuted, setIsMuted] = useState(() => !window.isPoptokUnmuted);
     const [hasLiked, setHasLiked] = useState(false);
     const [hasFavorited, setHasFavorited] = useState(false);
@@ -687,6 +691,7 @@ const VideoPlayer = forwardRef(
         }
       } else {
         const videoElement = videoRef.current;
+        const duetElement = duetParentVideoRef.current;
         if (!videoElement) return;
 
         if (shouldLoad && isPlaying) {
@@ -694,9 +699,17 @@ const VideoPlayer = forwardRef(
             videoElement.play()
               .catch((err) => console.log("Video play blocked:", err));
           }
+          if (duetElement && duetElement.paused) {
+            duetElement.currentTime = videoElement.currentTime; // Sincronizar progreso
+            duetElement.play()
+              .catch((err) => console.log("Duet parent play blocked:", err));
+          }
         } else {
           if (!videoElement.paused) {
             videoElement.pause();
+          }
+          if (duetElement && !duetElement.paused) {
+            duetElement.pause();
           }
         }
       }
@@ -708,6 +721,9 @@ const VideoPlayer = forwardRef(
       setIsMuted(false);
       if (videoRef.current) {
         videoRef.current.muted = false;
+      }
+      if (duetParentVideoRef.current) {
+        duetParentVideoRef.current.muted = false;
       }
       if (audioRef.current) {
         audioRef.current.muted = false;
@@ -781,6 +797,44 @@ const VideoPlayer = forwardRef(
       return num;
     };
 
+    const handleDuet = () => {
+      if (!currentUser) {
+        alert("Debes iniciar sesión para grabar un Dúo.");
+        return;
+      }
+      if (onStartDuet) {
+        onStartDuet({
+          riuzaki1234,
+          fileUrl: videoUrl,
+          username
+        });
+      }
+    };
+
+    const renderMarkdown = (text) => {
+      if (!text) return "";
+      
+      let html = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+      html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+      html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
+      
+      html = html.replace(/^### (.*?)$/gm, "<h5 style='margin: 4px 0; color: #ff0050; font-size: 13px;'>$1</h5>");
+      html = html.replace(/^## (.*?)$/gm, "<h4 style='margin: 6px 0; color: #ff0050; font-size: 15px;'>$1</h4>");
+      html = html.replace(/^# (.*?)$/gm, "<h3 style='margin: 8px 0; color: #ff0050; font-size: 18px;'>$1</h3>");
+      
+      html = html.replace(/^- (.*?)$/gm, "<div style='display: flex; gap: 4px; padding-left: 8px; margin: 2px 0;'><span style='color: #ff0050;'>•</span> <span>$1</span></div>");
+      html = html.replace(/\n/g, "<br />");
+      
+      html = html.replace(/(#[a-zA-Z0-9_ñÑáéíóúÁÉÍÓÚ]+)/g, "<span style='color: #00f2fe; font-weight: bold;'>$1</span>");
+      html = html.replace(/(@[a-zA-Z0-9_]+)/g, "<span style='color: #ff0050; font-weight: bold;'>$1</span>");
+
+      return html;
+    };
+
     return (
       <div ref={containerRef} className={`video-container ${isVertical ? "vertical" : "horizontal"} ${showComments ? "shrink" : ""}`}>
         <div className="relative w-full h-full" onClick={handlePlayPause}>
@@ -838,18 +892,136 @@ const VideoPlayer = forwardRef(
             />
           )}
           {fileType === "image" ? (
-            <img
-              src={getCDNUrl(videoUrl)}
-              className="video-player"
-              style={{ objectFit: "contain", backgroundColor: "#000" }}
-              alt="Post content"
-            />
+            <div className="video-player-image-carousel" style={{ position: "relative", width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: "#000" }}>
+              <img
+                src={getCDNUrl(fileUrls && fileUrls.length > 0 ? fileUrls[activeImageIndex] : videoUrl)}
+                className="video-player"
+                style={{ objectFit: "contain", width: "100%", height: "100%" }}
+                alt={`Post content ${activeImageIndex + 1}`}
+              />
+              {fileUrls && fileUrls.length > 1 && (
+                <>
+                  {activeImageIndex > 0 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveImageIndex(prev => prev - 1);
+                      }}
+                      style={{
+                        position: "absolute",
+                        left: "15px",
+                        background: "rgba(0,0,0,0.6)",
+                        border: "none",
+                        color: "#fff",
+                        borderRadius: "50%",
+                        width: "36px",
+                        height: "36px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        zIndex: 10,
+                        fontSize: "18px"
+                      }}
+                    >
+                      ‹
+                    </button>
+                  )}
+                  {activeImageIndex < fileUrls.length - 1 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveImageIndex(prev => prev + 1);
+                      }}
+                      style={{
+                        position: "absolute",
+                        right: "15px",
+                        background: "rgba(0,0,0,0.6)",
+                        border: "none",
+                        color: "#fff",
+                        borderRadius: "50%",
+                        width: "36px",
+                        height: "36px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        zIndex: 10,
+                        fontSize: "18px"
+                      }}
+                    >
+                      ›
+                    </button>
+                  )}
+                  <div style={{
+                    position: "absolute",
+                    bottom: "75px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    display: "flex",
+                    gap: "6px",
+                    zIndex: 10
+                  }}>
+                    {fileUrls.map((_, i) => (
+                      <span
+                        key={i}
+                        style={{
+                          width: "8px",
+                          height: "8px",
+                          borderRadius: "50%",
+                          background: i === activeImageIndex ? "#ff0050" : "rgba(255,255,255,0.5)",
+                          transition: "background 0.2s"
+                        }}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           ) : !shouldLoad ? (
             <div className="video-player" style={{ backgroundColor: "#000", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <div className="feed-loading-spinner" />
             </div>
           ) : hasError ? (
             <p style={{ textAlign: "center", color: "gray", marginTop: "50%" }}>No se pudo cargar el video.</p>
+          ) : duetParentUrl ? (
+            <div className="duet-video-container" style={{ display: "flex", width: "100%", height: "100%", backgroundColor: "#000" }}>
+              {/* Left Video (User) */}
+              <div style={{ flex: 1, height: "100%", position: "relative", borderRight: "1px solid rgba(255,255,255,0.1)" }}>
+                <video
+                  ref={videoRef}
+                  src={getCDNUrl(videoUrl)}
+                  className="video-player"
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  autoPlay
+                  playsInline
+                  preload="auto"
+                  muted={isMuted}
+                  loop
+                  onTimeUpdate={handleTimeUpdate}
+                  onError={() => setHasError(true)}
+                />
+                <span style={{ position: "absolute", bottom: "80px", left: "10px", background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: "11px", padding: "2px 8px", borderRadius: "10px", zIndex: 5 }}>
+                  @{username}
+                </span>
+              </div>
+              {/* Right Video (Original) */}
+              <div style={{ flex: 1, height: "100%", position: "relative" }}>
+                <video
+                  ref={duetParentVideoRef}
+                  src={getCDNUrl(duetParentUrl)}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  autoPlay
+                  playsInline
+                  preload="auto"
+                  muted={isMuted}
+                  loop
+                />
+                <span style={{ position: "absolute", bottom: "80px", left: "10px", background: "rgba(0,0,0,0.5)", color: "#fff", fontSize: "11px", padding: "2px 8px", borderRadius: "10px", zIndex: 5 }}>
+                  Original
+                </span>
+              </div>
+            </div>
           ) : (
             <video
               ref={videoRef}
@@ -963,8 +1135,16 @@ const VideoPlayer = forwardRef(
 
             {/* Descripción del video */}
             {description && (
-              <div className="relative bg-black/60 px-2 py-0.5 rounded text-white text-sm max-w-xs" style={{ marginTop: "5px" }}>
-                <span>{description}</span>
+              <div className="relative bg-black/60 px-3 py-1.5 rounded text-white text-sm max-w-xs" style={{ marginTop: "5px", borderRadius: "8px", lineHeight: "1.4" }}>
+                <div dangerouslySetInnerHTML={{ __html: renderMarkdown(description) }} />
+              </div>
+            )}
+
+            {/* Ubicación del video */}
+            {location && (
+              <div className="bg-black/60 text-white text-xs px-2 py-0.5 rounded-full flex items-center" style={{ marginTop: "5px", width: "fit-content", color: "#00f2fe" }}>
+                <span style={{ marginRight: "4px" }}>📍</span>
+                <span>{location}</span>
               </div>
             )}
 
@@ -1074,6 +1254,21 @@ const VideoPlayer = forwardRef(
                   />
                 ))}
               </button>
+
+              {/* Botón de Dúo (solo para videos) */}
+              {fileType === "video" && !duetParentUrl && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDuet();
+                  }}
+                  className="icon-button"
+                  title="Grabar un Dúo con este video"
+                >
+                  <FaFilm className="icon" style={{ color: "#00f2fe" }} />
+                  <span className="interaction-count" style={{ fontSize: "10px" }}>Dúo</span>
+                </button>
+              )}
 
               {/* Botón de Compartir */}
               <button onClick={handleShare} className="icon-button">
