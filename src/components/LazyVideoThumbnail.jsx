@@ -30,13 +30,12 @@ export default function LazyVideoThumbnail({ src, className, style }) {
       ref={containerRef}
       className={className}
       style={{
-        ...style,
-        position: "relative",
         overflow: "hidden",
-        backgroundColor: "#121212"
+        backgroundColor: "#121212",
+        ...style
       }}
     >
-      {shouldLoad ? (
+      {shouldLoad && cdnUrl ? (
         <video
           muted
           preload="metadata"
